@@ -62,8 +62,8 @@ export default async function UnidadesPage() {
           <table className="w-full min-w-[600px] text-sm">
             <thead>
               <tr className="border-b border-border bg-background">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Unidade</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Marca</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Unidade</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden sm:table-cell">
                   Localização
                 </th>
@@ -76,10 +76,10 @@ export default async function UnidadesPage() {
                 const marca = Array.isArray(u.marca) ? u.marca[0] : u.marca;
                 return (
                   <tr key={u.id} className="hover:bg-background/50">
-                    <td className="px-4 py-3 font-medium text-foreground">{u.nome}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
+                    <td className="px-4 py-3 font-medium text-foreground">
                       {marca ? (marca as { nome: string }).nome : "—"}
                     </td>
+                    <td className="px-4 py-3 text-muted-foreground">{u.nome}</td>
                     <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
                       {u.cidade && u.estado
                         ? `${u.cidade} / ${u.estado}`
