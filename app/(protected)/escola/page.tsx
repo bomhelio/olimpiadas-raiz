@@ -126,12 +126,11 @@ export default async function EscolaPage({
       getMarcaNome(a.marca).localeCompare(getMarcaNome(b.marca)) || a.nome.localeCompare(b.nome),
   );
 
-  const unidadeRows = unidadesSorted.map((u, i) => {
+  const unidadeRows = unidadesSorted.map((u) => {
     const marcaNome = getMarcaNome(u.marca);
-    const prevMarcaNome = i > 0 ? getMarcaNome(unidadesSorted[i - 1]?.marca) : null;
     const turmas = (Array.isArray(u.turmas) ? u.turmas : []) as Turma[];
     const turmasSorted = [...turmas].sort((a, b) => a.nome.localeCompare(b.nome));
-    return { ...u, marcaNome, isFirstInGroup: marcaNome !== prevMarcaNome, turmasSorted };
+    return { ...u, marcaNome, turmasSorted };
   });
 
   // ---------------------------------------------------------------------------
@@ -215,16 +214,14 @@ export default async function EscolaPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {unidadeRows.map((u, idx) => (
+                  {unidadeRows.map((u) => (
                     <>
                       {/* Linha da unidade */}
                       <tr
                         key={`u-${u.id}`}
-                        className={`border-b border-border hover:bg-background/50${u.isFirstInGroup && idx > 0 ? " border-t-2 border-t-border/60" : ""}`}
+                        className="border-b border-border hover:bg-background/50"
                       >
-                        <td className="px-4 py-3 font-medium text-foreground">
-                          {u.isFirstInGroup ? u.marcaNome : ""}
-                        </td>
+                        <td className="px-4 py-3 font-medium text-foreground">{u.marcaNome}</td>
                         <td className="px-4 py-3 font-medium text-foreground">{u.nome}</td>
                         <td className="px-4 py-3" />
                         <td className="px-4 py-3 hidden sm:table-cell" />
@@ -270,18 +267,18 @@ export default async function EscolaPage({
                       {u.turmasSorted.map((t) => (
                         <tr
                           key={`t-${t.id}`}
-                          className="border-b border-border/50 bg-background/20 hover:bg-background/40"
+                          className="border-b border-border hover:bg-background/50"
                         >
-                          <td className="px-4 py-2" />
-                          <td className="px-4 py-2" />
-                          <td className="px-4 py-2 text-muted-foreground">{t.nome}</td>
-                          <td className="px-4 py-2 text-muted-foreground hidden sm:table-cell">
+                          <td className="px-4 py-3 text-muted-foreground">{u.marcaNome}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{u.nome}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{t.nome}</td>
+                          <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
                             {t.serie ?? "—"}
                           </td>
-                          <td className="px-4 py-2 text-muted-foreground hidden sm:table-cell">
+                          <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
                             {t.ano_letivo ?? "—"}
                           </td>
-                          <td className="px-4 py-2">
+                          <td className="px-4 py-3">
                             {can(user.role, "turma:update") && (
                               <div className="flex items-center gap-2">
                                 <Link
