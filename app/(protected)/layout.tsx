@@ -36,14 +36,14 @@ export default async function ProtectedLayout({ children }: { children: React.Re
       <div className="flex min-h-screen flex-col">
         {/* Top navbar */}
         <header className="sticky top-0 z-30 border-b border-border bg-card">
-          <div className="flex h-14 items-center justify-between px-4">
+          <div className="flex h-20 items-center justify-between px-4">
             {/* Logo */}
             <div className="flex items-center gap-3">
               <Image
                 src="/logo-raiz.png"
                 alt="Raiz Educação"
-                width={36}
-                height={36}
+                width={72}
+                height={72}
                 className="object-contain"
                 priority
               />
