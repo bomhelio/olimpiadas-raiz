@@ -80,7 +80,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
           {/* Main content */}
           <main className="flex-1 bg-background">
-            <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">{children}</div>
+            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{children}</div>
           </main>
         </div>
       </div>
