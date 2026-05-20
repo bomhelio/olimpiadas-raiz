@@ -18,7 +18,7 @@ type Aba = "unidades" | "alunos";
 
 function TabNav({ aba, userRole }: { aba: Aba; userRole: RoleUsuario }) {
   const tabs: { id: Aba; label: string; perm: Parameters<typeof can>[1] }[] = [
-    { id: "unidades", label: "Unidades & Turmas", perm: "unidade:read" },
+    { id: "unidades", label: "Rede Escolar", perm: "unidade:read" },
     { id: "alunos", label: "Alunos", perm: "aluno:read" },
   ];
 
