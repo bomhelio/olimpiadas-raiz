@@ -2,7 +2,6 @@ import Link from "next/link";
 import { getServerSession } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { can } from "@/lib/auth/roles";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { toggleUnidadeAtivo } from "@/app/(protected)/unidades/actions";
 import { toggleTurmaAtivo } from "@/app/(protected)/turmas/actions";
@@ -11,7 +10,7 @@ import type { RoleUsuario } from "@/lib/types/database";
 
 export const metadata = { title: "Escola — Olimpíadas" };
 
-type Aba = "unidades" | "turmas" | "alunos";
+type Aba = "unidades" | "alunos";
 
 // ---------------------------------------------------------------------------
 // TabNav
@@ -19,22 +18,21 @@ type Aba = "unidades" | "turmas" | "alunos";
 
 function TabNav({ aba, userRole }: { aba: Aba; userRole: RoleUsuario }) {
   const tabs: { id: Aba; label: string; perm: Parameters<typeof can>[1] }[] = [
-    { id: "unidades", label: "Unidades", perm: "unidade:read" },
-    { id: "turmas", label: "Turmas", perm: "turma:read" },
+    { id: "unidades", label: "Unidades & Turmas", perm: "unidade:read" },
     { id: "alunos", label: "Alunos", perm: "aluno:read" },
   ];
 
   return (
-    <div className="flex border-b border-border mb-6">
+    <div className="flex border-b border-border">
       {tabs.map((tab) =>
         can(userRole, tab.perm) ? (
           <Link
             key={tab.id}
             href={`?aba=${tab.id}`}
-            className={`px-4 py-2.5 text-sm ${
+            className={`px-4 py-2.5 text-sm transition-colors ${
               aba === tab.id
                 ? "border-b-2 border-primary -mb-px font-medium text-foreground"
-                : "border-b-2 border-transparent -mb-px text-muted-foreground hover:text-foreground transition-colors"
+                : "border-b-2 border-transparent -mb-px text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.label}
@@ -56,8 +54,8 @@ const getMarcaNome = (m: unknown): string => {
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
+  const [y, mo, d] = iso.split("-");
+  return `${d}/${mo}/${y}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -77,68 +75,89 @@ export default async function EscolaPage({
 
   const sp = await searchParams;
   const abaParam = sp["aba"];
-  const aba: Aba = abaParam === "turmas" ? "turmas" : abaParam === "alunos" ? "alunos" : "unidades";
+  const aba: Aba = abaParam === "alunos" ? "alunos" : "unidades";
+  const busca = typeof sp["busca"] === "string" ? sp["busca"].trim() : "";
 
-  // Fetch condicional da aba ativa
+  // ---------------------------------------------------------------------------
+  // Fetch condicional
+  // ---------------------------------------------------------------------------
+
+  // Unidades + turmas aninhadas
   const unidades =
     aba === "unidades" && can(user.role, "unidade:read")
       ? (
           await supabase
             .from("unidade")
-            .select("id, nome, cidade, estado, ativo, marca_id, marca:marca_id(nome, cor_primaria)")
-            .order("nome")
-        ).data
-      : null;
-
-  const turmas =
-    aba === "turmas" && can(user.role, "turma:read")
-      ? (
-          await supabase
-            .from("turma")
-            .select("id, nome, ano_letivo, serie, ativo, unidade_id, unidade:unidade_id(nome)")
-            .order("nome")
-        ).data
-      : null;
-
-  const alunos =
-    aba === "alunos" && can(user.role, "aluno:read")
-      ? (
-          await supabase
-            .from("aluno")
             .select(
-              "id, nome, data_nascimento, ativo, turma_id, turma:turma_id(nome, unidade:unidade_id(nome))",
+              "id, nome, cidade, estado, ativo, marca_id, marca:marca_id(nome), turmas:turma(id, nome, serie, ano_letivo, ativo)",
             )
             .order("nome")
         ).data
       : null;
 
-  // Computed rows for unidades (agrupamento por marca)
+  // Alunos com busca opcional
+  const alunosQuery = (() => {
+    if (aba !== "alunos" || !can(user.role, "aluno:read")) return null;
+    let q = supabase
+      .from("aluno")
+      .select(
+        "id, nome, data_nascimento, ativo, turma_id, turma:turma_id(nome, unidade:unidade_id(nome))",
+      )
+      .order("nome");
+    if (busca) q = q.ilike("nome", `%${busca}%`);
+    return q;
+  })();
+  const alunos = alunosQuery ? (await alunosQuery).data : null;
+
+  // ---------------------------------------------------------------------------
+  // Agrupamento de unidades por marca
+  // ---------------------------------------------------------------------------
+
+  type Turma = {
+    id: string;
+    nome: string;
+    serie: string | null;
+    ano_letivo: number | null;
+    ativo: boolean;
+  };
+
   const unidadesSorted = [...(unidades ?? [])].sort(
     (a, b) =>
       getMarcaNome(a.marca).localeCompare(getMarcaNome(b.marca)) || a.nome.localeCompare(b.nome),
   );
+
   const unidadeRows = unidadesSorted.map((u, i) => {
     const marcaNome = getMarcaNome(u.marca);
     const prevMarcaNome = i > 0 ? getMarcaNome(unidadesSorted[i - 1]?.marca) : null;
-    return { ...u, marcaNome, isFirstInGroup: marcaNome !== prevMarcaNome };
+    const turmas = (Array.isArray(u.turmas) ? u.turmas : []) as Turma[];
+    const turmasSorted = [...turmas].sort((a, b) => a.nome.localeCompare(b.nome));
+    return { ...u, marcaNome, isFirstInGroup: marcaNome !== prevMarcaNome, turmasSorted };
   });
 
-  // Botão "Nova X" por aba
+  // ---------------------------------------------------------------------------
+  // Botões "Nova X"
+  // ---------------------------------------------------------------------------
+
   const novoButton =
-    aba === "unidades" && can(user.role, "unidade:create") ? (
-      <Link
-        href="/unidades/nova"
-        className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
-      >
-        + Nova unidade
-      </Link>
-    ) : aba === "turmas" && can(user.role, "turma:create") ? (
-      <Link
-        href="/turmas/nova"
-        className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
-      >
-        + Nova turma
-      </Link>
+    aba === "unidades" ? (
+      <div className="flex items-center gap-2">
+        {can(user.role, "unidade:create") && (
+          <Link
+            href="/unidades/nova"
+            className="rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            + Nova unidade
+          </Link>
+        )}
+        {can(user.role, "turma:create") && (
+          <Link
+            href="/turmas/nova"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+          >
+            + Nova turma
+          </Link>
+        )}
+      </div>
     ) : aba === "alunos" && can(user.role, "aluno:create") ? (
       <Link
         href="/alunos/novo"
@@ -150,169 +169,77 @@ export default async function EscolaPage({
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-foreground">Escola</h1>
         {novoButton}
       </div>
 
+      {/* Tabs */}
       <TabNav aba={aba} userRole={user.role} />
 
       {/* ------------------------------------------------------------------ */}
-      {/* ABA UNIDADES                                                         */}
+      {/* ABA UNIDADES & TURMAS                                                */}
       {/* ------------------------------------------------------------------ */}
       {aba === "unidades" && (
         <>
           {!unidades || unidades.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-              Nenhum registro encontrado.
+              Nenhuma unidade encontrada.
             </p>
           ) : (
             <div className="overflow-hidden rounded-xl border border-border bg-card">
               <table className="w-full table-fixed text-sm">
                 <colgroup>
-                  <col className="w-[20%]" />
-                  <col className="w-[27%]" />
-                  <col className="w-[23%] hidden sm:table-column" />
-                  <col className="w-[10%]" />
-                  <col className="w-[20%]" />
+                  <col className="w-[18%]" />
+                  <col className="w-[32%]" />
+                  <col className="w-[28%] hidden sm:table-column" />
+                  <col className="w-[22%]" />
                 </colgroup>
                 <thead>
                   <tr className="border-b border-border bg-background">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Marca</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Unidade
+                      Unidade / Turma
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden sm:table-cell">
-                      Localização
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Status
+                      Detalhe
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {unidadeRows.map((u, idx) => (
-                    <tr
-                      key={u.id}
-                      className={`hover:bg-background/50 border-b border-border${u.isFirstInGroup && idx > 0 ? " border-t-2 border-t-border/60" : ""}`}
-                    >
-                      <td className="px-4 py-3 font-medium text-foreground">
-                        {u.isFirstInGroup ? u.marcaNome : ""}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{u.nome}</td>
-                      <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
-                        {u.cidade && u.estado
-                          ? `${u.cidade} / ${u.estado}`
-                          : (u.cidade ?? u.estado ?? "—")}
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge ativo={u.ativo} />
-                      </td>
-                      <td className="px-4 py-3">
-                        {can(user.role, "unidade:update") && (
-                          <div className="flex items-center gap-2">
-                            <Link
-                              href={`/unidades/${u.id}/editar`}
-                              className="rounded px-2 py-1 text-sm font-bold text-foreground hover:text-primary transition-colors"
-                            >
-                              Editar
-                            </Link>
-                            <form action={toggleUnidadeAtivo}>
-                              <input type="hidden" name="id" value={u.id} />
-                              <input type="hidden" name="ativo" value={String(u.ativo)} />
-                              {u.ativo ? (
-                                <ConfirmButton
-                                  message={`Desativar a unidade "${u.nome}"?`}
-                                  className="rounded px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-secondary"
-                                >
-                                  Desativar
-                                </ConfirmButton>
-                              ) : (
-                                <button
-                                  type="submit"
-                                  className="rounded px-2 py-1 text-sm font-bold text-foreground hover:text-primary transition-colors"
-                                >
-                                  Ativar
-                                </button>
-                              )}
-                            </form>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ------------------------------------------------------------------ */}
-      {/* ABA TURMAS                                                           */}
-      {/* ------------------------------------------------------------------ */}
-      {aba === "turmas" && (
-        <>
-          {!turmas || turmas.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-              Nenhum registro encontrado.
-            </p>
-          ) : (
-            <div className="overflow-hidden rounded-xl border border-border bg-card">
-              <table className="w-full table-fixed text-sm">
-                <colgroup>
-                  <col className="w-[30%]" />
-                  <col className="w-[30%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[15%]" />
-                </colgroup>
-                <thead>
-                  <tr className="border-b border-border bg-background">
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Turma</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden md:table-cell">
-                      Unidade
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden sm:table-cell">
-                      Série
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden sm:table-cell">
-                      Ano
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {turmas.map((t) => {
-                    const unidade = Array.isArray(t.unidade) ? t.unidade[0] : t.unidade;
-                    return (
-                      <tr key={t.id} className="hover:bg-background/50">
-                        <td className="px-4 py-3 font-bold text-foreground">{t.nome}</td>
-                        <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
-                          {unidade ? (unidade as { nome: string }).nome : "—"}
+                    <>
+                      {/* Linha da unidade */}
+                      <tr
+                        key={`u-${u.id}`}
+                        className={`border-b border-border hover:bg-background/50${u.isFirstInGroup && idx > 0 ? " border-t-2 border-t-border/60" : ""}`}
+                      >
+                        <td className="px-4 py-3 font-medium text-foreground">
+                          {u.isFirstInGroup ? u.marcaNome : ""}
                         </td>
+                        <td className="px-4 py-3 font-medium text-foreground">{u.nome}</td>
                         <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
-                          {t.serie ?? "—"}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
-                          {t.ano_letivo ?? "—"}
+                          {u.cidade && u.estado
+                            ? `${u.cidade} / ${u.estado}`
+                            : (u.cidade ?? u.estado ?? "—")}
                         </td>
                         <td className="px-4 py-3">
-                          {can(user.role, "turma:update") && (
+                          {can(user.role, "unidade:update") && (
                             <div className="flex items-center gap-2">
                               <Link
-                                href={`/turmas/${t.id}/editar`}
+                                href={`/unidades/${u.id}/editar`}
                                 className="rounded px-2 py-1 text-sm font-bold text-foreground hover:text-primary transition-colors"
                               >
                                 Editar
                               </Link>
-                              <form action={toggleTurmaAtivo}>
-                                <input type="hidden" name="id" value={t.id} />
-                                <input type="hidden" name="ativo" value={String(t.ativo)} />
-                                {t.ativo ? (
+                              <form action={toggleUnidadeAtivo}>
+                                <input type="hidden" name="id" value={u.id} />
+                                <input type="hidden" name="ativo" value={String(u.ativo)} />
+                                {u.ativo ? (
                                   <ConfirmButton
-                                    message={`Desativar a turma "${t.nome}"?`}
+                                    message={`Desativar a unidade "${u.nome}"?`}
                                     className="rounded px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-secondary"
                                   >
                                     Desativar
@@ -330,8 +257,56 @@ export default async function EscolaPage({
                           )}
                         </td>
                       </tr>
-                    );
-                  })}
+
+                      {/* Sub-linhas das turmas */}
+                      {u.turmasSorted.map((t) => (
+                        <tr
+                          key={`t-${t.id}`}
+                          className="border-b border-border/50 bg-background/20 hover:bg-background/40"
+                        >
+                          <td className="px-4 py-2" />
+                          <td className="px-4 py-2 text-muted-foreground">
+                            <span className="mr-1.5 text-border">↳</span>
+                            {t.nome}
+                          </td>
+                          <td className="px-4 py-2 text-muted-foreground hidden sm:table-cell">
+                            {[t.serie, t.ano_letivo].filter(Boolean).join(" · ") || "—"}
+                          </td>
+                          <td className="px-4 py-2">
+                            {can(user.role, "turma:update") && (
+                              <div className="flex items-center gap-2">
+                                <Link
+                                  href={`/turmas/${t.id}/editar`}
+                                  className="rounded px-2 py-1 text-sm font-bold text-foreground hover:text-primary transition-colors"
+                                >
+                                  Editar
+                                </Link>
+                                <form action={toggleTurmaAtivo}>
+                                  <input type="hidden" name="id" value={t.id} />
+                                  <input type="hidden" name="ativo" value={String(t.ativo)} />
+                                  {t.ativo ? (
+                                    <ConfirmButton
+                                      message={`Desativar a turma "${t.nome}"?`}
+                                      className="rounded px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-secondary"
+                                    >
+                                      Desativar
+                                    </ConfirmButton>
+                                  ) : (
+                                    <button
+                                      type="submit"
+                                      className="rounded px-2 py-1 text-sm font-bold text-foreground hover:text-primary transition-colors"
+                                    >
+                                      Ativar
+                                    </button>
+                                  )}
+                                </form>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -344,9 +319,48 @@ export default async function EscolaPage({
       {/* ------------------------------------------------------------------ */}
       {aba === "alunos" && (
         <>
+          {/* Busca */}
+          <form method="GET" className="flex items-center gap-3">
+            <input type="hidden" name="aba" value="alunos" />
+            <div className="relative max-w-sm flex-1">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+              <input
+                name="busca"
+                type="text"
+                defaultValue={busca}
+                placeholder="Buscar aluno..."
+                className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+              />
+            </div>
+            {busca && (
+              <Link
+                href="?aba=alunos"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Limpar
+              </Link>
+            )}
+            <span className="ml-auto text-xs text-muted-foreground">
+              {alunos?.length ?? 0} {(alunos?.length ?? 0) === 1 ? "aluno" : "alunos"}
+            </span>
+          </form>
+
           {!alunos || alunos.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-              Nenhum registro encontrado.
+              {busca ? `Nenhum aluno encontrado para "${busca}".` : "Nenhum aluno cadastrado."}
             </p>
           ) : (
             <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -382,17 +396,12 @@ export default async function EscolaPage({
 
                     return (
                       <tr key={a.id} className="hover:bg-background/50">
-                        <td className="px-4 py-3 font-bold text-foreground">{a.nome}</td>
+                        <td className="px-4 py-3 font-medium text-foreground">{a.nome}</td>
                         <td className="px-4 py-3 hidden md:table-cell">
                           {turma ? (
                             <span className="text-muted-foreground">
                               {(turma as { nome: string }).nome}
-                              {unidade && (
-                                <span className="text-muted-foreground">
-                                  {" "}
-                                  · {(unidade as { nome: string }).nome}
-                                </span>
-                              )}
+                              {unidade && <span> · {(unidade as { nome: string }).nome}</span>}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
