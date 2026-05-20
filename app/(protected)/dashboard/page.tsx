@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getServerSession } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Can } from "@/components/auth/can";
 import { ROLE_LABELS } from "@/lib/auth/roles";
 import { getAnoAnalise } from "@/lib/auth/ano-analise";
 
@@ -226,49 +225,6 @@ export default async function DashboardPage() {
           </div>
         </div>
       )}
-
-      {/* Links rápidos */}
-      <div>
-        <h2 className="mb-3 text-sm font-semibold text-foreground">Acesso rápido</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          <Can role={user.role} perform="olimpiada:read">
-            <QuickLink href="/olimpiadas" icon="🏆" label="Olimpíadas" />
-          </Can>
-          <Can role={user.role} perform="inscricao:read">
-            <QuickLink href="/inscricoes" icon="📋" label="Inscrições" />
-          </Can>
-          <Can role={user.role} perform="resultado:read">
-            <QuickLink href="/resultados" icon="🎯" label="Resultados" />
-          </Can>
-          <QuickLink href="/calendario" icon="📅" label="Calendário" />
-          <Can role={user.role} perform="aluno:read">
-            <QuickLink href="/alunos" icon="👥" label="Alunos" />
-          </Can>
-          <Can role={user.role} perform="turma:read">
-            <QuickLink href="/turmas" icon="🏫" label="Turmas" />
-          </Can>
-          <Can role={user.role} perform="unidade:read">
-            <QuickLink href="/unidades" icon="🏢" label="Unidades" />
-          </Can>
-          <Can role={user.role} perform="audit_log:read">
-            <QuickLink href="/analytics" icon="📊" label="Analytics" />
-          </Can>
-        </div>
-      </div>
     </div>
-  );
-}
-
-function QuickLink({ href, icon, label }: { href: string; icon: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
-    >
-      <span aria-hidden="true" className="text-lg">
-        {icon}
-      </span>
-      {label}
-    </Link>
   );
 }
