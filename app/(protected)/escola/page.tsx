@@ -3,7 +3,6 @@ import { getServerSession } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { can } from "@/lib/auth/roles";
 import { ConfirmButton } from "@/components/ui/confirm-button";
-import { toggleUnidadeAtivo } from "@/app/(protected)/unidades/actions";
 import { toggleTurmaAtivo } from "@/app/(protected)/turmas/actions";
 import { toggleAlunoAtivo } from "@/app/(protected)/alunos/actions";
 import { getAnoAnalise } from "@/lib/auth/ano-analise";
@@ -219,39 +218,39 @@ export default async function EscolaPage({
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ações</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {unidadeRows.map((u) => (
-                    <>
-                      {/* Linha da unidade */}
-                      <tr
-                        key={`u-${u.id}`}
-                        className="border-b border-border hover:bg-background/50"
-                      >
-                        <td className="px-4 py-3 font-medium text-foreground">{u.marcaNome}</td>
-                        <td className="px-4 py-3 font-medium text-foreground">{u.nome}</td>
-                        <td className="px-4 py-3" />
-                        <td className="px-4 py-3 hidden sm:table-cell" />
-                        <td className="px-4 py-3 hidden sm:table-cell" />
+                <tbody className="divide-y divide-border">
+                  {unidadeRows.flatMap((u) =>
+                    u.turmasSorted.map((t) => (
+                      <tr key={`t-${t.id}`} className="hover:bg-background/50">
+                        <td className="px-4 py-3 text-muted-foreground">{u.marcaNome}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{u.nome}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{t.nome}</td>
+                        <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
+                          {t.serie ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
+                          {t.ano_letivo ?? "—"}
+                        </td>
                         <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
                           {u.cidade && u.estado
                             ? `${u.cidade} / ${u.estado}`
                             : (u.cidade ?? u.estado ?? "—")}
                         </td>
                         <td className="px-4 py-3">
-                          {can(user.role, "unidade:update") && (
+                          {can(user.role, "turma:update") && (
                             <div className="flex items-center gap-2">
                               <Link
-                                href={`/unidades/${u.id}/editar`}
+                                href={`/turmas/${t.id}/editar`}
                                 className="rounded px-2 py-1 text-sm font-bold text-foreground hover:text-primary transition-colors"
                               >
                                 Editar
                               </Link>
-                              <form action={toggleUnidadeAtivo}>
-                                <input type="hidden" name="id" value={u.id} />
-                                <input type="hidden" name="ativo" value={String(u.ativo)} />
-                                {u.ativo ? (
+                              <form action={toggleTurmaAtivo}>
+                                <input type="hidden" name="id" value={t.id} />
+                                <input type="hidden" name="ativo" value={String(t.ativo)} />
+                                {t.ativo ? (
                                   <ConfirmButton
-                                    message={`Desativar a unidade "${u.nome}"?`}
+                                    message={`Desativar a turma "${t.nome}"?`}
                                     className="rounded px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-secondary"
                                   >
                                     Desativar
@@ -269,58 +268,8 @@ export default async function EscolaPage({
                           )}
                         </td>
                       </tr>
-
-                      {/* Sub-linhas das turmas */}
-                      {u.turmasSorted.map((t) => (
-                        <tr
-                          key={`t-${t.id}`}
-                          className="border-b border-border hover:bg-background/50"
-                        >
-                          <td className="px-4 py-3 text-muted-foreground">{u.marcaNome}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{u.nome}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{t.nome}</td>
-                          <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
-                            {t.serie ?? "—"}
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
-                            {t.ano_letivo ?? "—"}
-                          </td>
-                          <td className="px-4 py-3 hidden sm:table-cell" />
-                          <td className="px-4 py-3">
-                            {can(user.role, "turma:update") && (
-                              <div className="flex items-center gap-2">
-                                <Link
-                                  href={`/turmas/${t.id}/editar`}
-                                  className="rounded px-2 py-1 text-sm font-bold text-foreground hover:text-primary transition-colors"
-                                >
-                                  Editar
-                                </Link>
-                                <form action={toggleTurmaAtivo}>
-                                  <input type="hidden" name="id" value={t.id} />
-                                  <input type="hidden" name="ativo" value={String(t.ativo)} />
-                                  {t.ativo ? (
-                                    <ConfirmButton
-                                      message={`Desativar a turma "${t.nome}"?`}
-                                      className="rounded px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-secondary"
-                                    >
-                                      Desativar
-                                    </ConfirmButton>
-                                  ) : (
-                                    <button
-                                      type="submit"
-                                      className="rounded px-2 py-1 text-sm font-bold text-foreground hover:text-primary transition-colors"
-                                    >
-                                      Ativar
-                                    </button>
-                                  )}
-                                </form>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </>
-                  ))}
+                    )),
+                  )}
                 </tbody>
               </table>
             </div>
