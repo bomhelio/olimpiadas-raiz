@@ -72,14 +72,14 @@ export default async function UnidadesPage() {
           action={{ label: "Nova unidade", href: "/unidades/nova" }}
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full min-w-[600px] table-fixed text-sm">
+        <div className="rounded-xl border border-border bg-card">
+          <table className="w-full table-fixed text-sm">
             <colgroup>
-              <col className="w-[22%]" />
-              <col className="w-[30%]" />
-              <col className="w-[25%] hidden sm:table-column" />
+              <col className="w-[20%]" />
+              <col className="w-[27%]" />
+              <col className="w-[23%] hidden sm:table-column" />
               <col className="w-[10%]" />
-              <col className="w-[13%]" />
+              <col className="w-[20%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-border bg-background">
