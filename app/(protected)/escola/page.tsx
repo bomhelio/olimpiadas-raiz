@@ -426,8 +426,8 @@ export default async function EscolaPage({
 
                     return (
                       <tr key={a.id} className="hover:bg-background/50">
-                        <td className="px-4 py-3 font-medium text-foreground">{a.nome}</td>
-                        <td className="px-4 py-3 text-muted-foreground">
+                        <td className="px-4 py-3 text-muted-foreground">{a.nome}</td>
+                        <td className="px-4 py-3 font-medium text-foreground">
                           {marca ? (marca as { nome: string }).nome : "—"}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
