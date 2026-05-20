@@ -44,12 +44,15 @@ export default async function ProtectedLayout({ children }: { children: React.Re
                 alt="Raiz Educação"
                 width={300}
                 height={248}
-                style={{ height: 72, width: "auto" }}
+                style={{ height: 80, width: "auto" }}
                 className="object-contain"
                 priority
               />
               <div className="hidden sm:block">
-                <p className="text-sm font-semibold leading-tight text-foreground">
+                <p
+                  className="font-bold leading-tight"
+                  style={{ fontSize: 22, color: "rgb(91, 184, 193)" }}
+                >
                   Programa Inhame de Ouro
                 </p>
                 <p className="text-xs text-muted-foreground leading-tight">Raiz Educação</p>
