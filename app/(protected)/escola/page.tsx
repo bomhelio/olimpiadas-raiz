@@ -192,11 +192,12 @@ export default async function EscolaPage({
             <div className="overflow-hidden rounded-xl border border-border bg-card">
               <table className="w-full table-fixed text-sm">
                 <colgroup>
+                  <col className="w-[13%]" />
+                  <col className="w-[17%]" />
                   <col className="w-[15%]" />
-                  <col className="w-[20%]" />
-                  <col className="w-[18%]" />
-                  <col className="w-[10%] hidden sm:table-column" />
-                  <col className="w-[17%] hidden sm:table-column" />
+                  <col className="w-[9%] hidden sm:table-column" />
+                  <col className="w-[8%] hidden sm:table-column" />
+                  <col className="w-[18%] hidden sm:table-column" />
                   <col className="w-[20%]" />
                 </colgroup>
                 <thead>
@@ -208,6 +209,9 @@ export default async function EscolaPage({
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Turma</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden sm:table-cell">
                       Série
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden sm:table-cell">
+                      Ano
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden sm:table-cell">
                       Localização
@@ -226,6 +230,7 @@ export default async function EscolaPage({
                         <td className="px-4 py-3 font-medium text-foreground">{u.marcaNome}</td>
                         <td className="px-4 py-3 font-medium text-foreground">{u.nome}</td>
                         <td className="px-4 py-3" />
+                        <td className="px-4 py-3 hidden sm:table-cell" />
                         <td className="px-4 py-3 hidden sm:table-cell" />
                         <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
                           {u.cidade && u.estado
@@ -280,6 +285,7 @@ export default async function EscolaPage({
                           <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
                             {t.ano_letivo ?? "—"}
                           </td>
+                          <td className="px-4 py-3 hidden sm:table-cell" />
                           <td className="px-4 py-3">
                             {can(user.role, "turma:update") && (
                               <div className="flex items-center gap-2">
