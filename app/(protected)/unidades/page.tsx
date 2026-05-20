@@ -72,7 +72,7 @@ export default async function UnidadesPage() {
           action={{ label: "Nova unidade", href: "/unidades/nova" }}
         />
       ) : (
-        <div className="rounded-xl border border-border bg-card">
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
           <table className="w-full table-fixed text-sm">
             <colgroup>
               <col className="w-[20%]" />
@@ -93,10 +93,10 @@ export default async function UnidadesPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((u) => (
+              {rows.map((u, idx) => (
                 <tr
                   key={u.id}
-                  className={`hover:bg-background/50 border-b border-border ${u.isFirstInGroup ? "border-t-2 border-t-border/60" : ""}`}
+                  className={`hover:bg-background/50 border-b border-border ${u.isFirstInGroup && idx > 0 ? "border-t-2 border-t-border/60" : ""}`}
                 >
                   <td className="px-4 py-3 font-medium text-foreground">
                     {u.isFirstInGroup ? u.marcaNome : ""}
