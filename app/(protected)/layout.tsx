@@ -48,12 +48,14 @@ export default async function ProtectedLayout({ children }: { children: React.Re
                 className="object-contain"
                 priority
               />
+              {/* Separador vertical */}
+              <div className="hidden sm:block h-10 w-px bg-border/60 mx-1" />
               <div className="hidden sm:block">
                 <p
                   className="font-bold leading-tight"
                   style={{ fontSize: 22, color: "rgb(91, 184, 193)" }}
                 >
-                  Programa Inhame de Ouro
+                  Programa Raiz Olímpica
                 </p>
                 <p className="text-xs text-muted-foreground leading-tight">Raiz Educação</p>
               </div>
