@@ -57,7 +57,8 @@ export default async function DashboardPage() {
     { count: totalAlunos },
     { data: inscricoes },
     { count: totalResultados },
-    { data: marcasData },
+    { data: unidadesData },
+    { data: marcasListData },
     { data: resultadosData },
   ] = await Promise.all([
     supabase.from("olimpiada").select("*", { count: "exact", head: true }).eq("ativo", true),
@@ -68,11 +69,12 @@ export default async function DashboardPage() {
       .eq("ano_letivo", anoAtual),
     supabase.from("resultado").select("*", { count: "exact", head: true }),
     supabase
-      .from("marca")
+      .from("unidade")
       .select(
-        "id, nome, unidades:unidade(id, turmas:turma(id, ano_letivo, alunos:aluno(id, ativo)))",
+        "id, marca_id, marca:marca_id(id, nome), turmas:turma(id, ano_letivo, alunos:aluno(id, ativo))",
       )
       .order("nome"),
+    supabase.from("marca").select("id, nome").order("nome"),
     supabase.from("resultado").select("inscricao_id, tipo"),
   ]);
 
@@ -81,25 +83,35 @@ export default async function DashboardPage() {
   // Map inscricao_id → marca_nome para cruzar com resultados
   const inscricaoMarcaMap = new Map((inscricoes ?? []).map((i) => [i.inscricao_id, i.marca_nome]));
 
-  // Computar rows por marca
+  // Computar rows por marca — agrupa unidades por marca
   type TurmaRaw = {
     id: string;
     ano_letivo: number | null;
     alunos: { id: string; ativo: boolean }[] | null;
   };
-  type UnidadeRaw = { id: string; turmas: TurmaRaw[] | null };
-  type MarcaRaw = { id: string; nome: string; unidades: UnidadeRaw[] | null };
+  type UnidadeRaw = {
+    id: string;
+    marca_id: string;
+    marca: { id: string; nome: string } | { id: string; nome: string }[] | null;
+    turmas: TurmaRaw[] | null;
+  };
 
-  const brandRows = ((marcasData as MarcaRaw[]) ?? []).map((m) => {
-    const unidades = (Array.isArray(m.unidades) ? m.unidades : []) as UnidadeRaw[];
-    const numUnidades = unidades.length;
+  const unidadeList = (unidadesData ?? []) as unknown as UnidadeRaw[];
 
-    const numTurmas = unidades.reduce((acc, u) => {
+  const brandRows = (marcasListData ?? []).map((m) => {
+    const minhas = unidadeList.filter((u) => {
+      const marcaObj = Array.isArray(u.marca) ? u.marca[0] : u.marca;
+      return (marcaObj as { id: string } | null)?.id === m.id;
+    });
+
+    const numUnidades = minhas.length;
+
+    const numTurmas = minhas.reduce((acc, u) => {
       const turmas = (Array.isArray(u.turmas) ? u.turmas : []) as TurmaRaw[];
       return acc + turmas.filter((t) => t.ano_letivo === anoAtual).length;
     }, 0);
 
-    const numAlunos = unidades.reduce((acc, u) => {
+    const numAlunos = minhas.reduce((acc, u) => {
       const turmas = (Array.isArray(u.turmas) ? u.turmas : []) as TurmaRaw[];
       return (
         acc +
