@@ -15,7 +15,6 @@ function StatCard({
   value,
   sub,
   href,
-  color = "blue",
 }: {
   label: string;
   value: string | number;
@@ -23,21 +22,15 @@ function StatCard({
   href?: string;
   color?: "blue" | "green" | "amber" | "purple";
 }) {
-  const accent: Record<string, string> = {
-    blue: "border-blue-200   bg-blue-50   text-blue-700",
-    green: "border-green-200  bg-green-50  text-green-700",
-    amber: "border-amber-200  bg-amber-50  text-amber-700",
-    purple: "border-purple-200 bg-purple-50 text-purple-700",
-  };
   const inner = (
-    <div className={`rounded-xl border p-5 ${accent[color]}`}>
-      <p className="text-xs font-medium uppercase tracking-wide opacity-70">{label}</p>
-      <p className="mt-1 text-3xl font-bold">{value}</p>
-      {sub && <p className="mt-1 text-xs opacity-60">{sub}</p>}
+    <div className="rounded-xl border border-border bg-card p-5">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-3xl font-bold text-foreground">{value}</p>
+      {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
   return href ? (
-    <Link href={href} className="block hover:opacity-90 transition-opacity">
+    <Link href={href} className="block hover:opacity-80 transition-opacity">
       {inner}
     </Link>
   ) : (
@@ -269,7 +262,7 @@ function QuickLink({ href, icon, label }: { href: string; icon: string; label: s
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+      className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
     >
       <span aria-hidden="true" className="text-lg">
         {icon}
