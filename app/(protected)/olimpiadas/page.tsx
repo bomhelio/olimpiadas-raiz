@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { MarcaMultiSelect } from "@/components/olimpiadas/marca-multi-select";
 import { OlimpiadaMultiSelect } from "@/components/olimpiadas/olimpiada-multi-select";
 import { YearMultiSelect } from "@/components/dashboard/year-multi-select";
+import type { TipoResultado } from "@/lib/types/database";
 
 const ANO_INICIO = 2021;
 
@@ -16,6 +17,13 @@ type Stats = {
   prata: number;
   bronze: number;
   mencao: number;
+};
+
+const MEDAL_PRIORITY: Partial<Record<TipoResultado, number>> = {
+  ouro: 4,
+  prata: 3,
+  bronze: 2,
+  mencao_honrosa: 1,
 };
 
 function fmt(n: number) {
@@ -64,23 +72,46 @@ export default async function OlimpiadasPage({
 
   const { data: marcas } = await supabase.from("marca").select("id, nome").order("nome");
 
-  let query = supabase
+  // Query 1: inscrições filtradas
+  let inscricoesQuery = supabase
     .from("v_dashboard_inscricoes")
-    .select("olimpiada_nome, status, classificacao")
+    .select("inscricao_id, olimpiada_nome, status")
     .in("ano_letivo", selectedYears);
 
   if (!marcaTodosMode && selectedMarcas.length > 0) {
-    query = query.in("marca_nome", selectedMarcas);
+    inscricoesQuery = inscricoesQuery.in("marca_nome", selectedMarcas);
   }
   if (!olimpiadaTodosMode && selectedOlimpiadas.length > 0) {
     const conditions = selectedOlimpiadas.map((s) => `olimpiada_nome.ilike.%${s}%`).join(",");
-    query = query.or(conditions);
+    inscricoesQuery = inscricoesQuery.or(conditions);
   }
 
-  const { data: rows } = await query;
+  const { data: inscricoes } = await inscricoesQuery;
 
+  // Query 2: resultados para as inscrições encontradas
+  const inscricaoIds = (inscricoes ?? []).map((i) => i.inscricao_id);
+  const resultadoMap = new Map<string, TipoResultado>();
+
+  if (inscricaoIds.length > 0) {
+    const { data: resultados } = await supabase
+      .from("resultado")
+      .select("inscricao_id, tipo")
+      .in("inscricao_id", inscricaoIds);
+
+    // Por inscrição, guarda o melhor resultado (ouro > prata > bronze > menção)
+    for (const r of resultados ?? []) {
+      const current = resultadoMap.get(r.inscricao_id);
+      const currentPrio = current ? (MEDAL_PRIORITY[current] ?? 0) : 0;
+      const newPrio = MEDAL_PRIORITY[r.tipo] ?? 0;
+      if (newPrio > currentPrio) {
+        resultadoMap.set(r.inscricao_id, r.tipo);
+      }
+    }
+  }
+
+  // Agregação por olimpíada
   const statsMap = new Map<string, Stats>();
-  for (const row of rows ?? []) {
+  for (const row of inscricoes ?? []) {
     const nome = row.olimpiada_nome ?? "—";
     if (!statsMap.has(nome)) {
       statsMap.set(nome, {
@@ -96,10 +127,12 @@ export default async function OlimpiadasPage({
     const s = statsMap.get(nome)!;
     s.inscritos++;
     if (row.status === "confirmada") s.participantes++;
-    if (row.classificacao === "ouro") s.ouro++;
-    if (row.classificacao === "prata") s.prata++;
-    if (row.classificacao === "bronze") s.bronze++;
-    if (row.classificacao === "mencao_honrosa") s.mencao++;
+
+    const tipo = resultadoMap.get(row.inscricao_id);
+    if (tipo === "ouro") s.ouro++;
+    else if (tipo === "prata") s.prata++;
+    else if (tipo === "bronze") s.bronze++;
+    else if (tipo === "mencao_honrosa") s.mencao++;
   }
 
   const statsRows = Array.from(statsMap.values()).sort((a, b) =>
