@@ -137,14 +137,13 @@ export default async function DashboardPage() {
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         <table className="w-full table-fixed text-sm">
           <colgroup>
-            <col className="w-[18%]" />
-            <col className="w-[10%]" />
-            <col className="w-[11%]" />
-            <col className="w-[10%]" />
+            <col className="w-[20%]" />
+            <col className="w-[13%]" />
             <col className="w-[12%]" />
-            <col className="w-[9%]" />
-            <col className="w-[9%]" />
-            <col className="w-[9%]" />
+            <col className="w-[13%]" />
+            <col className="w-[10%]" />
+            <col className="w-[10%]" />
+            <col className="w-[10%]" />
             <col className="w-[12%]" />
           </colgroup>
           <thead>
@@ -155,13 +154,6 @@ export default async function DashboardPage() {
                 rowSpan={2}
               >
                 Marca
-              </th>
-              <th
-                className="px-4 py-3 text-center font-medium"
-                style={{ color: "rgb(91,184,193)" }}
-                rowSpan={2}
-              >
-                Unidades
               </th>
               <th
                 className="px-4 py-3 text-center font-medium"
@@ -223,7 +215,6 @@ export default async function DashboardPage() {
             {brandRows.map((b) => (
               <tr key={b.id} className="hover:bg-background/50">
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.nome}</td>
-                <td className="px-4 py-3 text-center text-muted-foreground">{b.numUnidades}</td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.numInscritos}</td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.numAlunos}</td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.engajamento}%</td>
