@@ -63,13 +63,6 @@ export default async function DashboardPage() {
       return (marcaObj as { id: string } | null)?.id === m.id;
     });
 
-    const numUnidades = minhas.length;
-
-    const numTurmas = minhas.reduce((acc, u) => {
-      const turmas = (Array.isArray(u.turmas) ? u.turmas : []) as TurmaRaw[];
-      return acc + turmas.filter((t) => t.ano_letivo === anoAtual).length;
-    }, 0);
-
     const numAlunos = minhas.reduce((acc, u) => {
       const turmas = (Array.isArray(u.turmas) ? u.turmas : []) as TurmaRaw[];
       return (
@@ -90,9 +83,6 @@ export default async function DashboardPage() {
     const numInscritos = inscricoesM.length;
     const numConfirmados = inscricoesM.filter((i) => i.status === "confirmada").length;
 
-    const adesao = numAlunos > 0 ? Math.round((numInscritos / numAlunos) * 100) : 0;
-    const engajamento = numInscritos > 0 ? Math.round((numConfirmados / numInscritos) * 100) : 0;
-
     const tipos = { ouro: 0, prata: 0, bronze: 0, mencao_honrosa: 0 };
     for (const r of resultadosData ?? []) {
       if (inscricaoMarcaMap.get(r.inscricao_id) === m.nome && r.tipo in tipos) {
@@ -104,12 +94,9 @@ export default async function DashboardPage() {
     return {
       id: m.id,
       nome: m.nome,
-      numUnidades,
       numAlunos,
-      numTurmas,
       numInscritos,
-      adesao,
-      engajamento,
+      numConfirmados,
       totalResultado: totalResultadoM,
       ...tipos,
     };
@@ -137,13 +124,13 @@ export default async function DashboardPage() {
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         <table className="w-full table-fixed text-sm">
           <colgroup>
-            <col className="w-[20%]" />
-            <col className="w-[13%]" />
-            <col className="w-[12%]" />
-            <col className="w-[13%]" />
-            <col className="w-[10%]" />
-            <col className="w-[10%]" />
-            <col className="w-[10%]" />
+            <col className="w-[18%]" />
+            <col className="w-[11%]" />
+            <col className="w-[11%]" />
+            <col className="w-[11%]" />
+            <col className="w-[9%]" />
+            <col className="w-[9%]" />
+            <col className="w-[9%]" />
             <col className="w-[12%]" />
           </colgroup>
           <thead>
@@ -158,23 +145,9 @@ export default async function DashboardPage() {
               <th
                 className="px-4 py-3 text-center font-medium"
                 style={{ color: "rgb(91,184,193)" }}
-                rowSpan={2}
+                colSpan={3}
               >
-                Inscritos
-              </th>
-              <th
-                className="px-4 py-3 text-center font-medium"
-                style={{ color: "rgb(91,184,193)" }}
-                rowSpan={2}
-              >
-                Adesão
-              </th>
-              <th
-                className="px-4 py-3 text-center font-medium"
-                style={{ color: "rgb(91,184,193)" }}
-                rowSpan={2}
-              >
-                Engajamento
+                Alunos
               </th>
               <th
                 className="px-4 py-3 text-center font-medium"
@@ -185,6 +158,24 @@ export default async function DashboardPage() {
               </th>
             </tr>
             <tr className="border-b border-border bg-background">
+              <th
+                className="px-4 py-2 text-center text-xs font-medium"
+                style={{ color: "rgb(91,184,193)" }}
+              >
+                Inscritos
+              </th>
+              <th
+                className="px-4 py-2 text-center text-xs font-medium"
+                style={{ color: "rgb(91,184,193)" }}
+              >
+                Participantes
+              </th>
+              <th
+                className="px-4 py-2 text-center text-xs font-medium"
+                style={{ color: "rgb(91,184,193)" }}
+              >
+                Engajados
+              </th>
               <th
                 className="px-4 py-2 text-center text-xs font-medium"
                 style={{ color: "rgb(91,184,193)" }}
@@ -215,9 +206,9 @@ export default async function DashboardPage() {
             {brandRows.map((b) => (
               <tr key={b.id} className="hover:bg-background/50">
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.nome}</td>
-                <td className="px-4 py-3 text-center text-muted-foreground">{b.numInscritos}</td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.numAlunos}</td>
-                <td className="px-4 py-3 text-center text-muted-foreground">{b.engajamento}%</td>
+                <td className="px-4 py-3 text-center text-muted-foreground">{b.numInscritos}</td>
+                <td className="px-4 py-3 text-center text-muted-foreground">{b.numConfirmados}</td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.ouro}</td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.prata}</td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.bronze}</td>
