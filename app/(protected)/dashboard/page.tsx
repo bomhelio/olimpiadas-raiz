@@ -139,7 +139,7 @@ export default async function DashboardPage({
       const prev = brandRows[i - 1]!;
       const curr = brandRows[i]!;
       if (curr.ouro === prev.ouro && curr.prata === prev.prata && curr.bronze === prev.bronze) {
-        ranks.push(ranks[i - 1]);
+        ranks.push(ranks[i - 1]!);
       } else {
         ranks.push(i + 1);
       }
