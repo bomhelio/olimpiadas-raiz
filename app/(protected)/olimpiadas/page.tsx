@@ -1,154 +1,271 @@
-import Link from "next/link";
 import { getServerSession } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Can } from "@/components/auth/can";
-import { PageHeader } from "@/components/ui/page-header";
-import { EmptyState } from "@/components/ui/empty-state";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { ConfirmButton } from "@/components/ui/confirm-button";
-import { toggleOlimpiadaAtivo } from "./actions";
 
 export const metadata = { title: "Olimpíadas — Olimpíadas" };
 
-const CLASSIFICACAO_LABELS: Record<string, string> = {
-  obrigatoria: "Obrigatória",
-  facultativa: "Facultativa",
+const OLIMPIADAS_NACIONAIS = [
+  {
+    sigla: "OBMEP",
+    nome: "Olimpíada Brasileira de Matemática das Escolas Públicas",
+    nivel: "EF II · EM",
+  },
+  { sigla: "OBM", nome: "Olimpíada Brasileira de Matemática", nivel: "EF II · EM" },
+  {
+    sigla: "OBA",
+    nome: "Olimpíada Brasileira de Astronomia e Astronáutica",
+    nivel: "EF I · EF II · EM",
+  },
+  { sigla: "OBF", nome: "Olimpíada Brasileira de Física", nivel: "EF II · EM" },
+  { sigla: "OBQ", nome: "Olimpíada Brasileira de Química", nivel: "EM" },
+  { sigla: "OBB", nome: "Olimpíada Brasileira de Biologia", nivel: "EM" },
+  { sigla: "OBL", nome: "Olimpíada Brasileira de Linguística", nivel: "EM" },
+  { sigla: "OBG", nome: "Olimpíada Brasileira de Geografia", nivel: "EF II · EM" },
+  { sigla: "ONHB", nome: "Olimpíada Nacional em História do Brasil", nivel: "EF II · EM" },
+  { sigla: "OBI", nome: "Olimpíada Brasileira de Informática", nivel: "EF · EM" },
+  { sigla: "OBR", nome: "Olimpíada Brasileira de Robótica", nivel: "EF · EM" },
+  { sigla: "ONC", nome: "Olimpíada Nacional de Ciências", nivel: "EF · EM" },
+  { sigla: "OP", nome: "Olimpíada de Português — Escrevendo o Futuro", nivel: "EF II" },
+  { sigla: "OBEF", nome: "Olimpíada Brasileira de Educação Financeira", nivel: "EF II · EM" },
+];
+
+const STATUS_LABELS: Record<string, string> = {
+  pendente: "Pendente",
+  confirmada: "Confirmada",
+  cancelada: "Cancelada",
 };
 
-const CLASSIFICACAO_COLORS: Record<string, string> = {
-  obrigatoria: "bg-secondary text-foreground",
-  facultativa: "bg-secondary text-muted-foreground",
+const STATUS_COLORS: Record<string, string> = {
+  pendente: "bg-yellow-500/10 text-yellow-400",
+  confirmada: "bg-emerald-500/10 text-emerald-400",
+  cancelada: "bg-red-500/10 text-red-400",
 };
 
-export default async function OlimpiadasPage() {
+export default async function OlimpiadasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ marca?: string; olimpiada?: string }>;
+}) {
   const session = await getServerSession();
   if (!session) return null;
 
-  const { user } = session;
   const supabase = createAdminClient();
+  const sp = await searchParams;
 
-  const { data: olimpiadas } = await supabase
-    .from("olimpiada")
-    .select("id, nome, area_conhecimento, classificacao, ano_letivo, ativo")
-    .order("ano_letivo", { ascending: false })
-    .order("nome");
+  const marcaFilter = sp.marca ?? "todas";
+  const olimpiadaFilter = sp.olimpiada ?? "todas";
 
-  type OlimpiadaRow = NonNullable<typeof olimpiadas>[number];
+  const { data: marcas } = await supabase.from("marca").select("id, nome").order("nome");
+
+  let query = supabase
+    .from("v_dashboard_inscricoes")
+    .select(
+      "inscricao_id, aluno_nome, olimpiada_nome, area_conhecimento, marca_nome, unidade_nome, serie, status, ano_letivo, inscrito_em",
+    )
+    .order("inscrito_em", { ascending: false })
+    .limit(200);
+
+  if (marcaFilter !== "todas") {
+    query = query.eq("marca_nome", marcaFilter);
+  }
+  if (olimpiadaFilter !== "todas") {
+    query = query.ilike("olimpiada_nome", `%${olimpiadaFilter}%`);
+  }
+
+  const { data: inscricoes } = await query;
+
+  const total = inscricoes?.length ?? 0;
 
   return (
     <div className="space-y-6">
-      <Can role={user.role} perform="olimpiada:create" fallback={<PageHeader title="Olimpíadas" />}>
-        <PageHeader
-          title="Olimpíadas"
-          description="Catálogo de olimpíadas do conhecimento"
-          action={{ label: "Nova olimpíada", href: "/olimpiadas/nova" }}
-        />
-      </Can>
+      {/* Cabeçalho */}
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Olimpíadas</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Participação por marca e competição</p>
+      </div>
 
-      {!olimpiadas || olimpiadas.length === 0 ? (
-        <EmptyState
-          title="Nenhuma olimpíada cadastrada"
-          description="Crie a primeira olimpíada para começar."
-          icon={
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
-              />
-            </svg>
-          }
-          action={{ label: "Nova olimpíada", href: "/olimpiadas/nova" }}
-        />
-      ) : (
+      {/* Filtros */}
+      <form method="GET" className="flex flex-wrap items-end gap-3">
+        {/* Marca */}
+        <div className="flex flex-col gap-1.5">
+          <p
+            className="text-xs font-semibold uppercase tracking-wider"
+            style={{ color: "rgb(91,184,193)" }}
+          >
+            Marca
+          </p>
+          <select
+            name="marca"
+            defaultValue={marcaFilter}
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none"
+            style={{ minWidth: 160 }}
+          >
+            <option value="todas">Todas as marcas</option>
+            {(marcas ?? []).map((m) => (
+              <option key={m.id} value={m.nome}>
+                {m.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Olimpíada */}
+        <div className="flex flex-col gap-1.5">
+          <p
+            className="text-xs font-semibold uppercase tracking-wider"
+            style={{ color: "rgb(91,184,193)" }}
+          >
+            Olimpíada
+          </p>
+          <select
+            name="olimpiada"
+            defaultValue={olimpiadaFilter}
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none"
+            style={{ minWidth: 280 }}
+          >
+            <option value="todas">Todas as olimpíadas</option>
+            {OLIMPIADAS_NACIONAIS.map((o) => (
+              <option key={o.sigla} value={o.sigla}>
+                {o.sigla} — {o.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          type="submit"
+          className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          style={{ backgroundColor: "rgb(91,184,193)" }}
+        >
+          Filtrar
+        </button>
+      </form>
+
+      {/* Referência das olimpíadas nacionais */}
+      <details className="group rounded-xl border border-border bg-card">
+        <summary className="flex cursor-pointer items-center justify-between px-5 py-3 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <span>Olimpíadas do conhecimento — referência nacional</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="shrink-0 transition-transform group-open:rotate-180"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </summary>
+        <div className="border-t border-border px-5 pb-4 pt-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {OLIMPIADAS_NACIONAIS.map((o) => (
+              <div
+                key={o.sigla}
+                className="flex items-start gap-2.5 rounded-lg border border-border/50 px-3 py-2.5"
+              >
+                <span
+                  className="shrink-0 rounded px-1.5 py-0.5 text-xs font-bold"
+                  style={{ backgroundColor: "rgba(91,184,193,0.12)", color: "rgb(91,184,193)" }}
+                >
+                  {o.sigla}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-medium text-foreground">{o.nome}</p>
+                  <p className="text-xs text-muted-foreground">{o.nivel}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </details>
+
+      {/* Contador */}
+      <p className="text-sm text-muted-foreground">
+        {total === 0
+          ? "Nenhuma inscrição encontrada."
+          : total >= 200
+            ? "Exibindo as 200 inscrições mais recentes."
+            : `${total} inscrição${total !== 1 ? "ões" : ""} encontrada${total !== 1 ? "s" : ""}.`}
+      </p>
+
+      {/* Tabela */}
+      {total > 0 && (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-border bg-background">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Olimpíada</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden sm:table-cell">
-                  Área
+                <th
+                  className="px-4 py-3 text-left font-medium"
+                  style={{ color: "rgb(91,184,193)" }}
+                >
+                  Aluno
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden md:table-cell">
-                  Classificação
+                <th
+                  className="px-4 py-3 text-left font-medium hidden sm:table-cell"
+                  style={{ color: "rgb(91,184,193)" }}
+                >
+                  Olimpíada
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden sm:table-cell">
+                <th
+                  className="px-4 py-3 text-left font-medium hidden md:table-cell"
+                  style={{ color: "rgb(91,184,193)" }}
+                >
+                  Marca
+                </th>
+                <th
+                  className="px-4 py-3 text-left font-medium hidden lg:table-cell"
+                  style={{ color: "rgb(91,184,193)" }}
+                >
+                  Unidade
+                </th>
+                <th
+                  className="px-4 py-3 text-left font-medium hidden sm:table-cell"
+                  style={{ color: "rgb(91,184,193)" }}
+                >
+                  Série
+                </th>
+                <th
+                  className="px-4 py-3 text-left font-medium hidden sm:table-cell"
+                  style={{ color: "rgb(91,184,193)" }}
+                >
                   Ano
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ações</th>
+                <th
+                  className="px-4 py-3 text-left font-medium"
+                  style={{ color: "rgb(91,184,193)" }}
+                >
+                  Status
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {(olimpiadas as OlimpiadaRow[]).map((o) => (
-                <tr key={o.id} className="hover:bg-background/50">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/olimpiadas/${o.id}`}
-                      className="font-medium text-foreground hover:text-primary hover:underline"
-                    >
-                      {o.nome}
-                    </Link>
+              {(inscricoes ?? []).map((i) => (
+                <tr key={i.inscricao_id} className="hover:bg-background/50">
+                  <td className="px-4 py-3 font-medium text-foreground">{i.aluno_nome}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
+                    {i.olimpiada_nome}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
+                    {i.marca_nome}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">
+                    {i.unidade_nome}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
-                    {o.area_conhecimento}
+                    {i.serie ?? "—"}
                   </td>
-                  <td className="px-4 py-3 hidden md:table-cell">
+                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
+                    {i.ano_letivo}
+                  </td>
+                  <td className="px-4 py-3">
                     <span
-                      className={`inline-flex rounded-full px-2 py-0.5 text-sm font-medium ${CLASSIFICACAO_COLORS[o.classificacao] ?? "bg-secondary text-muted-foreground"}`}
+                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[i.status] ?? "bg-secondary text-muted-foreground"}`}
                     >
-                      {CLASSIFICACAO_LABELS[o.classificacao] ?? o.classificacao}
+                      {STATUS_LABELS[i.status] ?? i.status}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
-                    {o.ano_letivo}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge ativo={o.ativo} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/olimpiadas/${o.id}`}
-                        className="rounded px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-secondary"
-                      >
-                        Ver
-                      </Link>
-                      <Can role={user.role} perform="olimpiada:update">
-                        <Link
-                          href={`/olimpiadas/${o.id}/editar`}
-                          className="rounded px-2 py-1 text-sm font-bold text-foreground hover:text-primary transition-colors"
-                        >
-                          Editar
-                        </Link>
-                        <form action={toggleOlimpiadaAtivo}>
-                          <input type="hidden" name="id" value={o.id} />
-                          <input type="hidden" name="ativo" value={String(o.ativo)} />
-                          {o.ativo ? (
-                            <ConfirmButton
-                              message={`Desativar a olimpíada "${o.nome}"?`}
-                              className="rounded px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-secondary"
-                            >
-                              Desativar
-                            </ConfirmButton>
-                          ) : (
-                            <button
-                              type="submit"
-                              className="rounded px-2 py-1 text-sm font-bold text-foreground hover:text-primary transition-colors"
-                            >
-                              Ativar
-                            </button>
-                          )}
-                        </form>
-                      </Can>
-                    </div>
                   </td>
                 </tr>
               ))}
