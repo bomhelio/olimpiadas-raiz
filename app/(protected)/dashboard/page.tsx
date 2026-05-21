@@ -290,7 +290,7 @@ export default async function DashboardPage({
                 className="px-4 py-2 text-center text-xs font-medium"
                 style={{ color: "rgb(91,184,193)" }}
               >
-                Engajados
+                Engajamento
               </th>
               <th
                 className="px-4 py-2 text-center text-xs font-medium"
@@ -333,7 +333,11 @@ export default async function DashboardPage({
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.nome}</td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.numAlunos}</td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.numInscritos}</td>
-                <td className="px-4 py-3 text-center text-muted-foreground">{b.numConfirmados}</td>
+                <td className="px-4 py-3 text-center text-muted-foreground">
+                  {b.numInscritos > 0
+                    ? `${Math.round((b.numConfirmados / b.numInscritos) * 100)}%`
+                    : "—"}
+                </td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.ouro}</td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.prata}</td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.bronze}</td>
