@@ -130,6 +130,22 @@ export default async function DashboardPage({
 
   const maxTotal = Math.max(...brandRows.map((b) => b.totalResultado), 0);
 
+  // Ranking com empate olímpico (mesma posição para ouro+prata+bronze iguais)
+  const ranks: number[] = [];
+  for (let i = 0; i < brandRows.length; i++) {
+    if (i === 0) {
+      ranks.push(1);
+    } else {
+      const prev = brandRows[i - 1];
+      const curr = brandRows[i];
+      if (curr.ouro === prev.ouro && curr.prata === prev.prata && curr.bronze === prev.bronze) {
+        ranks.push(ranks[i - 1]);
+      } else {
+        ranks.push(i + 1);
+      }
+    }
+  }
+
   // KPIs agregados
   const totalInscritos = brandRows.reduce((s, b) => s + b.numAlunos, 0);
   const totalParticipantes = brandRows.reduce((s, b) => s + b.numInscritos, 0);
@@ -210,18 +226,26 @@ export default async function DashboardPage({
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         <table className="w-full table-fixed text-sm">
           <colgroup>
-            <col className="w-[15%]" />
+            <col className="w-[5%]" />
+            <col className="w-[13%]" />
             <col className="w-[9%]" />
-            <col className="w-[10%]" />
             <col className="w-[9%]" />
-            <col className="w-[8%]" />
-            <col className="w-[8%]" />
-            <col className="w-[8%]" />
-            <col className="w-[10%]" />
-            <col className="w-[15%]" />
+            <col className="w-[9%]" />
+            <col className="w-[7%]" />
+            <col className="w-[7%]" />
+            <col className="w-[7%]" />
+            <col className="w-[9%]" />
+            <col className="w-[14%]" />
           </colgroup>
           <thead>
             <tr className="border-b border-border/50 bg-background">
+              <th
+                className="px-4 py-3 text-center font-medium"
+                style={{ color: "rgb(91,184,193)" }}
+                rowSpan={2}
+              >
+                #
+              </th>
               <th
                 className="px-4 py-3 text-center font-medium"
                 style={{ color: "rgb(91,184,193)" }}
@@ -296,8 +320,11 @@ export default async function DashboardPage({
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {brandRows.map((b) => (
+            {brandRows.map((b, i) => (
               <tr key={b.id} className="hover:bg-background/50">
+                <td className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">
+                  {ranks[i]}
+                </td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.nome}</td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.numAlunos}</td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{b.numInscritos}</td>
