@@ -3,6 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { MarcaMultiSelect } from "@/components/olimpiadas/marca-multi-select";
 import { OlimpiadaMultiSelect } from "@/components/olimpiadas/olimpiada-multi-select";
 import { OLIMPIADAS_NACIONAIS } from "@/lib/olimpiadas/nacionais";
+import { YearMultiSelect } from "@/components/dashboard/year-multi-select";
+
+const ANO_INICIO = 2021;
 
 export const metadata = { title: "Olimpíadas — Olimpíadas" };
 
@@ -21,7 +24,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default async function OlimpiadasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ marca?: string; olimpiada?: string }>;
+  searchParams: Promise<{ marca?: string; olimpiada?: string; anos?: string }>;
 }) {
   const session = await getServerSession();
   if (!session) return null;
@@ -38,6 +41,22 @@ export default async function OlimpiadasPage({
   const selectedMarcas = marcaTodosMode ? [] : marcaParam.split(",").filter(Boolean);
   const selectedOlimpiadas = olimpiadaTodosMode ? [] : olimpiadaParam.split(",").filter(Boolean);
 
+  // Anos — mesmo padrão do Painel
+  const anoCorrente = new Date().getFullYear();
+  const anosDisponiveis = Array.from(
+    { length: anoCorrente - ANO_INICIO + 1 },
+    (_, i) => ANO_INICIO + i,
+  ).reverse();
+  const todosModeAnos = sp.anos === "todos";
+  const selectedYears: number[] = todosModeAnos
+    ? anosDisponiveis
+    : sp.anos
+      ? sp.anos
+          .split(",")
+          .map(Number)
+          .filter((n) => !isNaN(n) && anosDisponiveis.includes(n))
+      : [anoCorrente];
+
   const { data: marcas } = await supabase.from("marca").select("id, nome").order("nome");
 
   let query = supabase
@@ -45,6 +64,7 @@ export default async function OlimpiadasPage({
     .select(
       "inscricao_id, aluno_nome, olimpiada_nome, area_conhecimento, marca_nome, unidade_nome, serie, status, ano_letivo, inscrito_em",
     )
+    .in("ano_letivo", selectedYears)
     .order("inscrito_em", { ascending: false })
     .limit(200);
 
@@ -93,6 +113,21 @@ export default async function OlimpiadasPage({
             Olimpíada
           </p>
           <OlimpiadaMultiSelect selected={selectedOlimpiadas} todosMode={olimpiadaTodosMode} />
+        </div>
+
+        {/* Ano */}
+        <div className="flex flex-col gap-1.5">
+          <p
+            className="text-xs font-semibold uppercase tracking-wider"
+            style={{ color: "rgb(91,184,193)" }}
+          >
+            Ano
+          </p>
+          <YearMultiSelect
+            anos={anosDisponiveis}
+            selected={selectedYears}
+            todosMode={todosModeAnos}
+          />
         </div>
       </div>
 

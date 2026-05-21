@@ -97,8 +97,7 @@ function OlimpiadaMultiSelectInner({
 
           <div className="my-1 h-px bg-border/50" />
 
-          {/* Lista com scroll */}
-          <div className="max-h-72 overflow-y-auto">
+          <div>
             {olimpiadas.map((o) => {
               const checked = todosMode || selected.includes(o.sigla);
               return (
