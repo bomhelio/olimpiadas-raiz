@@ -154,7 +154,7 @@ export default async function DashboardPage() {
                 style={{ color: "rgb(91,184,193)" }}
                 colSpan={4}
               >
-                Resultado
+                Resultados
               </th>
             </tr>
             <tr className="border-b border-border bg-background">
