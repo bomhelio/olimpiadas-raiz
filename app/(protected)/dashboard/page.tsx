@@ -136,31 +136,31 @@ export default async function DashboardPage() {
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         <table className="w-full table-fixed text-sm">
           <colgroup>
-            <col className="w-[17%]" />
+            <col className="w-[18%]" />
             <col className="w-[10%]" />
             <col className="w-[11%]" />
             <col className="w-[10%]" />
-            <col className="w-[13%]" />
-            <col className="w-[8%]" />
-            <col className="w-[8%]" />
-            <col className="w-[8%]" />
-            <col className="w-[15%]" />
+            <col className="w-[12%]" />
+            <col className="w-[9%]" />
+            <col className="w-[9%]" />
+            <col className="w-[9%]" />
+            <col className="w-[12%]" />
           </colgroup>
           <thead>
             <tr className="border-b border-border/50 bg-background">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground" rowSpan={2}>
+              <th className="px-4 py-3 text-center font-medium text-muted-foreground" rowSpan={2}>
                 Marca
               </th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground" rowSpan={2}>
+              <th className="px-4 py-3 text-center font-medium text-muted-foreground" rowSpan={2}>
                 Unidades
               </th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground" rowSpan={2}>
+              <th className="px-4 py-3 text-center font-medium text-muted-foreground" rowSpan={2}>
                 Inscritos
               </th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground" rowSpan={2}>
+              <th className="px-4 py-3 text-center font-medium text-muted-foreground" rowSpan={2}>
                 Adesão
               </th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground" rowSpan={2}>
+              <th className="px-4 py-3 text-center font-medium text-muted-foreground" rowSpan={2}>
                 Engajamento
               </th>
               <th className="px-4 py-3 text-center font-medium text-muted-foreground" colSpan={4}>
@@ -168,16 +168,16 @@ export default async function DashboardPage() {
               </th>
             </tr>
             <tr className="border-b border-border bg-background">
-              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground/70">
+              <th className="px-4 py-2 text-center text-xs font-medium text-muted-foreground/70">
                 Ouro
               </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground/70">
+              <th className="px-4 py-2 text-center text-xs font-medium text-muted-foreground/70">
                 Prata
               </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground/70">
+              <th className="px-4 py-2 text-center text-xs font-medium text-muted-foreground/70">
                 Bronze
               </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground/70">
+              <th className="px-4 py-2 text-center text-xs font-medium text-muted-foreground/70">
                 Menção Honrosa
               </th>
             </tr>
@@ -185,15 +185,15 @@ export default async function DashboardPage() {
           <tbody className="divide-y divide-border">
             {brandRows.map((b) => (
               <tr key={b.id} className="hover:bg-background/50">
-                <td className="px-4 py-3 text-muted-foreground">{b.nome}</td>
-                <td className="px-4 py-3 text-muted-foreground">{b.numUnidades}</td>
-                <td className="px-4 py-3 text-muted-foreground">{b.numInscritos}</td>
-                <td className="px-4 py-3 text-muted-foreground">{b.adesao}%</td>
-                <td className="px-4 py-3 text-muted-foreground">{b.engajamento}%</td>
-                <td className="px-4 py-3 text-muted-foreground">{b.ouro}</td>
-                <td className="px-4 py-3 text-muted-foreground">{b.prata}</td>
-                <td className="px-4 py-3 text-muted-foreground">{b.bronze}</td>
-                <td className="px-4 py-3 text-muted-foreground">{b.mencao_honrosa}</td>
+                <td className="px-4 py-3 text-center text-muted-foreground">{b.nome}</td>
+                <td className="px-4 py-3 text-center text-muted-foreground">{b.numUnidades}</td>
+                <td className="px-4 py-3 text-center text-muted-foreground">{b.numInscritos}</td>
+                <td className="px-4 py-3 text-center text-muted-foreground">{b.adesao}%</td>
+                <td className="px-4 py-3 text-center text-muted-foreground">{b.engajamento}%</td>
+                <td className="px-4 py-3 text-center text-muted-foreground">{b.ouro}</td>
+                <td className="px-4 py-3 text-center text-muted-foreground">{b.prata}</td>
+                <td className="px-4 py-3 text-center text-muted-foreground">{b.bronze}</td>
+                <td className="px-4 py-3 text-center text-muted-foreground">{b.mencao_honrosa}</td>
               </tr>
             ))}
           </tbody>
