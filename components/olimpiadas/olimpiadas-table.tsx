@@ -46,6 +46,16 @@ const COLUMNS: { key: ColKey; label: string }[] = [
   { key: "mencao", label: "Menção Honrosa" },
 ];
 
+const ACTIVE_STYLE: Record<ColKey, string> = {
+  inscritos: "bg-[rgb(91,184,193)]/10 text-[rgb(91,184,193)] ring-1 ring-[rgb(91,184,193)]/40",
+  participantes: "bg-[rgb(91,184,193)]/10 text-[rgb(91,184,193)] ring-1 ring-[rgb(91,184,193)]/40",
+  engajamento: "bg-[rgb(91,184,193)]/10 text-[rgb(91,184,193)] ring-1 ring-[rgb(91,184,193)]/40",
+  ouro: "bg-yellow-400/10 text-yellow-400 ring-1 ring-yellow-400/40",
+  prata: "bg-slate-300/10 text-slate-300 ring-1 ring-slate-300/40",
+  bronze: "bg-amber-600/10 text-amber-600 ring-1 ring-amber-600/40",
+  mencao: "bg-[rgb(91,184,193)]/10 text-[rgb(91,184,193)] ring-1 ring-[rgb(91,184,193)]/40",
+};
+
 function sigla(nome: string) {
   const idx = nome.indexOf(" — ");
   return idx !== -1 ? nome.substring(0, idx) : nome;
@@ -82,29 +92,28 @@ export function OlimpiadasTable({ statsRows, totals }: Props) {
   return (
     <div className="space-y-4">
       {/* Column toggles */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
         <span
-          className="text-xs font-semibold uppercase tracking-wider"
+          className="shrink-0 text-xs font-semibold uppercase tracking-wider"
           style={{ color: "rgb(91,184,193)" }}
         >
           Colunas
         </span>
-        <div className="flex flex-wrap gap-x-4 gap-y-2">
+        <div className="h-4 w-px shrink-0 bg-border" />
+        <div className="flex flex-wrap gap-2">
           {COLUMNS.map((col) => (
-            <label key={col.key} className="flex cursor-pointer select-none items-center gap-1.5">
-              <input
-                type="checkbox"
-                checked={visible[col.key]}
-                onChange={() => toggle(col.key)}
-                className="h-3.5 w-3.5 rounded"
-                style={{ accentColor: "rgb(91,184,193)" }}
-              />
-              <span
-                className={`text-xs ${visible[col.key] ? "text-foreground" : "text-muted-foreground/40"}`}
-              >
-                {col.label}
-              </span>
-            </label>
+            <button
+              key={col.key}
+              type="button"
+              onClick={() => toggle(col.key)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                visible[col.key]
+                  ? ACTIVE_STYLE[col.key]
+                  : "text-muted-foreground/40 ring-1 ring-border/40 hover:text-muted-foreground hover:ring-border"
+              }`}
+            >
+              {col.label}
+            </button>
           ))}
         </div>
       </div>
