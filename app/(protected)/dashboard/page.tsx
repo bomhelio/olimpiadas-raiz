@@ -31,12 +31,15 @@ export default async function DashboardPage({
 
   // Anos selecionados via searchParams (padrão: ano corrente)
   const sp = await searchParams;
-  const selectedYears: number[] = sp.anos
-    ? sp.anos
-        .split(",")
-        .map(Number)
-        .filter((n) => !isNaN(n) && anosDisponiveis.includes(n))
-    : [anoCorrente];
+  const todosMode = sp.anos === "todos";
+  const selectedYears: number[] = todosMode
+    ? anosDisponiveis
+    : sp.anos
+      ? sp.anos
+          .split(",")
+          .map(Number)
+          .filter((n) => !isNaN(n) && anosDisponiveis.includes(n))
+      : [anoCorrente];
 
   // Queries paralelas
   const [
@@ -168,7 +171,7 @@ export default async function DashboardPage({
           <h1 className="text-2xl font-bold text-foreground">Painel</h1>
           <p className="mt-1 text-sm text-muted-foreground">{ROLE_LABELS[user.role]}</p>
         </div>
-        <YearMultiSelect anos={anosDisponiveis} selected={selectedYears} />
+        <YearMultiSelect anos={anosDisponiveis} selected={selectedYears} todosMode={todosMode} />
       </div>
 
       {/* KPI Cards */}
