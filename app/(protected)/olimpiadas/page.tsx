@@ -11,6 +11,7 @@ export const metadata = { title: "Olimpíadas — Olimpíadas" };
 
 type Stats = {
   nome: string;
+  marca: string;
   inscritos: number;
   participantes: number;
   ouro: number;
@@ -25,6 +26,11 @@ const MEDAL_PRIORITY: Partial<Record<TipoResultado, number>> = {
   bronze: 2,
   mencao_honrosa: 1,
 };
+
+function sigla(nome: string) {
+  const idx = nome.indexOf(" — ");
+  return idx !== -1 ? nome.substring(0, idx) : nome;
+}
 
 function fmt(n: number) {
   return n === 0 ? "—" : n.toLocaleString("pt-BR");
@@ -75,7 +81,7 @@ export default async function OlimpiadasPage({
   // Query 1: inscrições filtradas
   let inscricoesQuery = supabase
     .from("v_dashboard_inscricoes")
-    .select("inscricao_id, olimpiada_nome, status")
+    .select("inscricao_id, olimpiada_nome, marca_nome, status")
     .in("ano_letivo", selectedYears);
 
   if (!marcaTodosMode && selectedMarcas.length > 0) {
@@ -109,13 +115,16 @@ export default async function OlimpiadasPage({
     }
   }
 
-  // Agregação por olimpíada
+  // Agregação por (marca × olimpíada)
   const statsMap = new Map<string, Stats>();
   for (const row of inscricoes ?? []) {
     const nome = row.olimpiada_nome ?? "—";
-    if (!statsMap.has(nome)) {
-      statsMap.set(nome, {
+    const marca = row.marca_nome ?? "—";
+    const key = `${marca}::${nome}`;
+    if (!statsMap.has(key)) {
+      statsMap.set(key, {
         nome,
+        marca,
         inscritos: 0,
         participantes: 0,
         ouro: 0,
@@ -124,7 +133,7 @@ export default async function OlimpiadasPage({
         mencao: 0,
       });
     }
-    const s = statsMap.get(nome)!;
+    const s = statsMap.get(key)!;
     s.inscritos++;
     if (row.status === "confirmada") s.participantes++;
 
@@ -135,9 +144,10 @@ export default async function OlimpiadasPage({
     else if (tipo === "mencao_honrosa") s.mencao++;
   }
 
-  const statsRows = Array.from(statsMap.values()).sort((a, b) =>
-    a.nome.localeCompare(b.nome, "pt-BR"),
-  );
+  const statsRows = Array.from(statsMap.values()).sort((a, b) => {
+    const marcaCmp = a.marca.localeCompare(b.marca, "pt-BR");
+    return marcaCmp !== 0 ? marcaCmp : a.nome.localeCompare(b.nome, "pt-BR");
+  });
 
   const totals = statsRows.reduce(
     (acc, r) => ({
@@ -207,9 +217,15 @@ export default async function OlimpiadasPage({
         <p className="text-sm text-muted-foreground">Nenhuma inscrição encontrada.</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full min-w-[760px] text-sm">
+          <table className="w-full min-w-[860px] text-sm">
             <thead>
               <tr className="border-b border-border bg-background">
+                <th
+                  className="px-4 py-3 text-left font-medium"
+                  style={{ color: "rgb(91,184,193)" }}
+                >
+                  Marca
+                </th>
                 <th
                   className="px-4 py-3 text-left font-medium"
                   style={{ color: "rgb(91,184,193)" }}
@@ -247,8 +263,9 @@ export default async function OlimpiadasPage({
             </thead>
             <tbody className="divide-y divide-border">
               {statsRows.map((r) => (
-                <tr key={r.nome} className="hover:bg-background/50">
-                  <td className="px-4 py-3 font-medium text-foreground">{r.nome}</td>
+                <tr key={`${r.marca}::${r.nome}`} className="hover:bg-background/50">
+                  <td className="px-4 py-3 font-medium text-foreground">{r.marca}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{sigla(r.nome)}</td>
                   <td className="px-4 py-3 text-right text-muted-foreground">
                     {r.inscritos.toLocaleString("pt-BR")}
                   </td>
@@ -268,6 +285,7 @@ export default async function OlimpiadasPage({
             <tfoot>
               <tr className="border-t-2 border-border bg-background font-semibold">
                 <td className="px-4 py-3 text-foreground">Total</td>
+                <td className="px-4 py-3" />
                 <td className="px-4 py-3 text-right text-foreground">
                   {totals.inscritos.toLocaleString("pt-BR")}
                 </td>
