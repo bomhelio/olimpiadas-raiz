@@ -113,28 +113,6 @@ function cellValue(row: OlimpiadaStats, col: ColKey): number {
 
 type ChartPoint = Record<string, string | number>;
 
-// X = marca, one bar per olimpíada
-function toGroupedByMarca(
-  rows: OlimpiadaStats[],
-  col: ColKey,
-): { data: ChartPoint[]; series: string[] } {
-  const marcas = [...new Set(rows.map((r) => r.marca))].sort((a, b) => a.localeCompare(b, "pt-BR"));
-  const olimps = [...new Set(rows.map((r) => sigla(r.nome)))].sort((a, b) =>
-    a.localeCompare(b, "pt-BR"),
-  );
-
-  const data = marcas.map((marca) => {
-    const entry: ChartPoint = { name: marca };
-    for (const olimp of olimps) {
-      const row = rows.find((r) => r.marca === marca && sigla(r.nome) === olimp);
-      entry[olimp] = row ? cellValue(row, col) : 0;
-    }
-    return entry;
-  });
-
-  return { data, series: olimps };
-}
-
 // X = olimpíada, one bar per marca
 function toGroupedByOlimp(
   rows: OlimpiadaStats[],
@@ -402,32 +380,18 @@ export function OlimpiadasTable({ statsRows, totals }: Props) {
         </table>
       </div>
 
-      {/* Charts — grouped bars: Por marca (series=olimpíadas) + Por olimpíada (series=marcas) */}
+      {/* Charts — X = olimpíada, one bar per marca */}
       {COLUMNS.filter((c) => visible[c.key]).map((col) => {
         const color = COL_COLOR[col.key];
         const isPercent = col.key === "engajamento";
-        const byMarca = toGroupedByMarca(statsRows, col.key);
         const byOlimp = toGroupedByOlimp(statsRows, col.key);
 
         return (
           <div key={col.key} className="rounded-xl border border-border bg-card p-5">
-            <p className="mb-5 text-sm font-semibold" style={{ color }}>
+            <p className="mb-4 text-sm font-semibold" style={{ color }}>
               {col.label}
             </p>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <div>
-                <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Por marca
-                </p>
-                <GroupedBar data={byMarca.data} series={byMarca.series} isPercent={isPercent} />
-              </div>
-              <div>
-                <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Por olimpíada
-                </p>
-                <GroupedBar data={byOlimp.data} series={byOlimp.series} isPercent={isPercent} />
-              </div>
-            </div>
+            <GroupedBar data={byOlimp.data} series={byOlimp.series} isPercent={isPercent} />
           </div>
         );
       })}
