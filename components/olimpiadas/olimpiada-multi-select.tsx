@@ -83,7 +83,7 @@ function OlimpiadaMultiSelectInner({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-[300px] rounded-xl border border-border bg-card p-1.5 shadow-lg">
+        <div className="absolute left-0 top-full z-50 mt-1 w-[480px] rounded-xl border border-border bg-card p-1.5 shadow-lg">
           {/* Opção Todas */}
           <button
             onClick={toggleTodos}
@@ -107,7 +107,7 @@ function OlimpiadaMultiSelectInner({
                   className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-background"
                 >
                   <Checkbox checked={checked} />
-                  <div className="min-w-0 truncate text-left">
+                  <div className="min-w-0 text-left">
                     <span
                       className={`font-medium ${checked ? "text-foreground" : "text-muted-foreground"}`}
                     >
