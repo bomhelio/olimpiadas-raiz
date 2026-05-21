@@ -1,10 +1,8 @@
 import { getServerSession } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MarcaMultiSelect } from "@/components/olimpiadas/marca-multi-select";
-import {
-  OlimpiadaMultiSelect,
-  OLIMPIADAS_NACIONAIS,
-} from "@/components/olimpiadas/olimpiada-multi-select";
+import { OlimpiadaMultiSelect } from "@/components/olimpiadas/olimpiada-multi-select";
+import { OLIMPIADAS_NACIONAIS } from "@/lib/olimpiadas/nacionais";
 
 export const metadata = { title: "Olimpíadas — Olimpíadas" };
 
