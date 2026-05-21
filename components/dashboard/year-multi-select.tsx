@@ -68,7 +68,7 @@ function YearMultiSelectInner({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm transition-colors hover:bg-background focus:outline-none"
+        className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm transition-colors hover:bg-background focus:outline-none"
         style={open ? { borderColor: "rgb(91,184,193)" } : {}}
       >
         <span style={{ color: "rgb(91,184,193)" }} className="font-medium">
