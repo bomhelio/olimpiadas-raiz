@@ -3,22 +3,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { MarcaMultiSelect } from "@/components/olimpiadas/marca-multi-select";
 import { OlimpiadaMultiSelect } from "@/components/olimpiadas/olimpiada-multi-select";
 import { YearMultiSelect } from "@/components/dashboard/year-multi-select";
+import { OlimpiadasTable } from "@/components/olimpiadas/olimpiadas-table";
+import type { OlimpiadaStats } from "@/components/olimpiadas/olimpiadas-table";
 import type { TipoResultado } from "@/lib/types/database";
 
 const ANO_INICIO = 2021;
 
 export const metadata = { title: "Olimpíadas — Olimpíadas" };
-
-type Stats = {
-  nome: string;
-  marca: string;
-  inscritos: number;
-  participantes: number;
-  ouro: number;
-  prata: number;
-  bronze: number;
-  mencao: number;
-};
 
 const MEDAL_PRIORITY: Partial<Record<TipoResultado, number>> = {
   ouro: 4,
@@ -26,20 +17,6 @@ const MEDAL_PRIORITY: Partial<Record<TipoResultado, number>> = {
   bronze: 2,
   mencao_honrosa: 1,
 };
-
-function sigla(nome: string) {
-  const idx = nome.indexOf(" — ");
-  return idx !== -1 ? nome.substring(0, idx) : nome;
-}
-
-function fmt(n: number) {
-  return n === 0 ? "—" : n.toLocaleString("pt-BR");
-}
-
-function engajamento(participantes: number, inscritos: number) {
-  if (inscritos === 0) return "—";
-  return `${Math.round((participantes / inscritos) * 100)}%`;
-}
 
 export default async function OlimpiadasPage({
   searchParams,
@@ -116,7 +93,7 @@ export default async function OlimpiadasPage({
   }
 
   // Agregação por (marca × olimpíada)
-  const statsMap = new Map<string, Stats>();
+  const statsMap = new Map<string, OlimpiadaStats>();
   for (const row of inscricoes ?? []) {
     const nome = row.olimpiada_nome ?? "—";
     const marca = row.marca_nome ?? "—";
@@ -212,98 +189,8 @@ export default async function OlimpiadasPage({
         </div>
       </div>
 
-      {/* Tabela */}
-      {statsRows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nenhuma inscrição encontrada.</p>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full min-w-[860px] text-sm">
-            <thead>
-              <tr className="border-b border-border bg-background">
-                <th
-                  className="px-4 py-3 text-left font-medium"
-                  style={{ color: "rgb(91,184,193)" }}
-                >
-                  Marca
-                </th>
-                <th
-                  className="px-4 py-3 text-left font-medium"
-                  style={{ color: "rgb(91,184,193)" }}
-                >
-                  Olimpíada
-                </th>
-                <th
-                  className="px-4 py-3 text-right font-medium"
-                  style={{ color: "rgb(91,184,193)" }}
-                >
-                  Inscritos
-                </th>
-                <th
-                  className="px-4 py-3 text-right font-medium"
-                  style={{ color: "rgb(91,184,193)" }}
-                >
-                  Participantes
-                </th>
-                <th
-                  className="px-4 py-3 text-right font-medium"
-                  style={{ color: "rgb(91,184,193)" }}
-                >
-                  Engajamento
-                </th>
-                <th className="px-4 py-3 text-right font-medium text-yellow-400">Ouro</th>
-                <th className="px-4 py-3 text-right font-medium text-slate-300">Prata</th>
-                <th className="px-4 py-3 text-right font-medium text-amber-600">Bronze</th>
-                <th
-                  className="px-4 py-3 text-right font-medium"
-                  style={{ color: "rgb(91,184,193)" }}
-                >
-                  Menção
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {statsRows.map((r) => (
-                <tr key={`${r.marca}::${r.nome}`} className="hover:bg-background/50">
-                  <td className="px-4 py-3 font-medium text-foreground">{r.marca}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{sigla(r.nome)}</td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">
-                    {r.inscritos.toLocaleString("pt-BR")}
-                  </td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">
-                    {fmt(r.participantes)}
-                  </td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">
-                    {engajamento(r.participantes, r.inscritos)}
-                  </td>
-                  <td className="px-4 py-3 text-right text-yellow-400">{fmt(r.ouro)}</td>
-                  <td className="px-4 py-3 text-right text-slate-300">{fmt(r.prata)}</td>
-                  <td className="px-4 py-3 text-right text-amber-600">{fmt(r.bronze)}</td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">{fmt(r.mencao)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-border bg-background font-semibold">
-                <td className="px-4 py-3 text-foreground">Total</td>
-                <td className="px-4 py-3" />
-                <td className="px-4 py-3 text-right text-foreground">
-                  {totals.inscritos.toLocaleString("pt-BR")}
-                </td>
-                <td className="px-4 py-3 text-right text-foreground">
-                  {fmt(totals.participantes)}
-                </td>
-                <td className="px-4 py-3 text-right text-foreground">
-                  {engajamento(totals.participantes, totals.inscritos)}
-                </td>
-                <td className="px-4 py-3 text-right text-yellow-400">{fmt(totals.ouro)}</td>
-                <td className="px-4 py-3 text-right text-slate-300">{fmt(totals.prata)}</td>
-                <td className="px-4 py-3 text-right text-amber-600">{fmt(totals.bronze)}</td>
-                <td className="px-4 py-3 text-right text-foreground">{fmt(totals.mencao)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      )}
+      {/* Tabela com seletor de colunas */}
+      <OlimpiadasTable statsRows={statsRows} totals={totals} />
     </div>
   );
 }
