@@ -149,8 +149,8 @@ function GroupedBar({
   series: string[];
   isPercent: boolean;
 }) {
-  const BAR_W = 48;
-  const GROUP_GAP = 40;
+  const BAR_W = 44;
+  const GROUP_GAP = 16;
   const ML = 8;
   const MR = 16;
 
