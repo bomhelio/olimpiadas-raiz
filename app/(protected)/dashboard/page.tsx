@@ -2,7 +2,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ROLE_LABELS } from "@/lib/auth/roles";
 import { getAnoAnalise } from "@/lib/auth/ano-analise";
-import { MarcaResultadoChart } from "@/components/dashboard/marca-resultado-chart";
 
 export const metadata = { title: "Painel — Olimpíadas" };
 
@@ -101,14 +100,6 @@ export default async function DashboardPage() {
       ...tipos,
     };
   });
-
-  const chartData = brandRows.map((b) => ({
-    nome: b.nome,
-    ouro: b.ouro,
-    prata: b.prata,
-    bronze: b.bronze,
-    mencao_honrosa: b.mencao_honrosa,
-  }));
 
   // KPIs agregados
   const totalInscritos = brandRows.reduce((s, b) => s + b.numAlunos, 0);
@@ -283,9 +274,6 @@ export default async function DashboardPage() {
           </tbody>
         </table>
       </div>
-
-      {/* Gráfico de resultados por marca */}
-      <MarcaResultadoChart data={chartData} />
     </div>
   );
 }
