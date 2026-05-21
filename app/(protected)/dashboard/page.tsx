@@ -14,7 +14,7 @@ const ANO_INICIO = 2021;
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ano?: string }>;
+  searchParams: Promise<{ anos?: string }>;
 }) {
   const session = await getServerSession();
   if (!session) return null;
@@ -29,12 +29,14 @@ export default async function DashboardPage({
     (_, i) => ANO_INICIO + i,
   ).reverse();
 
-  // Ano selecionado via searchParams (padrão: ano corrente)
+  // Anos selecionados via searchParams (padrão: ano corrente)
   const sp = await searchParams;
-  const selectedYear: number =
-    sp.ano && !isNaN(Number(sp.ano)) && anosDisponiveis.includes(Number(sp.ano))
-      ? Number(sp.ano)
-      : anoCorrente;
+  const selectedYears: number[] = sp.anos
+    ? sp.anos
+        .split(",")
+        .map(Number)
+        .filter((n) => !isNaN(n) && anosDisponiveis.includes(n))
+    : [anoCorrente];
 
   // Queries paralelas
   const [
@@ -46,7 +48,7 @@ export default async function DashboardPage({
     supabase
       .from("v_dashboard_inscricoes")
       .select("inscricao_id, status, marca_nome, olimpiada_nome")
-      .eq("ano_letivo", selectedYear),
+      .in("ano_letivo", selectedYears),
     supabase
       .from("unidade")
       .select(
@@ -86,7 +88,7 @@ export default async function DashboardPage({
       return (
         acc +
         turmas
-          .filter((t) => t.ano_letivo === selectedYear)
+          .filter((t) => t.ano_letivo !== null && selectedYears.includes(t.ano_letivo))
           .reduce((a2, t) => {
             const alunos = (Array.isArray(t.alunos) ? t.alunos : []) as {
               id: string;
@@ -166,7 +168,7 @@ export default async function DashboardPage({
           <h1 className="text-2xl font-bold text-foreground">Painel</h1>
           <p className="mt-1 text-sm text-muted-foreground">{ROLE_LABELS[user.role]}</p>
         </div>
-        <YearMultiSelect anos={anosDisponiveis} selected={selectedYear} />
+        <YearMultiSelect anos={anosDisponiveis} selected={selectedYears} />
       </div>
 
       {/* KPI Cards */}
