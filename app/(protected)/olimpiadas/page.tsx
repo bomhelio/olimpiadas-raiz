@@ -8,17 +8,24 @@ const ANO_INICIO = 2021;
 
 export const metadata = { title: "Olimpíadas — Olimpíadas" };
 
-const STATUS_LABELS: Record<string, string> = {
-  pendente: "Pendente",
-  confirmada: "Confirmada",
-  cancelada: "Cancelada",
+type Stats = {
+  nome: string;
+  inscritos: number;
+  participantes: number;
+  ouro: number;
+  prata: number;
+  bronze: number;
+  mencao: number;
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  pendente: "bg-yellow-500/10 text-yellow-400",
-  confirmada: "bg-emerald-500/10 text-emerald-400",
-  cancelada: "bg-red-500/10 text-red-400",
-};
+function fmt(n: number) {
+  return n === 0 ? "—" : n.toLocaleString("pt-BR");
+}
+
+function engajamento(participantes: number, inscritos: number) {
+  if (inscritos === 0) return "—";
+  return `${Math.round((participantes / inscritos) * 100)}%`;
+}
 
 export default async function OlimpiadasPage({
   searchParams,
@@ -40,7 +47,6 @@ export default async function OlimpiadasPage({
   const selectedMarcas = marcaTodosMode ? [] : marcaParam.split(",").filter(Boolean);
   const selectedOlimpiadas = olimpiadaTodosMode ? [] : olimpiadaParam.split(",").filter(Boolean);
 
-  // Anos — mesmo padrão do Painel
   const anoCorrente = new Date().getFullYear();
   const anosDisponiveis = Array.from(
     { length: anoCorrente - ANO_INICIO + 1 },
@@ -60,12 +66,8 @@ export default async function OlimpiadasPage({
 
   let query = supabase
     .from("v_dashboard_inscricoes")
-    .select(
-      "inscricao_id, aluno_nome, olimpiada_nome, area_conhecimento, marca_nome, unidade_nome, serie, status, ano_letivo, inscrito_em",
-    )
-    .in("ano_letivo", selectedYears)
-    .order("inscrito_em", { ascending: false })
-    .limit(200);
+    .select("olimpiada_nome, status, classificacao")
+    .in("ano_letivo", selectedYears);
 
   if (!marcaTodosMode && selectedMarcas.length > 0) {
     query = query.in("marca_nome", selectedMarcas);
@@ -75,8 +77,46 @@ export default async function OlimpiadasPage({
     query = query.or(conditions);
   }
 
-  const { data: inscricoes } = await query;
-  const total = inscricoes?.length ?? 0;
+  const { data: rows } = await query;
+
+  const statsMap = new Map<string, Stats>();
+  for (const row of rows ?? []) {
+    const nome = row.olimpiada_nome ?? "—";
+    if (!statsMap.has(nome)) {
+      statsMap.set(nome, {
+        nome,
+        inscritos: 0,
+        participantes: 0,
+        ouro: 0,
+        prata: 0,
+        bronze: 0,
+        mencao: 0,
+      });
+    }
+    const s = statsMap.get(nome)!;
+    s.inscritos++;
+    if (row.status === "confirmada") s.participantes++;
+    if (row.classificacao === "ouro") s.ouro++;
+    if (row.classificacao === "prata") s.prata++;
+    if (row.classificacao === "bronze") s.bronze++;
+    if (row.classificacao === "mencao_honrosa") s.mencao++;
+  }
+
+  const statsRows = Array.from(statsMap.values()).sort((a, b) =>
+    a.nome.localeCompare(b.nome, "pt-BR"),
+  );
+
+  const totals = statsRows.reduce(
+    (acc, r) => ({
+      inscritos: acc.inscritos + r.inscritos,
+      participantes: acc.participantes + r.participantes,
+      ouro: acc.ouro + r.ouro,
+      prata: acc.prata + r.prata,
+      bronze: acc.bronze + r.bronze,
+      mencao: acc.mencao + r.mencao,
+    }),
+    { inscritos: 0, participantes: 0, ouro: 0, prata: 0, bronze: 0, mencao: 0 },
+  );
 
   return (
     <div className="space-y-6">
@@ -90,7 +130,6 @@ export default async function OlimpiadasPage({
 
       {/* Filtros */}
       <div className="flex flex-wrap items-end gap-4">
-        {/* Marca */}
         <div className="flex flex-col gap-1.5">
           <p
             className="text-xs font-semibold uppercase tracking-wider"
@@ -105,7 +144,6 @@ export default async function OlimpiadasPage({
           />
         </div>
 
-        {/* Olimpíada */}
         <div className="flex flex-col gap-1.5">
           <p
             className="text-xs font-semibold uppercase tracking-wider"
@@ -116,7 +154,6 @@ export default async function OlimpiadasPage({
           <OlimpiadaMultiSelect selected={selectedOlimpiadas} todosMode={olimpiadaTodosMode} />
         </div>
 
-        {/* Ano */}
         <div className="flex flex-col gap-1.5">
           <p
             className="text-xs font-semibold uppercase tracking-wider"
@@ -132,94 +169,87 @@ export default async function OlimpiadasPage({
         </div>
       </div>
 
-      {/* Contador */}
-      <p className="text-sm text-muted-foreground">
-        {total === 0
-          ? "Nenhuma inscrição encontrada."
-          : total >= 200
-            ? "Exibindo as 200 inscrições mais recentes."
-            : `${total} inscrição${total !== 1 ? "ões" : ""} encontrada${total !== 1 ? "s" : ""}.`}
-      </p>
-
       {/* Tabela */}
-      {total > 0 && (
+      {statsRows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhuma inscrição encontrada.</p>
+      ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="border-b border-border bg-background">
                 <th
                   className="px-4 py-3 text-left font-medium"
                   style={{ color: "rgb(91,184,193)" }}
                 >
-                  Aluno
-                </th>
-                <th
-                  className="hidden px-4 py-3 text-left font-medium sm:table-cell"
-                  style={{ color: "rgb(91,184,193)" }}
-                >
                   Olimpíada
                 </th>
                 <th
-                  className="hidden px-4 py-3 text-left font-medium md:table-cell"
+                  className="px-4 py-3 text-right font-medium"
                   style={{ color: "rgb(91,184,193)" }}
                 >
-                  Marca
+                  Inscritos
                 </th>
                 <th
-                  className="hidden px-4 py-3 text-left font-medium lg:table-cell"
+                  className="px-4 py-3 text-right font-medium"
                   style={{ color: "rgb(91,184,193)" }}
                 >
-                  Unidade
+                  Participantes
                 </th>
                 <th
-                  className="hidden px-4 py-3 text-left font-medium sm:table-cell"
+                  className="px-4 py-3 text-right font-medium"
                   style={{ color: "rgb(91,184,193)" }}
                 >
-                  Série
+                  Engajamento
                 </th>
+                <th className="px-4 py-3 text-right font-medium text-yellow-400">Ouro</th>
+                <th className="px-4 py-3 text-right font-medium text-slate-300">Prata</th>
+                <th className="px-4 py-3 text-right font-medium text-amber-600">Bronze</th>
                 <th
-                  className="hidden px-4 py-3 text-left font-medium sm:table-cell"
+                  className="px-4 py-3 text-right font-medium"
                   style={{ color: "rgb(91,184,193)" }}
                 >
-                  Ano
-                </th>
-                <th
-                  className="px-4 py-3 text-left font-medium"
-                  style={{ color: "rgb(91,184,193)" }}
-                >
-                  Status
+                  Menção
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {(inscricoes ?? []).map((i) => (
-                <tr key={i.inscricao_id} className="hover:bg-background/50">
-                  <td className="px-4 py-3 font-medium text-foreground">{i.aluno_nome}</td>
-                  <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
-                    {i.olimpiada_nome}
+              {statsRows.map((r) => (
+                <tr key={r.nome} className="hover:bg-background/50">
+                  <td className="px-4 py-3 font-medium text-foreground">{r.nome}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground">
+                    {r.inscritos.toLocaleString("pt-BR")}
                   </td>
-                  <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
-                    {i.marca_nome}
+                  <td className="px-4 py-3 text-right text-muted-foreground">
+                    {fmt(r.participantes)}
                   </td>
-                  <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">
-                    {i.unidade_nome}
+                  <td className="px-4 py-3 text-right text-muted-foreground">
+                    {engajamento(r.participantes, r.inscritos)}
                   </td>
-                  <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
-                    {i.serie ?? "—"}
-                  </td>
-                  <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
-                    {i.ano_letivo}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[i.status] ?? "bg-secondary text-muted-foreground"}`}
-                    >
-                      {STATUS_LABELS[i.status] ?? i.status}
-                    </span>
-                  </td>
+                  <td className="px-4 py-3 text-right text-yellow-400">{fmt(r.ouro)}</td>
+                  <td className="px-4 py-3 text-right text-slate-300">{fmt(r.prata)}</td>
+                  <td className="px-4 py-3 text-right text-amber-600">{fmt(r.bronze)}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground">{fmt(r.mencao)}</td>
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-border bg-background font-semibold">
+                <td className="px-4 py-3 text-foreground">Total</td>
+                <td className="px-4 py-3 text-right text-foreground">
+                  {totals.inscritos.toLocaleString("pt-BR")}
+                </td>
+                <td className="px-4 py-3 text-right text-foreground">
+                  {fmt(totals.participantes)}
+                </td>
+                <td className="px-4 py-3 text-right text-foreground">
+                  {engajamento(totals.participantes, totals.inscritos)}
+                </td>
+                <td className="px-4 py-3 text-right text-yellow-400">{fmt(totals.ouro)}</td>
+                <td className="px-4 py-3 text-right text-slate-300">{fmt(totals.prata)}</td>
+                <td className="px-4 py-3 text-right text-amber-600">{fmt(totals.bronze)}</td>
+                <td className="px-4 py-3 text-right text-foreground">{fmt(totals.mencao)}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}
