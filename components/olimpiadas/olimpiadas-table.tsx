@@ -170,7 +170,10 @@ function MiniBar({
         />
         <Tooltip
           {...TOOLTIP_STYLE}
-          formatter={(v: number) => [isPercent ? `${v}%` : v.toLocaleString("pt-BR"), colLabel]}
+          formatter={(v) => {
+            const n = Number(v ?? 0);
+            return [isPercent ? `${n}%` : n.toLocaleString("pt-BR"), colLabel];
+          }}
         />
         <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} maxBarSize={52} />
       </BarChart>
