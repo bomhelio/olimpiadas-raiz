@@ -1,17 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  BarChart,
-  Bar,
-  LabelList,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { BarChart, Bar, LabelList, XAxis, Tooltip, Legend } from "recharts";
 
 export type OlimpiadaStats = {
   nome: string;
@@ -159,29 +149,33 @@ function GroupedBar({
   series: string[];
   isPercent: boolean;
 }) {
-  const height = series.length > 3 ? 240 : 200;
+  const BAR_W = 48;
+  const GROUP_GAP = 40;
+  const ML = 8;
+  const MR = 16;
+
+  // width fitted to content; each group gets at least 96px so labels don't clip
+  const contentW = Math.max(
+    data.length * series.length * BAR_W + Math.max(0, data.length - 1) * GROUP_GAP,
+    data.length * 96 + Math.max(0, data.length - 1) * GROUP_GAP,
+  );
+  const chartW = contentW + ML + MR;
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <div className="flex justify-center overflow-x-auto">
       <BarChart
+        width={chartW}
+        height={220}
         data={data}
         barGap={0}
-        barCategoryGap="20%"
-        margin={{ top: 20, right: 8, left: -20, bottom: 0 }}
+        barCategoryGap={GROUP_GAP}
+        margin={{ top: 28, right: MR, left: ML, bottom: 8 }}
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
         <XAxis
           dataKey="name"
-          tick={{ fontSize: 10, fill: "rgb(148,163,184)" }}
-          axisLine={false}
+          tick={{ fontSize: 11, fill: "rgb(148,163,184)", fontWeight: 500 }}
+          axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
           tickLine={false}
-        />
-        <YAxis
-          tick={{ fontSize: 11, fill: "rgb(148,163,184)" }}
-          axisLine={false}
-          tickLine={false}
-          tickFormatter={isPercent ? (v: number) => `${v}%` : undefined}
-          allowDecimals={false}
         />
         <Tooltip
           {...TOOLTIP_STYLE}
@@ -193,9 +187,10 @@ function GroupedBar({
         <Legend
           verticalAlign="bottom"
           iconSize={8}
-          wrapperStyle={{ paddingTop: 12 }}
+          iconType="circle"
+          wrapperStyle={{ paddingTop: 14 }}
           formatter={(value) => (
-            <span style={{ color: "rgb(148,163,184)", fontSize: 10 }}>{value}</span>
+            <span style={{ color: "rgb(148,163,184)", fontSize: 11 }}>{value}</span>
           )}
         />
         {series.map((s, i) => (
@@ -203,12 +198,13 @@ function GroupedBar({
             key={s}
             dataKey={s}
             fill={SERIES_COLORS[i % SERIES_COLORS.length]}
-            radius={[3, 3, 0, 0]}
+            barSize={BAR_W}
+            radius={[4, 4, 0, 0]}
           >
             <LabelList
               dataKey={s}
               position="top"
-              style={{ fill: "rgb(203,213,225)", fontSize: 10 }}
+              style={{ fill: "rgb(226,232,240)", fontSize: 11, fontWeight: 600 }}
               formatter={(v: unknown) => {
                 const n = Number(v ?? 0);
                 return n === 0 ? "" : isPercent ? `${n}%` : n.toLocaleString("pt-BR");
@@ -217,7 +213,7 @@ function GroupedBar({
           </Bar>
         ))}
       </BarChart>
-    </ResponsiveContainer>
+    </div>
   );
 }
 
