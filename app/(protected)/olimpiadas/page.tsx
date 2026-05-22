@@ -6,6 +6,7 @@ import { YearMultiSelect } from "@/components/dashboard/year-multi-select";
 import { OlimpiadasTable } from "@/components/olimpiadas/olimpiadas-table";
 import type { OlimpiadaStats } from "@/components/olimpiadas/olimpiadas-table";
 import type { TipoResultado } from "@/lib/types/database";
+import { OLIMPIADAS_NACIONAIS } from "@/lib/olimpiadas/nacionais";
 
 const ANO_INICIO = 2021;
 
@@ -53,7 +54,30 @@ export default async function OlimpiadasPage({
           .filter((n) => !isNaN(n) && anosDisponiveis.includes(n))
       : [anoCorrente];
 
-  const { data: marcas } = await supabase.from("marca").select("id, nome").order("nome");
+  const [{ data: marcas }, { data: olimpiadasDb }] = await Promise.all([
+    supabase.from("marca").select("id, nome").order("nome"),
+    supabase.from("olimpiada").select("nome").eq("ativo", true),
+  ]);
+
+  // Determina quais siglas de OLIMPIADAS_NACIONAIS têm dados no banco
+  // Matching: nome da olimpíada começa com a sigla (ex: "OBA 2025 —" → "OBA")
+  const siglasComDados = new Set<string>();
+  for (const o of olimpiadasDb ?? []) {
+    const upper = o.nome.toUpperCase();
+    for (const nacional of OLIMPIADAS_NACIONAIS) {
+      const siglaUpper = nacional.sigla.toUpperCase();
+      if (
+        upper === siglaUpper ||
+        upper.startsWith(siglaUpper + " ") ||
+        upper.startsWith(siglaUpper + " —") ||
+        upper.startsWith(siglaUpper + "-")
+      ) {
+        siglasComDados.add(nacional.sigla);
+        break;
+      }
+    }
+  }
+  const olimpiadasDisponiveis = OLIMPIADAS_NACIONAIS.filter((o) => siglasComDados.has(o.sigla));
 
   // Query 1: inscrições filtradas (limite alto para pegar todos os registros)
   let inscricoesQuery = supabase
@@ -178,7 +202,7 @@ export default async function OlimpiadasPage({
           >
             Olimpíada
           </p>
-          <OlimpiadaMultiSelect />
+          <OlimpiadaMultiSelect olimpiadas={olimpiadasDisponiveis} />
         </div>
 
         <div className="flex flex-col gap-1.5">

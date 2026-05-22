@@ -6,7 +6,11 @@ import { OLIMPIADAS_NACIONAIS, type OlimpiadaNacional } from "@/lib/olimpiadas/n
 
 type Olimpiada = OlimpiadaNacional;
 
-function OlimpiadaMultiSelectInner({ olimpiadas }: { olimpiadas: readonly Olimpiada[] }) {
+function OlimpiadaMultiSelectInner({
+  olimpiadas,
+}: {
+  olimpiadas: readonly Olimpiada[] | Olimpiada[];
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -156,10 +160,14 @@ function Checkbox({ checked }: { checked: boolean }) {
   );
 }
 
-export function OlimpiadaMultiSelect() {
+export function OlimpiadaMultiSelect({
+  olimpiadas = OLIMPIADAS_NACIONAIS,
+}: {
+  olimpiadas?: readonly Olimpiada[];
+}) {
   return (
     <Suspense fallback={null}>
-      <OlimpiadaMultiSelectInner olimpiadas={OLIMPIADAS_NACIONAIS} />
+      <OlimpiadaMultiSelectInner olimpiadas={olimpiadas} />
     </Suspense>
   );
 }
