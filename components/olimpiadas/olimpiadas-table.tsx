@@ -268,22 +268,6 @@ export function OlimpiadasTable({ statsRows, totals }: Props) {
         </div>
       </div>
 
-      {/* Charts — prominent position */}
-      {COLUMNS.filter((c) => visible[c.key]).map((col) => {
-        const color = COL_COLOR[col.key];
-        const isPercent = col.key === "engajamento";
-        const byMarca = toGroupedByMarca(statsRows, col.key);
-
-        return (
-          <div key={col.key} className="rounded-xl border border-border bg-card p-5">
-            <p className="mb-4 text-sm font-semibold" style={{ color }}>
-              {col.label}
-            </p>
-            <GroupedBar data={byMarca.data} series={byMarca.series} isPercent={isPercent} />
-          </div>
-        );
-      })}
-
       {/* Table — collapsible */}
       <div className="rounded-xl border border-border bg-card">
         <button
@@ -440,6 +424,22 @@ export function OlimpiadasTable({ statsRows, totals }: Props) {
           </div>
         )}
       </div>
+
+      {/* Charts */}
+      {COLUMNS.filter((c) => visible[c.key]).map((col) => {
+        const color = COL_COLOR[col.key];
+        const isPercent = col.key === "engajamento";
+        const byMarca = toGroupedByMarca(statsRows, col.key);
+
+        return (
+          <div key={col.key} className="rounded-xl border border-border bg-card p-5">
+            <p className="mb-4 text-sm font-semibold" style={{ color }}>
+              {col.label}
+            </p>
+            <GroupedBar data={byMarca.data} series={byMarca.series} isPercent={isPercent} />
+          </div>
+        );
+      })}
     </div>
   );
 }
