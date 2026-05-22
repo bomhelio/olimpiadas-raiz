@@ -229,6 +229,7 @@ export function OlimpiadasTable({ statsRows, totals }: Props) {
     bronze: true,
     mencao: true,
   });
+  const [tableOpen, setTableOpen] = useState(false);
 
   function toggle(key: ColKey) {
     setVisible((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -267,132 +268,7 @@ export function OlimpiadasTable({ statsRows, totals }: Props) {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
-        <table className="w-full min-w-[400px] text-sm">
-          <thead>
-            <tr className="border-b border-border bg-background">
-              <th className="px-4 py-3 text-left font-medium" style={{ color: "rgb(91,184,193)" }}>
-                Marca
-              </th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: "rgb(91,184,193)" }}>
-                Olimpíada
-              </th>
-              {visible.inscritos && (
-                <th
-                  className="px-4 py-3 text-right font-medium"
-                  style={{ color: "rgb(91,184,193)" }}
-                >
-                  Inscritos
-                </th>
-              )}
-              {visible.participantes && (
-                <th
-                  className="px-4 py-3 text-right font-medium"
-                  style={{ color: "rgb(91,184,193)" }}
-                >
-                  Participantes
-                </th>
-              )}
-              {visible.engajamento && (
-                <th
-                  className="px-4 py-3 text-right font-medium"
-                  style={{ color: "rgb(91,184,193)" }}
-                >
-                  Engajamento
-                </th>
-              )}
-              {visible.ouro && (
-                <th className="px-4 py-3 text-right font-medium text-yellow-400">Ouro</th>
-              )}
-              {visible.prata && (
-                <th className="px-4 py-3 text-right font-medium text-slate-300">Prata</th>
-              )}
-              {visible.bronze && (
-                <th className="px-4 py-3 text-right font-medium text-amber-600">Bronze</th>
-              )}
-              {visible.mencao && (
-                <th
-                  className="px-4 py-3 text-right font-medium"
-                  style={{ color: "rgb(91,184,193)" }}
-                >
-                  Menção
-                </th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {statsRows.map((r) => (
-              <tr key={`${r.marca}::${r.nome}`} className="hover:bg-background/50">
-                <td className="px-4 py-3 font-medium text-foreground">{r.marca}</td>
-                <td className="px-4 py-3 text-muted-foreground">{sigla(r.nome)}</td>
-                {visible.inscritos && (
-                  <td className="px-4 py-3 text-right text-muted-foreground">
-                    {r.inscritos.toLocaleString("pt-BR")}
-                  </td>
-                )}
-                {visible.participantes && (
-                  <td className="px-4 py-3 text-right text-muted-foreground">
-                    {fmt(r.participantes)}
-                  </td>
-                )}
-                {visible.engajamento && (
-                  <td className="px-4 py-3 text-right text-muted-foreground">
-                    {engajamento(r.participantes, r.inscritos)}
-                  </td>
-                )}
-                {visible.ouro && (
-                  <td className="px-4 py-3 text-right text-yellow-400">{fmt(r.ouro)}</td>
-                )}
-                {visible.prata && (
-                  <td className="px-4 py-3 text-right text-slate-300">{fmt(r.prata)}</td>
-                )}
-                {visible.bronze && (
-                  <td className="px-4 py-3 text-right text-amber-600">{fmt(r.bronze)}</td>
-                )}
-                {visible.mencao && (
-                  <td className="px-4 py-3 text-right text-muted-foreground">{fmt(r.mencao)}</td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="border-t-2 border-border bg-background font-semibold">
-              <td className="px-4 py-3 text-foreground">Total</td>
-              <td className="px-4 py-3" />
-              {visible.inscritos && (
-                <td className="px-4 py-3 text-right text-foreground">
-                  {totals.inscritos.toLocaleString("pt-BR")}
-                </td>
-              )}
-              {visible.participantes && (
-                <td className="px-4 py-3 text-right text-foreground">
-                  {fmt(totals.participantes)}
-                </td>
-              )}
-              {visible.engajamento && (
-                <td className="px-4 py-3 text-right text-foreground">
-                  {engajamento(totals.participantes, totals.inscritos)}
-                </td>
-              )}
-              {visible.ouro && (
-                <td className="px-4 py-3 text-right text-yellow-400">{fmt(totals.ouro)}</td>
-              )}
-              {visible.prata && (
-                <td className="px-4 py-3 text-right text-slate-300">{fmt(totals.prata)}</td>
-              )}
-              {visible.bronze && (
-                <td className="px-4 py-3 text-right text-amber-600">{fmt(totals.bronze)}</td>
-              )}
-              {visible.mencao && (
-                <td className="px-4 py-3 text-right text-foreground">{fmt(totals.mencao)}</td>
-              )}
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      {/* Charts — X = marca, one bar per olimpíada, legend at bottom */}
+      {/* Charts — prominent position */}
       {COLUMNS.filter((c) => visible[c.key]).map((col) => {
         const color = COL_COLOR[col.key];
         const isPercent = col.key === "engajamento";
@@ -407,6 +283,163 @@ export function OlimpiadasTable({ statsRows, totals }: Props) {
           </div>
         );
       })}
+
+      {/* Table — collapsible */}
+      <div className="rounded-xl border border-border bg-card">
+        <button
+          type="button"
+          onClick={() => setTableOpen((o) => !o)}
+          className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <span>Planilha de dados</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className={`h-4 w-4 shrink-0 transition-transform duration-200 ${tableOpen ? "rotate-180" : ""}`}
+          >
+            <path
+              fillRule="evenodd"
+              d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+
+        {tableOpen && (
+          <div className="overflow-x-auto border-t border-border">
+            <table className="w-full min-w-[400px] text-sm">
+              <thead>
+                <tr className="border-b border-border bg-background">
+                  <th
+                    className="px-4 py-3 text-left font-medium"
+                    style={{ color: "rgb(91,184,193)" }}
+                  >
+                    Marca
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left font-medium"
+                    style={{ color: "rgb(91,184,193)" }}
+                  >
+                    Olimpíada
+                  </th>
+                  {visible.inscritos && (
+                    <th
+                      className="px-4 py-3 text-right font-medium"
+                      style={{ color: "rgb(91,184,193)" }}
+                    >
+                      Inscritos
+                    </th>
+                  )}
+                  {visible.participantes && (
+                    <th
+                      className="px-4 py-3 text-right font-medium"
+                      style={{ color: "rgb(91,184,193)" }}
+                    >
+                      Participantes
+                    </th>
+                  )}
+                  {visible.engajamento && (
+                    <th
+                      className="px-4 py-3 text-right font-medium"
+                      style={{ color: "rgb(91,184,193)" }}
+                    >
+                      Engajamento
+                    </th>
+                  )}
+                  {visible.ouro && (
+                    <th className="px-4 py-3 text-right font-medium text-yellow-400">Ouro</th>
+                  )}
+                  {visible.prata && (
+                    <th className="px-4 py-3 text-right font-medium text-slate-300">Prata</th>
+                  )}
+                  {visible.bronze && (
+                    <th className="px-4 py-3 text-right font-medium text-amber-600">Bronze</th>
+                  )}
+                  {visible.mencao && (
+                    <th
+                      className="px-4 py-3 text-right font-medium"
+                      style={{ color: "rgb(91,184,193)" }}
+                    >
+                      Menção
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {statsRows.map((r) => (
+                  <tr key={`${r.marca}::${r.nome}`} className="hover:bg-background/50">
+                    <td className="px-4 py-3 font-medium text-foreground">{r.marca}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{sigla(r.nome)}</td>
+                    {visible.inscritos && (
+                      <td className="px-4 py-3 text-right text-muted-foreground">
+                        {r.inscritos.toLocaleString("pt-BR")}
+                      </td>
+                    )}
+                    {visible.participantes && (
+                      <td className="px-4 py-3 text-right text-muted-foreground">
+                        {fmt(r.participantes)}
+                      </td>
+                    )}
+                    {visible.engajamento && (
+                      <td className="px-4 py-3 text-right text-muted-foreground">
+                        {engajamento(r.participantes, r.inscritos)}
+                      </td>
+                    )}
+                    {visible.ouro && (
+                      <td className="px-4 py-3 text-right text-yellow-400">{fmt(r.ouro)}</td>
+                    )}
+                    {visible.prata && (
+                      <td className="px-4 py-3 text-right text-slate-300">{fmt(r.prata)}</td>
+                    )}
+                    {visible.bronze && (
+                      <td className="px-4 py-3 text-right text-amber-600">{fmt(r.bronze)}</td>
+                    )}
+                    {visible.mencao && (
+                      <td className="px-4 py-3 text-right text-muted-foreground">
+                        {fmt(r.mencao)}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-border bg-background font-semibold">
+                  <td className="px-4 py-3 text-foreground">Total</td>
+                  <td className="px-4 py-3" />
+                  {visible.inscritos && (
+                    <td className="px-4 py-3 text-right text-foreground">
+                      {totals.inscritos.toLocaleString("pt-BR")}
+                    </td>
+                  )}
+                  {visible.participantes && (
+                    <td className="px-4 py-3 text-right text-foreground">
+                      {fmt(totals.participantes)}
+                    </td>
+                  )}
+                  {visible.engajamento && (
+                    <td className="px-4 py-3 text-right text-foreground">
+                      {engajamento(totals.participantes, totals.inscritos)}
+                    </td>
+                  )}
+                  {visible.ouro && (
+                    <td className="px-4 py-3 text-right text-yellow-400">{fmt(totals.ouro)}</td>
+                  )}
+                  {visible.prata && (
+                    <td className="px-4 py-3 text-right text-slate-300">{fmt(totals.prata)}</td>
+                  )}
+                  {visible.bronze && (
+                    <td className="px-4 py-3 text-right text-amber-600">{fmt(totals.bronze)}</td>
+                  )}
+                  {visible.mencao && (
+                    <td className="px-4 py-3 text-right text-foreground">{fmt(totals.mencao)}</td>
+                  )}
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
