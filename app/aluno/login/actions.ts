@@ -6,25 +6,10 @@ import { redirect } from "next/navigation";
 import type { Database } from "@/lib/types/database";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type LoginAlunoState = { error?: string } | null;
+export type LoginAlunoState = { error: string } | { needsConsent: true } | null;
 
-export async function loginAluno(
-  _prevState: LoginAlunoState,
-  formData: FormData,
-): Promise<LoginAlunoState> {
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
-  if (!email || !password) return { error: "Preencha e-mail e senha." };
-
-  // Campos de consentimento (opcionais no form — obrigatórios apenas no primeiro acesso)
-  const nomeResponsavel = (formData.get("responsavel_nome") as string)?.trim() || null;
-  const tipoResponsavel = (formData.get("responsavel_tipo") as string) || null;
-  const consentimentoAceito = formData.get("consentimento_aceito") === "on";
-
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient<Database>(
+function makeSupabase(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -38,22 +23,76 @@ export async function loginAluno(
       },
     },
   );
+}
+
+export async function loginAluno(
+  _prevState: LoginAlunoState,
+  formData: FormData,
+): Promise<LoginAlunoState> {
+  const cookieStore = await cookies();
+  const supabase = makeSupabase(cookieStore);
+  const adminClient = createAdminClient();
+
+  // ── Passo 2: já autenticado, só falta salvar o consentimento ────────────────
+  const {
+    data: { user: existingUser },
+  } = await supabase.auth.getUser();
+
+  if (existingUser) {
+    const { data: aluno } = await adminClient
+      .from("aluno")
+      .select("id, consentimento_responsavel")
+      .eq("supabase_auth_id", existingUser.id)
+      .maybeSingle();
+
+    if (!aluno) {
+      await supabase.auth.signOut();
+      return { error: "Acesso não encontrado. Fale com a coordenação da sua escola." };
+    }
+
+    if (!aluno.consentimento_responsavel) {
+      const nome = (formData.get("responsavel_nome") as string)?.trim();
+      const tipo = formData.get("responsavel_tipo") as string;
+      const aceito = formData.get("consentimento_aceito") === "on";
+
+      if (!nome) return { error: "Informe o nome completo do responsável." };
+      if (!tipo || !["pedagogico", "financeiro"].includes(tipo))
+        return { error: "Selecione o tipo de responsável." };
+      if (!aceito) return { error: "O responsável deve aceitar os termos para liberar o acesso." };
+
+      await adminClient
+        .from("aluno")
+        .update({
+          consentimento_responsavel: true,
+          consentimento_data: new Date().toISOString(),
+          consentimento_responsavel_nome: nome,
+          consentimento_responsavel_tipo: tipo as "pedagogico" | "financeiro",
+        })
+        .eq("id", aluno.id);
+    }
+
+    redirect("/aluno/dashboard");
+  }
+
+  // ── Passo 1: autenticar com e-mail e senha ──────────────────────────────────
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+
+  if (!email || !password) return { error: "Preencha e-mail e senha." };
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    const isInvalidCredentials =
+    const isInvalid =
       error.message.toLowerCase().includes("invalid") ||
       error.message.toLowerCase().includes("credentials");
     return {
-      error: isInvalidCredentials
+      error: isInvalid
         ? "E-mail ou senha incorretos."
         : "Não foi possível fazer login. Tente novamente.",
     };
   }
 
-  // Usa admin client para bypassed RLS no lookup inicial do aluno
-  const adminClient = createAdminClient();
   const { data: aluno } = await adminClient
     .from("aluno")
     .select("id, consentimento_responsavel")
@@ -65,30 +104,9 @@ export async function loginAluno(
     return { error: "Acesso não encontrado. Fale com a coordenação da sua escola." };
   }
 
-  // Primeiro acesso: consentimento obrigatório
+  // Primeiro acesso: sinalizar para exibir o formulário de consentimento
   if (!aluno.consentimento_responsavel) {
-    if (!nomeResponsavel) {
-      await supabase.auth.signOut();
-      return { error: "Informe o nome completo do responsável para continuar." };
-    }
-    if (!tipoResponsavel || !["pedagogico", "financeiro"].includes(tipoResponsavel)) {
-      await supabase.auth.signOut();
-      return { error: "Selecione o tipo de responsável (pedagógico ou financeiro)." };
-    }
-    if (!consentimentoAceito) {
-      await supabase.auth.signOut();
-      return { error: "O responsável deve aceitar os termos para liberar o acesso." };
-    }
-
-    await supabase
-      .from("aluno")
-      .update({
-        consentimento_responsavel: true,
-        consentimento_data: new Date().toISOString(),
-        consentimento_responsavel_nome: nomeResponsavel,
-        consentimento_responsavel_tipo: tipoResponsavel as "pedagogico" | "financeiro",
-      })
-      .eq("id", aluno.id);
+    return { needsConsent: true };
   }
 
   redirect("/aluno/dashboard");
@@ -96,22 +114,7 @@ export async function loginAluno(
 
 export async function logoutAluno() {
   const cookieStore = await cookies();
-
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
-          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
-        },
-      },
-    },
-  );
-
+  const supabase = makeSupabase(cookieStore);
   await supabase.auth.signOut();
   redirect("/aluno/login");
 }
