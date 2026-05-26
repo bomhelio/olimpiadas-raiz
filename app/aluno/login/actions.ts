@@ -16,6 +16,11 @@ export async function loginAluno(
 
   if (!email || !password) return { error: "Preencha e-mail e senha." };
 
+  // Campos de consentimento (opcionais no form — obrigatórios apenas no primeiro acesso)
+  const nomeResponsavel = (formData.get("responsavel_nome") as string)?.trim() || null;
+  const tipoResponsavel = (formData.get("responsavel_tipo") as string) || null;
+  const consentimentoAceito = formData.get("consentimento_aceito") === "on";
+
   const cookieStore = await cookies();
 
   const supabase = createServerClient<Database>(
@@ -49,15 +54,39 @@ export async function loginAluno(
   // Verifica que o usuário tem um aluno vinculado (não é staff)
   const { data: aluno } = await supabase
     .from("aluno")
-    .select("id")
+    .select("id, consentimento_responsavel")
     .eq("supabase_auth_id", data.user.id)
     .maybeSingle();
 
   if (!aluno) {
     await supabase.auth.signOut();
-    return {
-      error: "Acesso não encontrado. Fale com a coordenação da sua escola.",
-    };
+    return { error: "Acesso não encontrado. Fale com a coordenação da sua escola." };
+  }
+
+  // Primeiro acesso: consentimento obrigatório
+  if (!aluno.consentimento_responsavel) {
+    if (!nomeResponsavel) {
+      await supabase.auth.signOut();
+      return { error: "Informe o nome completo do responsável para continuar." };
+    }
+    if (!tipoResponsavel || !["pedagogico", "financeiro"].includes(tipoResponsavel)) {
+      await supabase.auth.signOut();
+      return { error: "Selecione o tipo de responsável (pedagógico ou financeiro)." };
+    }
+    if (!consentimentoAceito) {
+      await supabase.auth.signOut();
+      return { error: "O responsável deve aceitar os termos para liberar o acesso." };
+    }
+
+    await supabase
+      .from("aluno")
+      .update({
+        consentimento_responsavel: true,
+        consentimento_data: new Date().toISOString(),
+        consentimento_responsavel_nome: nomeResponsavel,
+        consentimento_responsavel_tipo: tipoResponsavel as "pedagogico" | "financeiro",
+      })
+      .eq("id", aluno.id);
   }
 
   redirect("/aluno/dashboard");

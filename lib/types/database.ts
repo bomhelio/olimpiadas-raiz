@@ -139,6 +139,7 @@ export type Database = {
           consentimento_responsavel_nome: string | null;
           consentimento_responsavel_documento: string | null;
           supabase_auth_id: string | null;
+          consentimento_responsavel_tipo: "pedagogico" | "financeiro" | null;
           ativo: boolean;
           created_at: string;
         };
@@ -157,6 +158,7 @@ export type Database = {
           consentimento_responsavel_nome?: string | null;
           consentimento_responsavel_documento?: string | null;
           supabase_auth_id?: string | null;
+          consentimento_responsavel_tipo?: "pedagogico" | "financeiro" | null;
           ativo?: boolean;
           created_at?: string;
         };
@@ -175,6 +177,7 @@ export type Database = {
           consentimento_responsavel_nome?: string | null;
           consentimento_responsavel_documento?: string | null;
           supabase_auth_id?: string | null;
+          consentimento_responsavel_tipo?: "pedagogico" | "financeiro" | null;
           ativo?: boolean;
           created_at?: string;
         };
