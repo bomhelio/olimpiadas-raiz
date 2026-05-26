@@ -58,12 +58,29 @@ export default async function AlunoDashboard() {
     },
   );
 
-  const { data: projetos } = await supabase
+  // IDs das olimpíadas em que o aluno está inscrito (status confirmada)
+  const { data: inscricoes } = await supabase
+    .from("inscricao")
+    .select("olimpiada_id")
+    .eq("aluno_id", session.aluno.id)
+    .eq("status", "confirmada");
+
+  const olimpiadaIds = (inscricoes ?? []).map((i) => i.olimpiada_id);
+
+  // Projetos publicados: universais (sem olimpiada_id) OU da olimpíada do aluno
+  let query = supabase
     .from("preparacao_projeto")
     .select("*, aulas:preparacao_aula(*)")
     .eq("publicado", true)
-    .eq("ativo", true)
-    .order("criado_em", { ascending: false });
+    .eq("ativo", true);
+
+  if (olimpiadaIds.length > 0) {
+    query = query.or(`olimpiada_id.is.null,olimpiada_id.in.(${olimpiadaIds.join(",")})`);
+  } else {
+    query = query.is("olimpiada_id", null);
+  }
+
+  const { data: projetos } = await query.order("criado_em", { ascending: false });
 
   const lista = (projetos ?? []) as unknown as ProjetoComAulas[];
 

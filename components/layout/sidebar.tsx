@@ -231,6 +231,27 @@ function SidebarContent() {
           </Item>
         </>
       )}
+
+      {canAudit && (
+        <>
+          <Divider />
+          <Item onClick={() => router.push("/aluno/dashboard")}>
+            <NavIcon d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            <span className="flex-1">Portal do Aluno</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              className="h-3 w-3 shrink-0 opacity-50"
+              aria-hidden="true"
+            >
+              <path d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+            </svg>
+          </Item>
+        </>
+      )}
     </nav>
   );
 }

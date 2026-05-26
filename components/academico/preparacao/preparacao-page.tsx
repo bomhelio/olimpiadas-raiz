@@ -11,6 +11,10 @@ import {
   uploadMaterial,
   excluirMaterial,
   getMaterialUrl,
+  publicarProjeto,
+  despublicarProjeto,
+  publicarAula,
+  despublicarAula,
   type Projeto,
   type Aula,
   type Material,
@@ -614,6 +618,14 @@ function AulaCard({ aula }: { aula: Aula }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [deleting, startDelete] = useTransition();
+  const [publishing, startPublish] = useTransition();
+
+  function handleTogglePublish() {
+    startPublish(async () => {
+      if (aula.publicada) await despublicarAula(aula.id);
+      else await publicarAula(aula.id);
+    });
+  }
 
   function handleDelete() {
     if (!confirm(`Excluir "${aula.titulo}" e todos os seus materiais?`)) return;
@@ -666,6 +678,19 @@ function AulaCard({ aula }: { aula: Aula }) {
             )}
           </p>
         </div>
+
+        <button
+          onClick={handleTogglePublish}
+          disabled={publishing}
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-50 ${
+            aula.publicada
+              ? "bg-emerald-500/10 text-emerald-400 hover:bg-red-500/10 hover:text-red-400"
+              : "bg-muted text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-400"
+          }`}
+          title={aula.publicada ? "Despublicar aula" : "Publicar aula"}
+        >
+          {aula.publicada ? "Publicada" : "Rascunho"}
+        </button>
 
         <button
           onClick={() => setExpanded((v) => !v)}
@@ -739,6 +764,15 @@ function ProjetoCard({ projeto }: { projeto: Projeto }) {
   const [showAulaForm, setShowAulaForm] = useState(false);
   const [showSimuladoForm, setShowSimuladoForm] = useState(false);
   const [deleting, startDelete] = useTransition();
+  const [publishing, startPublish] = useTransition();
+
+  function handleTogglePublish(e: React.MouseEvent) {
+    e.stopPropagation();
+    startPublish(async () => {
+      if (projeto.publicado) await despublicarProjeto(projeto.id);
+      else await publicarProjeto(projeto.id);
+    });
+  }
 
   const aulasSorted = [...projeto.aulas].sort((a, b) => {
     if (a.data_hora && b.data_hora) return a.data_hora.localeCompare(b.data_hora);
@@ -774,6 +808,19 @@ function ProjetoCard({ projeto }: { projeto: Projeto }) {
             {projeto.aulas.length !== 1 ? "s" : ""}
           </p>
         </div>
+        <button
+          onClick={handleTogglePublish}
+          disabled={publishing}
+          className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-50 ${
+            projeto.publicado
+              ? "bg-emerald-500/10 text-emerald-400 hover:bg-red-500/10 hover:text-red-400"
+              : "bg-muted text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-400"
+          }`}
+          title={projeto.publicado ? "Despublicar" : "Publicar no portal do aluno"}
+        >
+          {projeto.publicado ? "Publicado" : "Rascunho"}
+        </button>
+
         <button
           onClick={(e) => {
             e.stopPropagation();

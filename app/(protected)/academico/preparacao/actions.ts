@@ -239,6 +239,7 @@ export type Aula = {
   link_aula: string | null;
   polos: string | null;
   descricao: string | null;
+  publicada: boolean;
   ordem: number;
   criado_em: string;
   materiais: Material[];
@@ -246,9 +247,11 @@ export type Aula = {
 export type Projeto = {
   id: string;
   olimpiada_sigla: string;
+  olimpiada_id: string | null;
   nome: string;
   descricao: string | null;
   ano_letivo: number;
+  publicado: boolean;
   ativo: boolean;
   criado_em: string;
   aulas: Aula[];
@@ -263,4 +266,38 @@ export async function getProjetos(): Promise<Projeto[]> {
     .order("criado_em", { ascending: false });
 
   return (data ?? []) as unknown as Projeto[];
+}
+
+// ─── Publicação ───────────────────────────────────────────────────────────────
+
+export async function publicarProjeto(id: string): Promise<void> {
+  const session = await getServerSession();
+  if (!session) return;
+  const supabase = createAdminClient();
+  await supabase.from("preparacao_projeto").update({ publicado: true }).eq("id", id);
+  revalidatePath(PATH);
+}
+
+export async function despublicarProjeto(id: string): Promise<void> {
+  const session = await getServerSession();
+  if (!session) return;
+  const supabase = createAdminClient();
+  await supabase.from("preparacao_projeto").update({ publicado: false }).eq("id", id);
+  revalidatePath(PATH);
+}
+
+export async function publicarAula(id: string): Promise<void> {
+  const session = await getServerSession();
+  if (!session) return;
+  const supabase = createAdminClient();
+  await supabase.from("preparacao_aula").update({ publicada: true }).eq("id", id);
+  revalidatePath(PATH);
+}
+
+export async function despublicarAula(id: string): Promise<void> {
+  const session = await getServerSession();
+  if (!session) return;
+  const supabase = createAdminClient();
+  await supabase.from("preparacao_aula").update({ publicada: false }).eq("id", id);
+  revalidatePath(PATH);
 }
