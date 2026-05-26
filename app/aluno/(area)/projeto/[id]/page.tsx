@@ -92,7 +92,6 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/aluno/dashboard" className="hover:text-foreground transition-colors">
           Projetos
@@ -101,7 +100,6 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
         <span className="text-foreground">{projeto.nome}</span>
       </nav>
 
-      {/* Header */}
       <div>
         <div
           className="mb-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-white"
@@ -115,7 +113,6 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
         )}
       </div>
 
-      {/* Lista de aulas */}
       {aulas.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-10 text-center">
           <p className="text-sm text-muted-foreground">

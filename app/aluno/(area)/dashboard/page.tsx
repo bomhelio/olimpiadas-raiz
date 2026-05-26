@@ -67,7 +67,6 @@ export default async function AlunoDashboard() {
 
   const lista = (projetos ?? []) as unknown as ProjetoComAulas[];
 
-  // Próximas aulas ao vivo (todas os projetos, próximas 24h)
   const aulasBrute = lista.flatMap((p) =>
     p.aulas.filter((a) => a.tipo === "online" && a.data_hora),
   );
@@ -78,7 +77,6 @@ export default async function AlunoDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Boas-vindas */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">
           Olá, {session.aluno.nome.split(" ")[0]}!
@@ -88,7 +86,6 @@ export default async function AlunoDashboard() {
         </p>
       </div>
 
-      {/* Aulas ao vivo próximas */}
       {proximasAoVivo.length > 0 && (
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -138,7 +135,6 @@ export default async function AlunoDashboard() {
         </section>
       )}
 
-      {/* Projetos */}
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Projetos de preparação

@@ -64,7 +64,6 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
 
   if (!aula) notFound();
 
-  // Signed URLs para materiais (gerados server-side com admin client)
   const adminClient = createAdminClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const materiais = (aula as any).materiais ?? [];
@@ -85,7 +84,6 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/aluno/dashboard" className="hover:text-foreground transition-colors">
           Projetos
@@ -105,7 +103,6 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
         <span className="text-foreground">{aula.titulo}</span>
       </nav>
 
-      {/* Header */}
       <div>
         <div className="mb-1 flex flex-wrap items-center gap-2">
           {isLive && (
@@ -126,12 +123,10 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
         {aula.descricao && <p className="mt-2 text-sm text-muted-foreground">{aula.descricao}</p>}
       </div>
 
-      {/* Player de vídeo / ao vivo */}
       {aula.link_aula && (isLive || aula.tipo !== "online" || !aula.data_hora) && (
         <AulaPlayer url={aula.link_aula} titulo={aula.titulo} isLive={isLive} />
       )}
 
-      {/* Aguardando aula ao vivo */}
       {waitingForLive && !isLive && (
         <div className="rounded-xl border border-border bg-card p-8 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10">
@@ -159,10 +154,8 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
         </div>
       )}
 
-      {/* Materiais */}
       {materiaisComUrl.length > 0 && <MaterialList materiais={materiaisComUrl} />}
 
-      {/* Polos (se houver) */}
       {aula.polos && (
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
