@@ -6,21 +6,15 @@ import { OLIMPIADAS_NACIONAIS, type OlimpiadaNacional } from "@/lib/olimpiadas/n
 
 type Olimpiada = OlimpiadaNacional;
 
-function OlimpiadaMultiSelectInner({
-  olimpiadas,
-}: {
-  olimpiadas: readonly Olimpiada[] | Olimpiada[];
-}) {
+function OlimpiadaSelectInner({ olimpiadas }: { olimpiadas: readonly Olimpiada[] | Olimpiada[] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Deriva o estado diretamente da URL — nunca fica desatualizado durante navegação
   const olimpiadaParam = searchParams.get("olimpiada") ?? "todas";
-  const todosMode = olimpiadaParam === "todas";
-  const selected = todosMode ? [] : olimpiadaParam.split(",").filter(Boolean);
+  const selected = olimpiadaParam === "todas" ? null : olimpiadaParam;
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -34,33 +28,15 @@ function OlimpiadaMultiSelectInner({
     const params = new URLSearchParams(searchParams.toString());
     params.set("olimpiada", value);
     router.push(`${pathname}?${params.toString()}`);
+    setOpen(false);
   }
 
-  function toggleTodos() {
-    if (todosMode) {
-      // Sai do modo "todas": começa com a primeira olimpíada selecionada
-      const first = olimpiadas[0]?.sigla;
-      if (first) navigate(first);
-    } else {
-      navigate("todas");
-    }
+  function select(sigla: string) {
+    if (selected === sigla) return; // já selecionada — não faz nada
+    navigate(sigla);
   }
 
-  function toggleOlimpiada(sigla: string) {
-    let next: string[];
-    if (todosMode) {
-      next = [sigla];
-    } else {
-      next = selected.includes(sigla) ? selected.filter((s) => s !== sigla) : [...selected, sigla];
-    }
-    navigate(next.length === 0 ? "todas" : next.join(","));
-  }
-
-  const label = todosMode
-    ? "Todas"
-    : selected.length === 1
-      ? (selected[0] ?? "")
-      : `${selected.length} olimpíadas`;
+  const label = selected ?? "—";
 
   return (
     <div ref={ref} className="relative">
@@ -90,72 +66,44 @@ function OlimpiadaMultiSelectInner({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-[480px] rounded-xl border border-border bg-card p-1.5 shadow-lg">
-          <button
-            onClick={toggleTodos}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-background"
-          >
-            <Checkbox checked={todosMode} />
-            <span className={todosMode ? "font-medium text-foreground" : "text-muted-foreground"}>
-              Todas
-            </span>
-          </button>
-
-          <div className="my-1 h-px bg-border/50" />
-
-          <div>
-            {olimpiadas.map((o) => {
-              const checked = todosMode || selected.includes(o.sigla);
-              return (
-                <button
-                  key={o.sigla}
-                  onClick={() => toggleOlimpiada(o.sigla)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-background"
-                >
-                  <Checkbox checked={checked} />
-                  <div className="min-w-0 text-left">
-                    <span
-                      className={`font-medium ${checked ? "text-foreground" : "text-muted-foreground"}`}
-                    >
-                      {o.sigla}
-                    </span>
-                    <span className="ml-1.5 text-xs text-muted-foreground">{o.nome}</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+        <div className="absolute left-0 top-full z-50 mt-1 w-[min(400px,calc(100vw-1rem))] rounded-xl border border-border bg-card p-1.5 shadow-lg">
+          {olimpiadas.map((o) => {
+            const isSelected = selected === o.sigla;
+            return (
+              <button
+                key={o.sigla}
+                onClick={() => select(o.sigla)}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-background"
+              >
+                <Radio checked={isSelected} />
+                <div className="min-w-0 text-left">
+                  <span
+                    className={`font-medium ${isSelected ? "text-foreground" : "text-muted-foreground"}`}
+                  >
+                    {o.sigla}
+                  </span>
+                  <span className="ml-1.5 text-xs text-muted-foreground">{o.nome}</span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-function Checkbox({ checked }: { checked: boolean }) {
+function Radio({ checked }: { checked: boolean }) {
   return (
     <span
-      className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border transition-colors"
+      className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border transition-colors"
       style={
         checked
           ? { backgroundColor: "rgb(91,184,193)", borderColor: "rgb(91,184,193)" }
           : { borderColor: "var(--border)" }
       }
     >
-      {checked && (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="9"
-          height="9"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="white"
-          strokeWidth="3.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      )}
+      {checked && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
     </span>
   );
 }
@@ -167,7 +115,7 @@ export function OlimpiadaMultiSelect({
 }) {
   return (
     <Suspense fallback={null}>
-      <OlimpiadaMultiSelectInner olimpiadas={olimpiadas} />
+      <OlimpiadaSelectInner olimpiadas={olimpiadas} />
     </Suspense>
   );
 }

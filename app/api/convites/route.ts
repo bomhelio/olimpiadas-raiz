@@ -72,10 +72,8 @@ export async function POST(request: NextRequest) {
   if (!email || !role)
     return NextResponse.json({ error: "email e role são obrigatórios." }, { status: 400 });
 
-  if (
-    usuarioSolicitante.role !== "admin_rede" &&
-    (role === "admin_rede" || role === "coord_marca")
-  ) {
+  // Somente Raiz pode convidar outro Raiz
+  if (usuarioSolicitante.role !== "raiz" && role === "raiz") {
     return NextResponse.json(
       { error: "Sem permissão para convidar usuários com este perfil." },
       { status: 403 },

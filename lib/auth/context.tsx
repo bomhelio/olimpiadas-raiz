@@ -3,7 +3,7 @@
 import { createContext, useContext } from "react";
 import type { Usuario } from "@/lib/types/database";
 import type { Permission } from "@/lib/auth/roles";
-import { can } from "@/lib/auth/roles";
+import { canUser } from "@/lib/auth/roles";
 
 // ---------------------------------------------------------------------------
 // Contexto de usuário — disponível para Client Components
@@ -33,7 +33,10 @@ export function useUser(): UserContextValue {
 /**
  * Hook de permissão — verifica se o usuário pode realizar uma ação.
  */
+/**
+ * Hook de permissão — considera role + flag admin_marca.
+ */
 export function useCan(permission: Permission): boolean {
   const { user } = useUser();
-  return can(user.role, permission);
+  return canUser(user, permission);
 }

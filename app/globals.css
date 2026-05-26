@@ -131,3 +131,27 @@
     @apply font-sans;
   }
 }
+
+@media print {
+  :root {
+    --background: #ffffff;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --border: #cbd5e1;
+    --muted-foreground: #475569;
+  }
+  header,
+  aside {
+    display: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  body {
+    background: white !important;
+  }
+}

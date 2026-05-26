@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useState, useEffect } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useState, useEffect, type ReactNode } from "react";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { useCan } from "@/lib/auth/context";
 
@@ -16,7 +15,7 @@ function NavIcon({ d }: { d: string }) {
       strokeWidth="1.75"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="h-4 w-4 shrink-0"
+      className="h-[18px] w-[18px] shrink-0"
       aria-hidden="true"
     >
       <path d={d} />
@@ -42,20 +41,96 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-// Search params persistidos por rota
-const PERSIST_BASES = ["/resultados/painel", "/olimpiadas"] as const;
+// ─── Item base ────────────────────────────────────────────────────────────────
+// Todos os itens usam <button> para garantir renderização idêntica.
+// Navegação via router.push() — elimina divergência <a> vs <button>.
+
+const ITEM =
+  "relative flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm leading-5 outline-none transition-colors";
+
+const SUB_ITEM =
+  "relative flex w-full items-center py-1.5 pl-11 pr-4 text-left text-[13px] leading-5 outline-none transition-colors";
+
+function Item({
+  active = false,
+  disabled = false,
+  onClick,
+  children,
+}: {
+  active?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+  children: ReactNode;
+}) {
+  const cls =
+    ITEM +
+    (active
+      ? " bg-white/[0.07] font-medium text-foreground"
+      : disabled
+        ? " cursor-not-allowed opacity-40"
+        : " text-muted-foreground hover:bg-white/[0.04] hover:text-foreground");
+
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} className={cls}>
+      {active && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-primary" />}
+      {children}
+    </button>
+  );
+}
+
+function SubItem({
+  active = false,
+  disabled = false,
+  onClick,
+  children,
+}: {
+  active?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+  children: ReactNode;
+}) {
+  const cls =
+    SUB_ITEM +
+    (active
+      ? " bg-white/[0.07] font-medium text-foreground"
+      : disabled
+        ? " cursor-not-allowed opacity-40"
+        : " text-muted-foreground/70 hover:bg-white/[0.04] hover:text-foreground");
+
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} className={cls}>
+      {active && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-primary" />}
+      {children}
+    </button>
+  );
+}
+
+function Divider() {
+  return <div className="mx-4 my-2 h-px bg-border/40" />;
+}
+
+// ─── Conteúdo ─────────────────────────────────────────────────────────────────
+
+const PERSIST_BASES = [
+  "/resultados/painel",
+  "/olimpiadas",
+  "/academico/olimpiadas",
+  "/academico/preparacao",
+] as const;
 
 function SidebarContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const canConvite = useCan("convite:create");
   const canAudit = useCan("audit_log:read");
 
-  const isInResultados =
-    pathname.startsWith("/resultados/painel") || pathname.startsWith("/olimpiadas");
+  const isInResultados = pathname.startsWith("/resultados/painel");
   const [resultadosOpen, setResultadosOpen] = useState(isInResultados);
 
-  // Persiste search params da rota atual
+  const isInAcademico = pathname.startsWith("/academico");
+  const [academicoOpen, setAcademicoOpen] = useState(isInAcademico);
+
   useEffect(() => {
     for (const base of PERSIST_BASES) {
       if (pathname.startsWith(base)) {
@@ -75,89 +150,86 @@ function SidebarContent() {
     return saved ? `${base}?${saved}` : base;
   }
 
-  const itemClass = (active: boolean, soon = false) =>
-    `flex items-center gap-2.5 border-l-2 px-4 py-2 text-sm transition-colors ${
-      active
-        ? "border-primary bg-white/[0.06] font-medium text-foreground"
-        : soon
-          ? "cursor-not-allowed border-transparent text-muted-foreground/40"
-          : "border-transparent text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
-    }`;
-
-  const subItemClass = (active: boolean) =>
-    `flex items-center gap-2.5 border-l-2 py-1.5 pl-10 pr-4 text-sm transition-colors ${
-      active
-        ? "border-primary bg-white/[0.06] font-medium text-foreground"
-        : "border-transparent text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
-    }`;
+  function go(base: string) {
+    router.push(hrefFor(base));
+  }
 
   return (
-    <nav className="flex flex-col py-4">
-      {/* Dashboard */}
-      <Link href="/dashboard" className={itemClass(pathname === "/dashboard")}>
+    <nav className="flex flex-col py-3">
+      <Item active={pathname === "/dashboard"} onClick={() => go("/dashboard")}>
         <NavIcon d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        <span className="flex-1">Dashboard</span>
-      </Link>
+        <span>Dashboard</span>
+      </Item>
 
-      {/* Resultados (colapsável) */}
-      <button
-        type="button"
-        onClick={() => setResultadosOpen((v) => !v)}
-        className={itemClass(isInResultados)}
-      >
+      <Divider />
+
+      <Item active={isInResultados} onClick={() => setResultadosOpen((v) => !v)}>
         <NavIcon d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         <span className="flex-1">Resultados</span>
         <ChevronIcon open={resultadosOpen} />
-      </button>
+      </Item>
 
       {resultadosOpen && (
         <>
-          <Link
-            href={hrefFor("/resultados/painel")}
-            className={subItemClass(pathname.startsWith("/resultados/painel"))}
+          <SubItem
+            active={pathname.startsWith("/resultados/painel")}
+            onClick={() => go("/resultados/painel")}
           >
-            <NavIcon d="M3 10h18M3 14h18M3 6h18M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" />
-            <span>Painel</span>
-          </Link>
-          <Link
-            href={hrefFor("/olimpiadas")}
-            className={subItemClass(pathname.startsWith("/olimpiadas"))}
-          >
-            <NavIcon d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            <span>Histórico</span>
-          </Link>
+            Painel
+          </SubItem>
+          <SubItem active={pathname.startsWith("/olimpiadas")} onClick={() => go("/olimpiadas")}>
+            Histórico
+          </SubItem>
         </>
       )}
 
-      {/* Inscrições */}
-      <Link href="/inscricoes" className={itemClass(pathname.startsWith("/inscricoes"))}>
-        <NavIcon d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-        <span className="flex-1">Inscrições</span>
-      </Link>
+      <Item active={isInAcademico} onClick={() => setAcademicoOpen((v) => !v)}>
+        <NavIcon d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        <span className="flex-1">Acadêmico</span>
+        <ChevronIcon open={academicoOpen} />
+      </Item>
 
-      {/* Calendário */}
-      <Link href="/calendario" className={itemClass(pathname.startsWith("/calendario"))}>
-        <NavIcon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        <span className="flex-1">Calendário</span>
-      </Link>
-
-      {/* Usuários (condicional + em breve) */}
-      {canConvite && (
-        <Link href="#" aria-disabled className={itemClass(false, true)}>
-          <NavIcon d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          <span className="flex-1">Usuários</span>
-          <span className="rounded-full bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
-            Em breve
-          </span>
-        </Link>
+      {academicoOpen && (
+        <>
+          <SubItem
+            active={pathname.startsWith("/academico/olimpiadas")}
+            onClick={() => go("/academico/olimpiadas")}
+          >
+            Olimpíadas
+          </SubItem>
+          <SubItem
+            active={pathname.startsWith("/academico/preparacao")}
+            onClick={() => go("/academico/preparacao")}
+          >
+            Preparação
+          </SubItem>
+          <SubItem
+            active={pathname.startsWith("/academico/calendario")}
+            onClick={() => go("/academico/calendario")}
+          >
+            Calendário
+          </SubItem>
+        </>
       )}
 
-      {/* Analytics (condicional) */}
       {canAudit && (
-        <Link href="/analytics" className={itemClass(pathname.startsWith("/analytics"))}>
-          <NavIcon d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          <span className="flex-1">Analytics</span>
-        </Link>
+        <>
+          <Divider />
+          <Item active={pathname.startsWith("/analytics")} onClick={() => go("/analytics")}>
+            <NavIcon d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <span>Gestão</span>
+          </Item>
+        </>
+      )}
+
+      {canConvite && (
+        <>
+          <Divider />
+          <Item active={pathname.startsWith("/usuarios")} onClick={() => go("/usuarios")}>
+            <NavIcon d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            <span>Usuários</span>
+          </Item>
+        </>
       )}
     </nav>
   );

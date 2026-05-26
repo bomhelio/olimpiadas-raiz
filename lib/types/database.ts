@@ -23,7 +23,7 @@ export type TipoResultado =
   | "prata"
   | "bronze"
   | "mencao_honrosa";
-export type RoleUsuario = "admin_rede" | "coord_marca" | "coord_unidade" | "professor";
+export type RoleUsuario = "raiz" | "direcao_marca" | "direcao_unidade" | "coordenacao_unidade";
 export type TipoFase = "inscricao" | "prova_1" | "prova_2" | "final" | "divulgacao";
 
 // ---------------------------------------------------------------------------
@@ -180,6 +180,7 @@ export type Database = {
           nome: string;
           email: string;
           role: RoleUsuario;
+          admin_marca: boolean;
           marca_ativa_id: string | null;
           ativo: boolean;
           created_at: string;
@@ -189,6 +190,7 @@ export type Database = {
           nome: string;
           email: string;
           role: RoleUsuario;
+          admin_marca?: boolean;
           marca_ativa_id?: string | null;
           ativo?: boolean;
           created_at?: string;
@@ -198,6 +200,7 @@ export type Database = {
           nome?: string;
           email?: string;
           role?: RoleUsuario;
+          admin_marca?: boolean;
           marca_ativa_id?: string | null;
           ativo?: boolean;
           created_at?: string;
@@ -480,6 +483,96 @@ export type Database = {
         };
         Relationships: [];
       };
+      preparacao_projeto: {
+        Row: {
+          id: string;
+          olimpiada_sigla: string;
+          nome: string;
+          descricao: string | null;
+          ano_letivo: number;
+          ativo: boolean;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          olimpiada_sigla: string;
+          nome: string;
+          descricao?: string | null;
+          ano_letivo?: number;
+          ativo?: boolean;
+          criado_em?: string;
+        };
+        Update: {
+          id?: string;
+          olimpiada_sigla?: string;
+          nome?: string;
+          descricao?: string | null;
+          ano_letivo?: number;
+          ativo?: boolean;
+          criado_em?: string;
+        };
+        Relationships: [];
+      };
+      preparacao_aula: {
+        Row: {
+          id: string;
+          projeto_id: string;
+          titulo: string;
+          tipo: string;
+          data_hora: string | null;
+          duracao_minutos: number | null;
+          link_aula: string | null;
+          polos: string | null;
+          descricao: string | null;
+          ordem: number;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          projeto_id: string;
+          titulo: string;
+          tipo: string;
+          data_hora?: string | null;
+          duracao_minutos?: number | null;
+          link_aula?: string | null;
+          polos?: string | null;
+          descricao?: string | null;
+          ordem?: number;
+          criado_em?: string;
+        };
+        Update: {
+          id?: string;
+          projeto_id?: string;
+          titulo?: string;
+          tipo?: string;
+          data_hora?: string | null;
+          duracao_minutos?: number | null;
+          link_aula?: string | null;
+          polos?: string | null;
+          descricao?: string | null;
+          ordem?: number;
+          criado_em?: string;
+        };
+        Relationships: [];
+      };
+      preparacao_material: {
+        Row: { id: string; aula_id: string; nome: string; arquivo_path: string; criado_em: string };
+        Insert: {
+          id?: string;
+          aula_id: string;
+          nome: string;
+          arquivo_path: string;
+          criado_em?: string;
+        };
+        Update: {
+          id?: string;
+          aula_id?: string;
+          nome?: string;
+          arquivo_path?: string;
+          criado_em?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       v_dashboard_inscricoes: {
@@ -543,6 +636,7 @@ export type Database = {
         Returns: {
           olimpiada_nome: string;
           marca_nome: string;
+          ano_letivo: number;
           inscritos: number;
           participantes: number;
           ouro: number;

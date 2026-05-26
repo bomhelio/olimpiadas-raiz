@@ -1,11 +1,5 @@
 import type { RoleUsuario } from "@/lib/types/database";
 
-// ---------------------------------------------------------------------------
-// Mapa de permissões por role
-// Fonte da verdade para o frontend — espelha as RLS policies do backend.
-// SPEC §3.3 + ADR-0002
-// ---------------------------------------------------------------------------
-
 export type Resource =
   | "marca"
   | "unidade"
@@ -28,8 +22,33 @@ function perms(...list: Permission[]): Set<Permission> {
   return new Set(list);
 }
 
+// Permissões de leitura — compartilhadas pelos 3 roles de nível 2
+const READ_ONLY = perms(
+  "marca:read",
+  "unidade:read",
+  "turma:read",
+  "aluno:read",
+  "aluno:export",
+  "olimpiada:read",
+  "inscricao:read",
+  "inscricao:export",
+  "resultado:read",
+  "resultado:export",
+  "audit_log:read",
+  "usuario:read",
+  "convite:read",
+);
+
+// Permissões adicionais concedidas pelo flag admin_marca (acumulativo)
+export const ADMIN_MARCA_EXTRA = perms(
+  "convite:create",
+  "convite:delete",
+  "usuario:create",
+  "usuario:update",
+);
+
 export const ROLE_PERMISSIONS: RolePermissions = {
-  admin_rede: perms(
+  raiz: perms(
     "marca:create",
     "marca:read",
     "marca:update",
@@ -70,113 +89,46 @@ export const ROLE_PERMISSIONS: RolePermissions = {
     "usuario:update",
     "usuario:delete",
   ),
-
-  coord_marca: perms(
-    "marca:read",
-    "unidade:create",
-    "unidade:read",
-    "unidade:update",
-    "unidade:delete",
-    "turma:create",
-    "turma:read",
-    "turma:update",
-    "turma:delete",
-    "aluno:create",
-    "aluno:read",
-    "aluno:update",
-    "aluno:delete",
-    "aluno:export",
-    "olimpiada:create",
-    "olimpiada:read",
-    "olimpiada:update",
-    "inscricao:create",
-    "inscricao:read",
-    "inscricao:update",
-    "inscricao:delete",
-    "inscricao:export",
-    "resultado:create",
-    "resultado:read",
-    "resultado:update",
-    "resultado:export",
-    "convite:create",
-    "convite:read",
-    "usuario:read",
-  ),
-
-  coord_unidade: perms(
-    "marca:read",
-    "unidade:read",
-    "turma:create",
-    "turma:read",
-    "turma:update",
-    "turma:delete",
-    "aluno:create",
-    "aluno:read",
-    "aluno:update",
-    "aluno:delete",
-    "olimpiada:read",
-    "inscricao:create",
-    "inscricao:read",
-    "inscricao:update",
-    "inscricao:export",
-    "resultado:create",
-    "resultado:read",
-    "resultado:update",
-    "resultado:export",
-    "convite:create",
-    "convite:read",
-    "usuario:read",
-  ),
-
-  professor: perms(
-    "marca:read",
-    "unidade:read",
-    "turma:read",
-    "aluno:create",
-    "aluno:read",
-    "aluno:update",
-    "olimpiada:read",
-    "inscricao:create",
-    "inscricao:read",
-    "resultado:read",
-  ),
+  direcao_marca: READ_ONLY,
+  direcao_unidade: READ_ONLY,
+  coordenacao_unidade: READ_ONLY,
 };
 
-/**
- * Verifica se uma role tem permissão para uma ação em um recurso.
- */
 export function can(role: RoleUsuario, permission: Permission): boolean {
   return ROLE_PERMISSIONS[role]?.has(permission) ?? false;
 }
 
 /**
- * Verifica se uma role tem TODAS as permissões listadas.
+ * Verifica permissão considerando também o flag admin_marca.
+ * Preferir este em Server Components que têm acesso ao objeto user.
  */
+export function canUser(
+  user: { role: RoleUsuario; admin_marca: boolean },
+  permission: Permission,
+): boolean {
+  if (can(user.role, permission)) return true;
+  if (user.admin_marca && ADMIN_MARCA_EXTRA.has(permission)) return true;
+  return false;
+}
+
 export function canAll(role: RoleUsuario, permissions: Permission[]): boolean {
   return permissions.every((p) => can(role, p));
 }
 
-/**
- * Verifica se uma role tem PELO MENOS UMA das permissões listadas.
- */
 export function canAny(role: RoleUsuario, permissions: Permission[]): boolean {
   return permissions.some((p) => can(role, p));
 }
 
-// ---------------------------------------------------------------------------
-// Labels amigáveis para exibição
-// ---------------------------------------------------------------------------
-
 export const ROLE_LABELS: Record<RoleUsuario, string> = {
-  admin_rede: "Administrador da Rede",
-  coord_marca: "Coordenador de Marca",
-  coord_unidade: "Coordenador de Unidade",
-  professor: "Professor",
+  raiz: "Raiz",
+  direcao_marca: "Direção de Marca",
+  direcao_unidade: "Direção de Unidade",
+  coordenacao_unidade: "Coordenação de Unidade",
 };
 
 export const ROLE_DESCRIPTIONS: Record<RoleUsuario, string> = {
-  admin_rede: "Acesso total a todas as marcas e funcionalidades",
-  coord_marca: "Gerencia unidades, turmas e olimpíadas da sua marca",
-  coord_unidade: "Gerencia turmas e alunos da sua unidade",
-  professor: "Inscreve alunos e acompanha resultados das suas turmas",
+  raiz: "Acesso total — leitura e escrita em todas as áreas",
+  direcao_marca: "Somente leitura — visão consolidada da marca",
+  direcao_unidade: "Somente leitura — visão consolidada da unidade",
+  coordenacao_unidade: "Somente leitura — visão consolidada da unidade",
 };

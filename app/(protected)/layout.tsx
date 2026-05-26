@@ -4,6 +4,7 @@ import { getServerSession } from "@/lib/auth/session";
 import { UserProvider } from "@/lib/auth/context";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Sidebar } from "@/components/layout/sidebar";
+import { MobileNav } from "@/components/layout/mobile-nav";
 import { ROLE_LABELS } from "@/lib/auth/roles";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -18,8 +19,9 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         {/* Top navbar */}
         <header className="sticky top-0 z-30 border-b border-border bg-card">
           <div className="flex h-[88px] items-center justify-between px-4">
-            {/* Logo */}
+            {/* Logo + hamburger mobile */}
             <div className="flex items-center gap-3">
+              <MobileNav />
               <Image
                 src="/logo-raiz.png"
                 alt="Raiz Educação"

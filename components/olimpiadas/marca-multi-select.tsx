@@ -82,7 +82,7 @@ function MarcaMultiSelectInner({ marcas }: { marcas: { id: string; nome: string 
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-[180px] rounded-xl border border-border bg-card p-1.5 shadow-lg">
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[180px] max-w-[calc(100vw-1rem)] rounded-xl border border-border bg-card p-1.5 shadow-lg">
           <button
             onClick={toggleTodos}
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-background"
