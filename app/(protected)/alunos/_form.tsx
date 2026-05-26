@@ -11,7 +11,7 @@ type AlunoFormProps = {
   aluno?: {
     id: string;
     nome: string;
-    turma_id: string;
+    turma_id: string | null;
     data_nascimento: string;
     cpf: string | null;
     ativo: boolean;
