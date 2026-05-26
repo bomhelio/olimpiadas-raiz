@@ -28,11 +28,31 @@ const MARCA_UUID: Record<string, string> = Object.fromEntries(
 
 // Contrato esperado do endpoint GET /educacional/alunos-olimpiadas
 // Implementado no raiz-data-engine (Railway).
-// Filtra automaticamente:
-//   - Marcas: americano, apogeu, uniao, unificado, qi-bilingue, matriz-educacao
-//   - Séries: 1º ano EFAI → 3ª série EM
-//   - Status de matrícula: ativo
-// Fonte: TOTVS Mirror (Neon) — tabelas s_aluno, p_pessoa, s_matricula, marca_coligada
+//
+// REQUISITOS DE FILTRAGEM — o data engine é responsável por:
+//
+// 1. MARCAS E FILIAIS (cobertura total)
+//    Usar marca_coligada (Neon) para obter TODOS os pares (CODCOLIGADA, CODFILIAL)
+//    das 6 marcas elegíveis. NÃO filtrar apenas por CODCOLIGADA — cada filial
+//    é uma unidade distinta e deve ser incluída individualmente.
+//    Marcas elegíveis: americano, apogeu, uniao, unificado, qi-bilingue, matriz-educacao
+//
+// 2. STATUS DE MATRÍCULA ATIVA (por filial — COL=10 tem status diferentes)
+//    A definição de "ativo" varia por (CODCOLIGADA, CODFILIAL):
+//    - COL=10, FIL=1 (Qi Recreio)     → CODSTATUS IN (2, 3)
+//    - COL=10, FIL=3,4,6 (Sá Pereira) → CODSTATUS IN (14, 15)
+//    - COL=10, FIL=7 (SAP)            → CODSTATUS IN (25, 32)
+//    - Demais coligadas               → CODSTATUS padrão de matrícula ativa
+//    Recomendação: JOIN com tabela de status_validos_por_filial ou usar
+//    a lógica do PBI_RAIZ que já tem as regras decodificadas.
+//
+// 3. RANGE DE SÉRIE (1º ano EFAI → 3ª série EM)
+//    Inclui: 1ANO a 5ANO (EFAI) + 6ANO a 9ANO (EFAF) + 1EM a 3EM
+//    Excluir: Educação Infantil, EJA, cursos técnicos, pós-graduação.
+//
+// 4. FONTE DE DADOS
+//    TOTVS Mirror (Neon) — JOINs entre s_aluno, p_pessoa, s_matricula,
+//    marca_coligada. Período letivo corrente (IDPERLET ativo).
 export type AlunoDataEngine = {
   nome: string;
   email: string | null;
@@ -42,6 +62,7 @@ export type AlunoDataEngine = {
   marca_slug: string; // slug da marca (americano, apogeu, …)
   ra: string; // RA no TOTVS
   codcoligada: number; // CODCOLIGADA no TOTVS
+  codfilial: number; // CODFILIAL no TOTVS — obrigatório para rastrear unidade
 };
 
 type DataEngineResponse = {
@@ -129,11 +150,13 @@ export async function sincronizarAlunosTOTVS(): Promise<SyncResult> {
         continue;
       }
 
-      // Deduplicação: RA+CODCOLIGADA (primário) ou e-mail (secundário)
+      // Deduplicação: RA+CODCOLIGADA+CODFILIAL (primário) ou e-mail (secundário)
       const { data: existente } = await supabase
         .from("aluno")
         .select("id, supabase_auth_id, email")
-        .or(`and(ra_totvs.eq.${a.ra},codcoligada_totvs.eq.${a.codcoligada}),email.eq.${a.email}`)
+        .or(
+          `and(ra_totvs.eq.${a.ra},codcoligada_totvs.eq.${a.codcoligada},codfilial_totvs.eq.${a.codfilial}),email.eq.${a.email}`,
+        )
         .maybeSingle();
 
       if (existente) {
@@ -147,6 +170,7 @@ export async function sincronizarAlunosTOTVS(): Promise<SyncResult> {
             marca_id: marcaUuid,
             ra_totvs: a.ra,
             codcoligada_totvs: a.codcoligada,
+            codfilial_totvs: a.codfilial,
           })
           .eq("id", existente.id);
         atualizados++;
@@ -178,6 +202,7 @@ export async function sincronizarAlunosTOTVS(): Promise<SyncResult> {
         marca_id: marcaUuid,
         ra_totvs: a.ra,
         codcoligada_totvs: a.codcoligada,
+        codfilial_totvs: a.codfilial,
         // turma_id: null (agora opcional — mapeamento futuro)
       });
 

@@ -27,6 +27,9 @@ ALTER TABLE aluno ADD COLUMN IF NOT EXISTS ra_totvs text;
 -- CODCOLIGADA de origem no TOTVS
 ALTER TABLE aluno ADD COLUMN IF NOT EXISTS codcoligada_totvs integer;
 
+-- CODFILIAL de origem no TOTVS (necessário para identificar unidade e status correto)
+ALTER TABLE aluno ADD COLUMN IF NOT EXISTS codfilial_totvs integer;
+
 -- Índices para performance de sync e filtros
 CREATE INDEX IF NOT EXISTS idx_aluno_marca_id
   ON aluno (marca_id)
@@ -41,6 +44,7 @@ CREATE INDEX IF NOT EXISTS idx_aluno_ra_totvs
   WHERE ra_totvs IS NOT NULL;
 
 -- Índice composto para deduplicação durante sync
-CREATE UNIQUE INDEX IF NOT EXISTS idx_aluno_ra_coligada_unique
-  ON aluno (ra_totvs, codcoligada_totvs)
-  WHERE ra_totvs IS NOT NULL AND codcoligada_totvs IS NOT NULL;
+-- Índice único por RA+CODCOLIGADA+CODFILIAL (um aluno pode ter o mesmo RA em coligadas distintas)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_aluno_ra_coligada_filial_unique
+  ON aluno (ra_totvs, codcoligada_totvs, codfilial_totvs)
+  WHERE ra_totvs IS NOT NULL AND codcoligada_totvs IS NOT NULL AND codfilial_totvs IS NOT NULL;

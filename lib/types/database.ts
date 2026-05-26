@@ -146,6 +146,7 @@ export type Database = {
           serie: string | null;
           ra_totvs: string | null;
           codcoligada_totvs: number | null;
+          codfilial_totvs: number | null;
         };
         Insert: {
           id?: string;
@@ -169,6 +170,7 @@ export type Database = {
           serie?: string | null;
           ra_totvs?: string | null;
           codcoligada_totvs?: number | null;
+          codfilial_totvs?: number | null;
         };
         Update: {
           id?: string;
@@ -192,6 +194,7 @@ export type Database = {
           serie?: string | null;
           ra_totvs?: string | null;
           codcoligada_totvs?: number | null;
+          codfilial_totvs?: number | null;
         };
         Relationships: [];
       };
