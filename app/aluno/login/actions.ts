@@ -4,6 +4,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Database } from "@/lib/types/database";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type LoginAlunoState = { error?: string } | null;
 
@@ -51,8 +52,9 @@ export async function loginAluno(
     };
   }
 
-  // Verifica que o usuário tem um aluno vinculado (não é staff)
-  const { data: aluno } = await supabase
+  // Usa admin client para bypassed RLS no lookup inicial do aluno
+  const adminClient = createAdminClient();
+  const { data: aluno } = await adminClient
     .from("aluno")
     .select("id, consentimento_responsavel")
     .eq("supabase_auth_id", data.user.id)

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database, Aluno } from "@/lib/types/database";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type StudentSession = {
   aluno: Aluno;
@@ -38,8 +39,10 @@ export async function getStudentSession(): Promise<StudentSession> {
 
   if (!authUser) return null;
 
-  // Verifica que não é um usuário admin (evita que staff acesse portal do aluno)
-  const { data: staff } = await supabase
+  // Admin client bypassa RLS para lookup do aluno e verificação de staff
+  const admin = createAdminClient();
+
+  const { data: staff } = await admin
     .from("usuario")
     .select("id")
     .eq("id", authUser.id)
@@ -47,7 +50,7 @@ export async function getStudentSession(): Promise<StudentSession> {
 
   if (staff) return null;
 
-  const { data: aluno, error } = await supabase
+  const { data: aluno, error } = await admin
     .from("aluno")
     .select("*")
     .eq("supabase_auth_id", authUser.id)
