@@ -33,7 +33,7 @@ export async function loginAluno(
   const supabase = makeSupabase(cookieStore);
   const adminClient = createAdminClient();
 
-  // ── Passo 2: já autenticado, só falta salvar o consentimento ────────────────
+  // ── Passo 2: sessão ativa — verificar se é aluno (pode ser admin na aba) ────
   const {
     data: { user: existingUser },
   } = await supabase.auth.getUser();
@@ -45,33 +45,36 @@ export async function loginAluno(
       .eq("supabase_auth_id", existingUser.id)
       .maybeSingle();
 
-    if (!aluno) {
-      await supabase.auth.signOut();
-      return { error: "Acesso não encontrado. Fale com a coordenação da sua escola." };
+    if (aluno) {
+      // Sessão válida de aluno — processar consentimento se necessário
+      if (!aluno.consentimento_responsavel) {
+        const nome = (formData.get("responsavel_nome") as string)?.trim();
+        const tipo = formData.get("responsavel_tipo") as string;
+        const aceito = formData.get("consentimento_aceito") === "on";
+
+        if (!nome) return { error: "Informe o nome completo do responsável." };
+        if (!tipo || !["pedagogico", "financeiro"].includes(tipo))
+          return { error: "Selecione o tipo de responsável." };
+        if (!aceito)
+          return { error: "O responsável deve aceitar os termos para liberar o acesso." };
+
+        await adminClient
+          .from("aluno")
+          .update({
+            consentimento_responsavel: true,
+            consentimento_data: new Date().toISOString(),
+            consentimento_responsavel_nome: nome,
+            consentimento_responsavel_tipo: tipo as "pedagogico" | "financeiro",
+          })
+          .eq("id", aluno.id);
+      }
+
+      redirect("/aluno/dashboard");
     }
 
-    if (!aluno.consentimento_responsavel) {
-      const nome = (formData.get("responsavel_nome") as string)?.trim();
-      const tipo = formData.get("responsavel_tipo") as string;
-      const aceito = formData.get("consentimento_aceito") === "on";
-
-      if (!nome) return { error: "Informe o nome completo do responsável." };
-      if (!tipo || !["pedagogico", "financeiro"].includes(tipo))
-        return { error: "Selecione o tipo de responsável." };
-      if (!aceito) return { error: "O responsável deve aceitar os termos para liberar o acesso." };
-
-      await adminClient
-        .from("aluno")
-        .update({
-          consentimento_responsavel: true,
-          consentimento_data: new Date().toISOString(),
-          consentimento_responsavel_nome: nome,
-          consentimento_responsavel_tipo: tipo as "pedagogico" | "financeiro",
-        })
-        .eq("id", aluno.id);
-    }
-
-    redirect("/aluno/dashboard");
+    // Sessão não é de aluno (ex: admin com sessão ativa na mesma aba)
+    // Encerra a sessão atual e continua para o login com as credenciais digitadas
+    await supabase.auth.signOut();
   }
 
   // ── Passo 1: autenticar com e-mail e senha ──────────────────────────────────
