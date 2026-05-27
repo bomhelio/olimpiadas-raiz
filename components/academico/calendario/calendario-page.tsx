@@ -475,7 +475,7 @@ function AulaCard({ aula }: { aula: AulaRow }) {
           {aula.duracao_minutos && (
             <>
               {" "}
-              · {Math.floor(aula.duracao_minutos / 3600)}:
+              · {String(Math.floor(aula.duracao_minutos / 3600)).padStart(2, "0")}:
               {String(Math.floor((aula.duracao_minutos % 3600) / 60)).padStart(2, "0")}:
               {String(aula.duracao_minutos % 60).padStart(2, "0")}
             </>

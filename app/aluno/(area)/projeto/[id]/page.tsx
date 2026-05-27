@@ -141,7 +141,7 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
                     {aula.data_hora && <span>{fmtDateTime(aula.data_hora)}</span>}
                     {aula.duracao_minutos && (
                       <span>
-                        · {Math.floor(aula.duracao_minutos / 3600)}:
+                        · {String(Math.floor(aula.duracao_minutos / 3600)).padStart(2, "0")}:
                         {String(Math.floor((aula.duracao_minutos % 3600) / 60)).padStart(2, "0")}:
                         {String(aula.duracao_minutos % 60).padStart(2, "0")}
                       </span>
