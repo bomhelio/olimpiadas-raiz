@@ -9,9 +9,14 @@ import { uploadPlanilha, deletePlanilha } from "@/app/(protected)/academico/olim
 
 type Planilha = { name: string; created_at: string; fullPath: string };
 
+type Marca = { nome: string; slug: string };
+
 type Props = {
   catalogo: OlimpiadaCatalogo[];
   planilhasMap: Record<string, Planilha[]>;
+  isAdmin: boolean;
+  marcaSlug: string | null;
+  todasMarcas: Marca[];
 };
 
 // ─── helpers ───────────────────────────────────────────────────────────────
@@ -229,10 +234,14 @@ function OlimpiadaItem({
   olimpiada,
   planilhas,
   defaultOpen,
+  isAdmin,
+  todasMarcas,
 }: {
   olimpiada: OlimpiadaCatalogo;
   planilhas: Planilha[];
   defaultOpen: boolean;
+  isAdmin: boolean;
+  todasMarcas: Marca[];
 }) {
   const [open, setOpen] = useState(defaultOpen);
 
@@ -272,26 +281,30 @@ function OlimpiadaItem({
           </span>
         )}
 
-        {/* Download .docx */}
-        <a
-          href={`/api/olimpiadas/${encodeURIComponent(olimpiada.sigla)}/doc`}
-          onClick={(e) => e.stopPropagation()}
-          className="ml-2 shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
-          title="Baixar informativo Word (.docx)"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="h-4 w-4"
+        {/* Download .docx — dropdown para admin, botão direto para demais */}
+        {isAdmin ? (
+          <MarcaDocDropdown sigla={olimpiada.sigla} marcas={todasMarcas} />
+        ) : (
+          <a
+            href={`/api/olimpiadas/${encodeURIComponent(olimpiada.sigla)}/doc`}
+            onClick={(e) => e.stopPropagation()}
+            className="ml-2 shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
+            title="Baixar informativo Word (.docx)"
           >
-            <path
-              fillRule="evenodd"
-              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </a>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="h-4 w-4"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </a>
+        )}
 
         {/* Chevron */}
         <svg
@@ -501,6 +514,66 @@ const AREAS: Array<{ slug: AreaSlug | "todos"; label: string }> = [
   { slug: "filosofia", label: "Filosofia" },
 ];
 
+// ─── MarcaDocDropdown (apenas admin_rede) ────────────────────────────────────
+
+function MarcaDocDropdown({ sigla, marcas }: { sigla: string; marcas: Marca[] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative ml-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
+        title="Baixar informativo Word — escolher marca"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className="h-4 w-4"
+        >
+          <path
+            fillRule="evenodd"
+            d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-1 min-w-[168px] rounded-xl border border-border bg-card p-1.5 shadow-lg">
+          <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+            Baixar por marca
+          </p>
+          {marcas.map((m) => (
+            <a
+              key={m.slug}
+              href={`/api/olimpiadas/${encodeURIComponent(sigla)}/doc?marca=${m.slug}`}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-white/[0.06]"
+            >
+              {m.nome}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── AreaSelect ────────────────────────────────────────────────────────────
 
 function AreaCheckbox({ checked }: { checked: boolean }) {
@@ -612,7 +685,7 @@ function AreaSelect({
 
 // ─── OlimpiadasCatalogo (main) ─────────────────────────────────────────────
 
-export function OlimpiadasCatalogo({ catalogo, planilhasMap }: Props) {
+export function OlimpiadasCatalogo({ catalogo, planilhasMap, isAdmin, todasMarcas }: Props) {
   const [segmento, setSegmento] = useState<Segmento | "todos">("todos");
   const [area, setArea] = useState<AreaSlug | "todos">("todos");
 
@@ -687,6 +760,8 @@ export function OlimpiadasCatalogo({ catalogo, planilhasMap }: Props) {
               olimpiada={o}
               planilhas={planilhasMap[o.sigla] ?? []}
               defaultOpen={i === 0}
+              isAdmin={isAdmin}
+              todasMarcas={todasMarcas}
             />
           ))}
         </div>

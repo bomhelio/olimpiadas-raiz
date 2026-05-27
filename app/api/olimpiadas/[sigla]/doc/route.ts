@@ -1,5 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import fs from "fs";
+import pathModule from "path";
 import {
   Document,
   Packer,
@@ -14,9 +16,35 @@ import {
   ShadingType,
   convertInchesToTwip,
   LevelFormat,
+  ImageRun,
 } from "docx";
 import { CATALOGO } from "@/lib/olimpiadas/catalogo";
 import { getServerSession } from "@/lib/auth/session";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+// ─── Mapeamento slug → arquivo de logo ──────────────────────────────────────
+
+const SLUG_TO_LOGO: Record<string, string> = {
+  americano: "americano",
+  apogeu: "apogeu",
+  "matriz-educacao": "matriz",
+  "qi-bilingue": "qi",
+  uniao: "uniao",
+  unificado: "unificado",
+};
+
+function loadLogo(slug: string): { data: Buffer; width: number; height: number } | null {
+  const logoFile = SLUG_TO_LOGO[slug];
+  if (!logoFile) return null;
+  const logoPath = pathModule.join(process.cwd(), "public", "marcas", `${logoFile}.png`);
+  if (!fs.existsSync(logoPath)) return null;
+  const data = fs.readFileSync(logoPath);
+  const imgW = data.readUInt32BE(16);
+  const imgH = data.readUInt32BE(20);
+  const displayH = 52;
+  const displayW = Math.round(displayH * (imgW / imgH));
+  return { data, width: displayW, height: displayH };
+}
 
 // ─── Paleta ─────────────────────────────────────────────────────────────────
 
@@ -187,7 +215,7 @@ function colorBar(): Paragraph {
 
 // ─── Rota ────────────────────────────────────────────────────────────────────
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ sigla: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ sigla: string }> }) {
   const session = await getServerSession();
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
@@ -196,6 +224,51 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ sig
   if (!olimpiada) {
     return NextResponse.json({ error: "Olimpíada não encontrada" }, { status: 404 });
   }
+
+  // ── Determina marca do usuário ─────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const user = session.user as any;
+  const isAdmin = user.role === "admin_rede";
+  const marcaParam = req.nextUrl.searchParams.get("marca");
+
+  let marcaSlug: string | null = null;
+  if (isAdmin && marcaParam) {
+    marcaSlug = marcaParam;
+  } else if (!isAdmin && user.marca_ativa_id) {
+    const { data } = await createAdminClient()
+      .from("marca")
+      .select("slug")
+      .eq("id", user.marca_ativa_id)
+      .single();
+    marcaSlug = data?.slug ?? null;
+  }
+
+  const logo = marcaSlug ? loadLogo(marcaSlug) : null;
+
+  // Cabeçalho: logo da marca OU texto genérico
+  const headerParagraph = logo
+    ? new Paragraph({
+        children: [
+          new ImageRun({
+            data: logo.data,
+            transformation: { width: logo.width, height: logo.height },
+            type: "png",
+          }),
+        ],
+        spacing: { after: 80 },
+      })
+    : new Paragraph({
+        children: [
+          new TextRun({
+            text: "PROGRAMA RAIZ OLÍMPICA  ·  RAIZ EDUCAÇÃO",
+            font: FONT_BODY,
+            size: 17,
+            color: C.subtle,
+            characterSpacing: 20,
+          }),
+        ],
+        spacing: { after: 80 },
+      });
 
   const doc = new Document({
     styles: {
@@ -241,19 +314,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ sig
           },
         },
         children: [
-          // Topo: label do documento
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "PROGRAMA RAIZ OLÍMPICA  ·  RAIZ EDUCAÇÃO",
-                font: FONT_BODY,
-                size: 17,
-                color: C.subtle,
-                characterSpacing: 20,
-              }),
-            ],
-            spacing: { after: 80 },
-          }),
+          // Topo: logo da marca ou label genérico
+          headerParagraph,
 
           // Barra colorida
           colorBar(),
