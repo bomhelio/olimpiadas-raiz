@@ -225,6 +225,7 @@ export async function GET(req: NextRequest) {
   const segmento = url.searchParams.get("segmento") ?? "";
   const serie = url.searchParams.get("serie") ?? "";
   const projetoId = url.searchParams.get("projeto") ?? "";
+  const mes = Number(url.searchParams.get("mes")) || 0; // 0 = todos
   const marcaParam = url.searchParams.get("marca") ?? "";
 
   // Determina marca
@@ -248,16 +249,14 @@ export async function GET(req: NextRequest) {
   const [{ data: fasesData }, { data: aulasData }] = await Promise.all([
     supabase
       .from("olimpiada_fase")
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .select(
-        "id, tipo, nome, data_inicio, data_fim, olimpiada:olimpiada_id(nome, sigla, ano_letivo, series_elegiveis)" as any,
+        "id, tipo, nome, data_inicio, data_fim, olimpiada:olimpiada_id(nome, ano_letivo, series_elegiveis)" as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       )
       .order("data_inicio", { ascending: true }),
     supabase
       .from("preparacao_aula")
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .select(
-        "id, titulo, tipo, data_hora, duracao_minutos, projeto:projeto_id(id, nome, olimpiada_sigla, ano_letivo, series_elegiveis)" as any,
+        "id, titulo, tipo, data_hora, duracao_minutos, projeto:projeto_id(id, nome, olimpiada_sigla, ano_letivo, series_elegiveis)" as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       )
       .eq("publicada", true)
       .not("data_hora", "is", null)
@@ -276,6 +275,7 @@ export async function GET(req: NextRequest) {
     const seriesEl: string[] = ol.series_elegiveis ?? [];
     if (segmento && !matchesSeg(seriesEl, segmento)) continue;
     if (serie && !matchesSerie(seriesEl, serie)) continue;
+    if (mes && new Date(f.data_inicio + "T12:00:00").getMonth() + 1 !== mes) continue;
 
     const label = FASE_LABELS[f.tipo] ?? f.tipo;
     const color = FASE_COLORS[f.tipo] ?? C.subtle;
@@ -299,6 +299,7 @@ export async function GET(req: NextRequest) {
     const seriesEl: string[] = proj.series_elegiveis ?? [];
     if (segmento && !matchesSeg(seriesEl, segmento)) continue;
     if (serie && !matchesSerie(seriesEl, serie)) continue;
+    if (mes && new Date(a.data_hora).getMonth() + 1 !== mes) continue;
 
     const label = AULA_LABELS[a.tipo] ?? a.tipo;
     const color = AULA_COLORS[a.tipo] ?? C.subtle;
@@ -353,9 +354,13 @@ export async function GET(req: NextRequest) {
       });
 
   // Subtítulo de filtros ativos
+  const nomeMes = mes
+    ? new Date(ano, mes - 1, 1).toLocaleDateString("pt-BR", { month: "long" })
+    : "";
   const filtrosLabel = [
     segmento ? `Segmento: ${segmento}` : "",
     serie ? `Série: ${serie}` : "",
+    nomeMes ? `Mês: ${nomeMes}` : "",
     projetoId ? "Projeto selecionado" : "",
   ]
     .filter(Boolean)

@@ -387,6 +387,7 @@ export function CalendarioAcademicoPage({
   const [segmento, setSegmento] = useState<"todos" | "EFAI" | "EFAF" | "EM">("todos");
   const [serie, setSerie] = useState<string>("todas");
   const [projetoId, setProjetoId] = useState<string>("todos");
+  const [mes, setMes] = useState<number>(0); // 0 = todos
 
   function setAno(ano: number) {
     const params = new URLSearchParams(searchParams.toString());
@@ -406,12 +407,24 @@ export function CalendarioAcademicoPage({
       ? "todas"
       : serie;
 
+  // Meses com eventos no ano (calculado antes do filtro de mês para popular o dropdown)
+  const mesesComEventos = new Set<number>();
+  for (const f of fases) {
+    if (f.olimpiada_ano === selectedAno)
+      mesesComEventos.add(parseLocalDate(f.data_inicio).getMonth() + 1);
+  }
+  for (const a of aulas) {
+    if (a.projeto_ano === selectedAno) mesesComEventos.add(new Date(a.data_hora).getMonth() + 1);
+  }
+  const mesesDisponiveis = [...mesesComEventos].sort((a, b) => a - b);
+
   // Filtra eventos
   const eventos: Evento[] = [];
 
   if (showFases && projetoId === "todos") {
     for (const f of fases) {
       if (f.olimpiada_ano !== selectedAno) continue;
+      if (mes !== 0 && parseLocalDate(f.data_inicio).getMonth() + 1 !== mes) continue;
       if (segmento !== "todos" && !matchSegmento(f.series_elegiveis, f.olimpiada_sigla, segmento))
         continue;
       if (serieEfetiva !== "todas" && !matchSerie(f.series_elegiveis, serieEfetiva)) continue;
@@ -421,6 +434,7 @@ export function CalendarioAcademicoPage({
 
   for (const a of aulas) {
     if (a.projeto_ano !== selectedAno) continue;
+    if (mes !== 0 && new Date(a.data_hora).getMonth() + 1 !== mes) continue;
     if (a.tipo === "simulado" && !showSimulados) continue;
     if (a.tipo !== "simulado" && !showAulas) continue;
     if (segmento !== "todos" && !matchSegmento(a.series_elegiveis, a.olimpiada_sigla, segmento))
@@ -453,6 +467,7 @@ export function CalendarioAcademicoPage({
     if (segmento !== "todos") p.set("segmento", segmento);
     if (serieEfetiva !== "todas") p.set("serie", serieEfetiva);
     if (projetoId !== "todos") p.set("projeto", projetoId);
+    if (mes !== 0) p.set("mes", String(mes));
     return `/api/academico/calendario/doc?${p.toString()}`;
   }
 
@@ -613,6 +628,27 @@ export function CalendarioAcademicoPage({
 
         <div className="hidden h-4 w-px bg-border/60 sm:block" />
 
+        {/* Mês */}
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+            Mês
+          </span>
+          <select
+            value={mes}
+            onChange={(e) => setMes(Number(e.target.value))}
+            className="rounded-lg border border-input bg-background px-2 py-1 text-xs text-foreground focus:border-ring focus:outline-none"
+          >
+            <option value={0}>Todos</option>
+            {mesesDisponiveis.map((m) => (
+              <option key={m} value={m}>
+                {new Date(selectedAno, m - 1, 1).toLocaleDateString("pt-BR", { month: "long" })}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="hidden h-4 w-px bg-border/60 sm:block" />
+
         {/* Projeto */}
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
@@ -633,13 +669,17 @@ export function CalendarioAcademicoPage({
         </div>
 
         {/* Reset */}
-        {(segmento !== "todos" || serieEfetiva !== "todas" || projetoId !== "todos") && (
+        {(segmento !== "todos" ||
+          serieEfetiva !== "todas" ||
+          projetoId !== "todos" ||
+          mes !== 0) && (
           <button
             type="button"
             onClick={() => {
               setSegmento("todos");
               setSerie("todas");
               setProjetoId("todos");
+              setMes(0);
             }}
             className="ml-auto text-[11px] text-muted-foreground hover:text-foreground transition-colors"
           >
