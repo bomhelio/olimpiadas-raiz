@@ -193,6 +193,157 @@ function Badge({ bg, text, label }: { bg: string; text: string; label: string })
   );
 }
 
+// ─── MultiSelectDropdown ─────────────────────────────────────────────────────
+
+function MultiSelectDropdown<T extends string | number>({
+  label,
+  options,
+  selected,
+  onChange,
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  selected: T[];
+  onChange: (values: T[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function h(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  const allSelected = selected.length === 0 || selected.length === options.length;
+  const btnLabel =
+    selected.length === 0 || selected.length === options.length
+      ? "Todos"
+      : `${selected.length} selecionado${selected.length > 1 ? "s" : ""}`;
+
+  function toggleAll() {
+    onChange(allSelected ? [] : options.map((o) => o.value));
+  }
+
+  function toggleOne(val: T) {
+    onChange(selected.includes(val) ? selected.filter((v) => v !== val) : [...selected, val]);
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none ${
+          selected.length > 0 && selected.length < options.length
+            ? "border-[rgb(91,184,193)]/40 bg-[rgb(91,184,193)]/10 text-[rgb(91,184,193)]"
+            : "border-border bg-card text-muted-foreground hover:border-ring hover:text-foreground"
+        }`}
+        style={open ? { borderColor: "rgb(91,184,193)" } : {}}
+      >
+        <span className="font-semibold uppercase tracking-wider text-[10px] text-muted-foreground/60 mr-0.5">
+          {label}
+        </span>
+        <span>{btnLabel}</span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className={`h-3 w-3 shrink-0 text-muted-foreground/60 transition-transform ${open ? "rotate-180" : ""}`}
+        >
+          <path
+            fillRule="evenodd"
+            d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[180px] max-w-[260px] rounded-xl border border-border bg-card shadow-lg">
+          {/* Selecionar todos */}
+          <div className="border-b border-border px-3 py-2">
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="flex w-full items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <span
+                className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border transition-colors"
+                style={
+                  allSelected
+                    ? { backgroundColor: "rgb(91,184,193)", borderColor: "rgb(91,184,193)" }
+                    : { borderColor: "var(--border)" }
+                }
+              >
+                {allSelected && (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="9"
+                    height="9"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </span>
+              Selecionar todos
+            </button>
+          </div>
+
+          {/* Lista de opções */}
+          <div className="max-h-52 overflow-y-auto p-1.5">
+            {options.map((opt) => {
+              const checked = selected.includes(opt.value);
+              return (
+                <button
+                  key={String(opt.value)}
+                  type="button"
+                  onClick={() => toggleOne(opt.value)}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-foreground transition-colors hover:bg-white/[0.06]"
+                >
+                  <span
+                    className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border transition-colors"
+                    style={
+                      checked
+                        ? { backgroundColor: "rgb(91,184,193)", borderColor: "rgb(91,184,193)" }
+                        : { borderColor: "var(--border)" }
+                    }
+                  >
+                    {checked && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="9"
+                        height="9"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="white"
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="truncate">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Dropdown de marca (admin) ────────────────────────────────────────────────
 
 function MarcaCalendarioDropdown({
@@ -412,11 +563,6 @@ export function CalendarioAcademicoPage({
   }
   const mesesDisponiveis = [...mesesComEventos].sort((a, b) => a - b);
 
-  // Helpers multi-select
-  function toggleItem<T>(arr: T[], item: T): T[] {
-    return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
-  }
-
   // Filtra eventos (lógica multi-select: array vazio = todos)
   const eventos: Evento[] = [];
 
@@ -470,21 +616,6 @@ export function CalendarioAcademicoPage({
     if (meses.length > 0) p.set("meses", meses.map(String).join(","));
     return `/api/academico/calendario/doc?${p.toString()}`;
   }
-
-  const MES_ABREV = [
-    "Jan",
-    "Fev",
-    "Mar",
-    "Abr",
-    "Mai",
-    "Jun",
-    "Jul",
-    "Ago",
-    "Set",
-    "Out",
-    "Nov",
-    "Dez",
-  ];
 
   const hasFilters =
     segmento !== "todos" || series.length > 0 || meses.length > 0 || projetos.length > 0;
@@ -579,152 +710,88 @@ export function CalendarioAcademicoPage({
       </div>
 
       {/* ── Controles linha 2: filtros ── */}
-      <div className="no-print space-y-2 rounded-xl border border-border bg-card px-4 py-3">
-        {/* Segmento */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="w-14 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            Segmento
-          </span>
-          <div className="flex flex-wrap gap-1">
-            <button
-              type="button"
-              onClick={() => {
-                setSegmento("todos");
-                setSeries([]);
-              }}
-              className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-all border ${
-                segmento === "todos"
-                  ? "bg-[rgb(91,184,193)]/10 text-[rgb(91,184,193)] border-[rgb(91,184,193)]/30"
-                  : "border-border text-muted-foreground/50 hover:text-muted-foreground"
-              }`}
-            >
-              Todos
-            </button>
-            {(["EFAI", "EFAF", "EM"] as const).map((s) => {
-              const cfg = SEG_CONFIG[s];
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => {
-                    setSegmento(s);
-                    setSeries([]);
-                  }}
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-all border ${
-                    segmento === s
-                      ? `${cfg.bg} ${cfg.text} border-transparent`
-                      : "border-border text-muted-foreground/50 hover:text-muted-foreground"
-                  }`}
-                >
-                  {cfg.label}
-                </button>
-              );
-            })}
-          </div>
+      <div className="no-print flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-4 py-3">
+        {/* Segmento — pills (conjunto fixo, 4 opções) */}
+        <div className="flex flex-wrap gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              setSegmento("todos");
+              setSeries([]);
+            }}
+            className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all border ${
+              segmento === "todos"
+                ? "bg-[rgb(91,184,193)]/10 text-[rgb(91,184,193)] border-[rgb(91,184,193)]/30"
+                : "border-border text-muted-foreground/50 hover:text-muted-foreground"
+            }`}
+          >
+            Todos
+          </button>
+          {(["EFAI", "EFAF", "EM"] as const).map((s) => {
+            const cfg = SEG_CONFIG[s];
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  setSegmento(s);
+                  setSeries([]);
+                }}
+                className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all border ${
+                  segmento === s
+                    ? `${cfg.bg} ${cfg.text} border-transparent`
+                    : "border-border text-muted-foreground/50 hover:text-muted-foreground"
+                }`}
+              >
+                {cfg.label}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="h-px bg-border/40" />
+        <div className="hidden h-4 w-px bg-border/60 sm:block" />
 
-        {/* Série — multi-select com cores por segmento */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="w-14 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            Série
-          </span>
-          <div className="flex flex-wrap gap-1">
-            {seriesDisponiveis.map((s) => {
-              const seg = SERIES_TO_SEG[s] as "EFAI" | "EFAF" | "EM" | undefined;
-              const cfg = seg ? SEG_CONFIG[seg] : SEG_CONFIG.EFAF;
-              const active = series.includes(s);
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSeries((prev) => toggleItem(prev, s))}
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-all border ${
-                    active
-                      ? `${cfg.bg} ${cfg.text} border-transparent`
-                      : "border-border text-muted-foreground/50 hover:text-muted-foreground"
-                  }`}
-                >
-                  {s}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {/* Série — dropdown multi-select */}
+        <MultiSelectDropdown
+          label="Série"
+          options={seriesDisponiveis.map((s) => ({ value: s, label: s }))}
+          selected={series}
+          onChange={setSeries}
+        />
 
-        <div className="h-px bg-border/40" />
+        {/* Mês — dropdown multi-select */}
+        <MultiSelectDropdown
+          label="Mês"
+          options={mesesDisponiveis.map((m) => ({
+            value: m,
+            label: new Date(selectedAno, m - 1, 1).toLocaleDateString("pt-BR", { month: "long" }),
+          }))}
+          selected={meses}
+          onChange={setMeses}
+        />
 
-        {/* Mês — multi-select turquesa */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="w-14 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            Mês
-          </span>
-          <div className="flex flex-wrap gap-1">
-            {mesesDisponiveis.map((m) => {
-              const active = meses.includes(m);
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMeses((prev) => toggleItem(prev, m))}
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-all border ${
-                    active
-                      ? "bg-[rgb(91,184,193)]/10 text-[rgb(91,184,193)] border-[rgb(91,184,193)]/30"
-                      : "border-border text-muted-foreground/50 hover:text-muted-foreground"
-                  }`}
-                >
-                  {MES_ABREV[m - 1]}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="h-px bg-border/40" />
-
-        {/* Projeto — multi-select âmbar */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="w-14 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            Projeto
-          </span>
-          <div className="flex flex-wrap gap-1">
-            {projetosOpts.map((p) => {
-              const active = projetos.includes(p.id);
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setProjetos((prev) => toggleItem(prev, p.id))}
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-all border ${
-                    active
-                      ? "bg-amber-400/10 text-amber-400 border-amber-400/30"
-                      : "border-border text-muted-foreground/50 hover:text-muted-foreground"
-                  }`}
-                >
-                  {p.nome.length > 28 ? p.nome.slice(0, 26) + "…" : p.nome}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {/* Projeto — dropdown multi-select */}
+        <MultiSelectDropdown
+          label="Projeto"
+          options={projetosOpts.map((p) => ({ value: p.id, label: p.nome }))}
+          selected={projetos}
+          onChange={setProjetos}
+        />
 
         {/* Limpar filtros */}
         {hasFilters && (
-          <div className="flex justify-end pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                setSegmento("todos");
-                setSeries([]);
-                setMeses([]);
-                setProjetos([]);
-              }}
-              className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Limpar filtros
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSegmento("todos");
+              setSeries([]);
+              setMeses([]);
+              setProjetos([]);
+            }}
+            className="ml-auto text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Limpar filtros
+          </button>
         )}
       </div>
 
