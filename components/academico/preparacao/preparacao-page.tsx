@@ -21,6 +21,26 @@ import {
 } from "@/app/(protected)/academico/preparacao/actions";
 import { CATALOGO } from "@/lib/olimpiadas/catalogo";
 
+// ─── Séries por segmento ──────────────────────────────────────────────────────
+
+const SERIES_POR_SEGMENTO: Record<string, string[]> = {
+  EFAI: ["1º", "2º", "3º", "4º", "5º"],
+  EFAF: ["6º", "7º", "8º", "9º"],
+  EM: ["1º EM", "2º EM", "3º EM"],
+};
+
+const SEG_LABELS: Record<string, string> = {
+  EFAI: "EFAI (1º–5º)",
+  EFAF: "EFAF (6º–9º)",
+  EM: "Ensino Médio",
+};
+
+function getSeriesParaOlimpiada(sigla: string): string[] {
+  const ol = CATALOGO.find((o) => o.sigla === sigla);
+  if (!ol) return [];
+  return ol.segmentos.flatMap((seg) => SERIES_POR_SEGMENTO[seg] ?? []);
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtDateTime(iso: string | null) {
@@ -806,6 +826,9 @@ function ProjetoCard({ projeto }: { projeto: Projeto }) {
           <p className="text-[11px] text-muted-foreground/70">
             {projeto.ano_letivo} · {projeto.aulas.length} aula
             {projeto.aulas.length !== 1 ? "s" : ""}
+            {projeto.series_elegiveis.length > 0 && (
+              <span className="ml-1">· {projeto.series_elegiveis.join(", ")}</span>
+            )}
           </p>
         </div>
         <button
@@ -926,11 +949,91 @@ function ProjetoCard({ projeto }: { projeto: Projeto }) {
   );
 }
 
+// ─── Seleção de séries elegíveis ─────────────────────────────────────────────
+
+function SeriesCheckboxes({
+  sigla,
+  defaultSelected,
+}: {
+  sigla: string;
+  defaultSelected?: string[];
+}) {
+  const allSeries = getSeriesParaOlimpiada(sigla);
+  const [selected, setSelected] = useState<Set<string>>(() => {
+    if (!allSeries.length) return new Set();
+    if (!defaultSelected || defaultSelected.length === 0) return new Set(allSeries);
+    return new Set(defaultSelected);
+  });
+
+  if (!allSeries.length) return null;
+
+  const allChecked = allSeries.every((s) => selected.has(s));
+
+  function toggleAll() {
+    setSelected(allChecked ? new Set() : new Set(allSeries));
+  }
+
+  function toggle(s: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s);
+      else next.add(s);
+      return next;
+    });
+  }
+
+  const grupos = Object.entries(SERIES_POR_SEGMENTO).filter(([, ss]) =>
+    ss.some((s) => allSeries.includes(s)),
+  );
+
+  return (
+    <div className="sm:col-span-2 rounded-lg border border-border bg-background p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium text-muted-foreground">Séries elegíveis</label>
+        <button
+          type="button"
+          onClick={toggleAll}
+          className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {allChecked ? "Desmarcar todas" : "Selecionar todas"}
+        </button>
+      </div>
+      {grupos.map(([seg, ss]) => {
+        const available = ss.filter((s) => allSeries.includes(s));
+        if (!available.length) return null;
+        return (
+          <div key={seg}>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50 mb-1">
+              {SEG_LABELS[seg]}
+            </p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              {available.map((s) => (
+                <label key={s} className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="series_elegiveis"
+                    value={s}
+                    checked={selected.has(s)}
+                    onChange={() => toggle(s)}
+                    className="accent-[rgb(91,184,193)]"
+                  />
+                  <span className="text-sm text-foreground">{s}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Formulário de edição de projeto ─────────────────────────────────────────
 
 function EditarProjetoForm({ projeto, onClose }: { projeto: Projeto; onClose: () => void }) {
   const bound = atualizarProjeto.bind(null, projeto.id);
   const [state, formAction, isPending] = useActionState(bound, null);
+  const [siglaSelected, setSiglaSelected] = useState(projeto.olimpiada_sigla);
 
   if (state && "ok" in state) onClose();
 
@@ -946,7 +1049,8 @@ function EditarProjetoForm({ projeto, onClose }: { projeto: Projeto; onClose: ()
           <select
             name="olimpiada_sigla"
             required
-            defaultValue={projeto.olimpiada_sigla}
+            value={siglaSelected}
+            onChange={(e) => setSiglaSelected(e.target.value)}
             className="mt-1 block w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none"
           >
             <option value="">Selecione…</option>
@@ -988,6 +1092,7 @@ function EditarProjetoForm({ projeto, onClose }: { projeto: Projeto; onClose: ()
             placeholder="Objetivo, público-alvo, série…"
           />
         </div>
+        <SeriesCheckboxes sigla={siglaSelected} defaultSelected={projeto.series_elegiveis} />
       </div>
 
       {state && "error" in state && <p className="text-xs text-destructive">{state.error}</p>}
@@ -1017,6 +1122,7 @@ function EditarProjetoForm({ projeto, onClose }: { projeto: Projeto; onClose: ()
 
 function NovoProjetoForm({ onClose }: { onClose: () => void }) {
   const [state, formAction, isPending] = useActionState(criarProjeto, null);
+  const [siglaSelected, setSiglaSelected] = useState("");
   if (state && "ok" in state) onClose();
 
   const anoAtual = new Date().getFullYear();
@@ -1033,6 +1139,8 @@ function NovoProjetoForm({ onClose }: { onClose: () => void }) {
           <select
             name="olimpiada_sigla"
             required
+            value={siglaSelected}
+            onChange={(e) => setSiglaSelected(e.target.value)}
             className="mt-1 block w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none"
           >
             <option value="">Selecione…</option>
@@ -1073,6 +1181,7 @@ function NovoProjetoForm({ onClose }: { onClose: () => void }) {
             placeholder="Objetivo, público-alvo, série…"
           />
         </div>
+        <SeriesCheckboxes sigla={siglaSelected} />
       </div>
 
       {state && "error" in state && <p className="text-xs text-destructive">{state.error}</p>}

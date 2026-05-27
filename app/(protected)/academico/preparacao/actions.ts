@@ -23,13 +23,21 @@ export async function criarProjeto(_prev: ProjetoState, formData: FormData): Pro
   const nome = (formData.get("nome") as string)?.trim();
   const descricao = (formData.get("descricao") as string)?.trim() || null;
   const ano = Number(formData.get("ano_letivo")) || new Date().getFullYear();
+  const series = formData.getAll("series_elegiveis") as string[];
 
   if (!sigla || !nome) return { error: "Olimpíada e nome são obrigatórios" };
 
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("preparacao_projeto")
-    .insert({ olimpiada_sigla: sigla, nome, descricao, ano_letivo: ano });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .insert({
+      olimpiada_sigla: sigla,
+      nome,
+      descricao,
+      ano_letivo: ano,
+      series_elegiveis: series,
+    } as any);
 
   if (error) return { error: error.message };
   revalidatePath(PATH);
@@ -48,13 +56,21 @@ export async function atualizarProjeto(
   const nome = (formData.get("nome") as string)?.trim();
   const descricao = (formData.get("descricao") as string)?.trim() || null;
   const ano = Number(formData.get("ano_letivo")) || new Date().getFullYear();
+  const series = formData.getAll("series_elegiveis") as string[];
 
   if (!sigla || !nome) return { error: "Olimpíada e nome são obrigatórios" };
 
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("preparacao_projeto")
-    .update({ olimpiada_sigla: sigla, nome, descricao, ano_letivo: ano })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update({
+      olimpiada_sigla: sigla,
+      nome,
+      descricao,
+      ano_letivo: ano,
+      series_elegiveis: series,
+    } as any)
     .eq("id", id);
 
   if (error) return { error: error.message };
@@ -254,6 +270,7 @@ export type Projeto = {
   publicado: boolean;
   ativo: boolean;
   criado_em: string;
+  series_elegiveis: string[];
   aulas: Aula[];
 };
 
