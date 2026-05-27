@@ -45,9 +45,10 @@ function getSeriesParaOlimpiada(sigla: string): string[] {
 
 function fmtDuracao(seg: number | null): string {
   if (!seg) return "";
-  const m = Math.floor(seg / 60);
+  const h = Math.floor(seg / 3600);
+  const m = Math.floor((seg % 3600) / 60);
   const s = seg % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+  return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
 function fmtDateTime(iso: string | null) {
@@ -287,7 +288,7 @@ function NovaAulaForm({ projetoId, onClose }: { projetoId: string; onClose: () =
             name="duracao_minutos"
             type="text"
             className="mt-1 block w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
-            placeholder="32:27"
+            placeholder="1:32:27"
           />
         </div>
       </div>
@@ -407,7 +408,7 @@ function NovoSimuladoForm({ projetoId, onClose }: { projetoId: string; onClose: 
             name="duracao_minutos"
             type="text"
             className="mt-1 block w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
-            placeholder="32:27"
+            placeholder="1:32:27"
           />
         </div>
         {modalidade === "online" ? (
@@ -530,7 +531,7 @@ function EditarSimuladoForm({ aula, onClose }: { aula: Aula; onClose: () => void
             type="text"
             defaultValue={fmtDuracao(aula.duracao_minutos)}
             className="mt-1 block w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
-            placeholder="32:27"
+            placeholder="1:32:27"
           />
         </div>
         {modalidade === "online" ? (
@@ -656,7 +657,7 @@ function EditarAulaForm({ aula, onClose }: { aula: Aula; onClose: () => void }) 
             type="text"
             defaultValue={fmtDuracao(aula.duracao_minutos)}
             className="mt-1 block w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
-            placeholder="32:27"
+            placeholder="1:32:27"
           />
         </div>
       </div>

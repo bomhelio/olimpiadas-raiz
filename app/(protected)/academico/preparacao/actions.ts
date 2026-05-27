@@ -92,14 +92,22 @@ export async function excluirProjeto(id: string): Promise<void> {
 function parseDuracao(raw: string | null): number | null {
   if (!raw || !raw.trim()) return null;
   const t = raw.trim();
-  if (t.includes(":")) {
-    const parts = t.split(":");
+  const parts = t.split(":");
+  if (parts.length === 3) {
+    // H:MM:SS
+    const h = parseInt(parts[0] ?? "0", 10) || 0;
+    const m = parseInt(parts[1] ?? "0", 10) || 0;
+    const s = parseInt(parts[2] ?? "0", 10) || 0;
+    return h * 3600 + m * 60 + Math.min(s, 59);
+  }
+  if (parts.length === 2) {
+    // MM:SS (retrocompatibilidade)
     const m = parseInt(parts[0] ?? "0", 10) || 0;
     const s = parseInt(parts[1] ?? "0", 10) || 0;
     return m * 60 + Math.min(s, 59);
   }
   const n = parseInt(t, 10);
-  return isNaN(n) ? null : n * 60; // fallback: número puro interpretado como minutos
+  return isNaN(n) ? null : n * 60; // número puro = minutos
 }
 
 // ─── Aulas ────────────────────────────────────────────────────────────────────
