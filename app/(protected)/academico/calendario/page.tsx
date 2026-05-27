@@ -90,7 +90,7 @@ export default async function CalendarioAcademicoServerPage({
   aulas.forEach((a) => {
     if (a.projeto_ano) anosSet.add(a.projeto_ano);
   });
-  const anos = [...anosSet].sort((a, b) => b - a);
+  const anos = [...anosSet].filter((a) => a >= 2026).sort((a, b) => b - a);
 
   // Projetos únicos para o filtro
   const projetosMap = new Map<string, ProjetoOpt>();

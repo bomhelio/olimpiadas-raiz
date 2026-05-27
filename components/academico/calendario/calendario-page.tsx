@@ -360,7 +360,7 @@ export function CalendarioAcademicoPage({
   aulas,
   anos,
   anoParam,
-  projetos,
+  projetos: projetosOpts,
   isAdmin,
   marcaSlug,
   todasMarcas,
@@ -385,9 +385,9 @@ export function CalendarioAcademicoPage({
   const [showAulas, setShowAulas] = useState(true);
   const [showSimulados, setShowSimulados] = useState(true);
   const [segmento, setSegmento] = useState<"todos" | "EFAI" | "EFAF" | "EM">("todos");
-  const [serie, setSerie] = useState<string>("todas");
-  const [projetoId, setProjetoId] = useState<string>("todos");
-  const [mes, setMes] = useState<number>(0); // 0 = todos
+  const [series, setSeries] = useState<string[]>([]); // multi-select
+  const [meses, setMeses] = useState<number[]>([]); // multi-select
+  const [projetos, setProjetos] = useState<string[]>([]); // multi-select
 
   function setAno(ano: number) {
     const params = new URLSearchParams(searchParams.toString());
@@ -401,13 +401,7 @@ export function CalendarioAcademicoPage({
       ? [...SERIES_POR_SEG.EFAI, ...SERIES_POR_SEG.EFAF, ...SERIES_POR_SEG.EM]
       : SERIES_POR_SEG[segmento];
 
-  // Reseta série se não está no segmento selecionado
-  const serieEfetiva =
-    segmento !== "todos" && serie !== "todas" && !seriesDisponiveis.includes(serie)
-      ? "todas"
-      : serie;
-
-  // Meses com eventos no ano (calculado antes do filtro de mês para popular o dropdown)
+  // Meses com eventos no ano (antes do filtro de mês)
   const mesesComEventos = new Set<number>();
   for (const f of fases) {
     if (f.olimpiada_ano === selectedAno)
@@ -418,29 +412,35 @@ export function CalendarioAcademicoPage({
   }
   const mesesDisponiveis = [...mesesComEventos].sort((a, b) => a - b);
 
-  // Filtra eventos
+  // Helpers multi-select
+  function toggleItem<T>(arr: T[], item: T): T[] {
+    return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
+  }
+
+  // Filtra eventos (lógica multi-select: array vazio = todos)
   const eventos: Evento[] = [];
 
-  if (showFases && projetoId === "todos") {
+  if (showFases && projetos.length === 0) {
     for (const f of fases) {
       if (f.olimpiada_ano !== selectedAno) continue;
-      if (mes !== 0 && parseLocalDate(f.data_inicio).getMonth() + 1 !== mes) continue;
+      if (meses.length > 0 && !meses.includes(parseLocalDate(f.data_inicio).getMonth() + 1))
+        continue;
       if (segmento !== "todos" && !matchSegmento(f.series_elegiveis, f.olimpiada_sigla, segmento))
         continue;
-      if (serieEfetiva !== "todas" && !matchSerie(f.series_elegiveis, serieEfetiva)) continue;
+      if (series.length > 0 && !series.some((s) => matchSerie(f.series_elegiveis, s))) continue;
       eventos.push({ kind: "fase", sortKey: f.data_inicio, data: f });
     }
   }
 
   for (const a of aulas) {
     if (a.projeto_ano !== selectedAno) continue;
-    if (mes !== 0 && new Date(a.data_hora).getMonth() + 1 !== mes) continue;
+    if (meses.length > 0 && !meses.includes(new Date(a.data_hora).getMonth() + 1)) continue;
     if (a.tipo === "simulado" && !showSimulados) continue;
     if (a.tipo !== "simulado" && !showAulas) continue;
     if (segmento !== "todos" && !matchSegmento(a.series_elegiveis, a.olimpiada_sigla, segmento))
       continue;
-    if (serieEfetiva !== "todas" && !matchSerie(a.series_elegiveis, serieEfetiva)) continue;
-    if (projetoId !== "todos" && a.projeto_id !== projetoId) continue;
+    if (series.length > 0 && !series.some((s) => matchSerie(a.series_elegiveis, s))) continue;
+    if (projetos.length > 0 && (!a.projeto_id || !projetos.includes(a.projeto_id))) continue;
     eventos.push({ kind: "aula", sortKey: a.data_hora, data: a });
   }
 
@@ -457,7 +457,7 @@ export function CalendarioAcademicoPage({
     if (!porMes.has(key)) porMes.set(key, { label: fmtMonthYear(d), eventos: [] });
     porMes.get(key)!.eventos.push(ev);
   }
-  const meses = [...porMes.entries()].sort(([a], [b]) => a.localeCompare(b));
+  const mesesAgrupados = [...porMes.entries()].sort(([a], [b]) => a.localeCompare(b));
 
   // URL do doc (com filtros ativos)
   function buildDocUrl(slug?: string) {
@@ -465,11 +465,29 @@ export function CalendarioAcademicoPage({
     p.set("ano", String(selectedAno));
     if (slug) p.set("marca", slug);
     if (segmento !== "todos") p.set("segmento", segmento);
-    if (serieEfetiva !== "todas") p.set("serie", serieEfetiva);
-    if (projetoId !== "todos") p.set("projeto", projetoId);
-    if (mes !== 0) p.set("mes", String(mes));
+    if (series.length > 0) p.set("series", series.join(","));
+    if (projetos.length > 0) p.set("projetos", projetos.join(","));
+    if (meses.length > 0) p.set("meses", meses.map(String).join(","));
     return `/api/academico/calendario/doc?${p.toString()}`;
   }
+
+  const MES_ABREV = [
+    "Jan",
+    "Fev",
+    "Mar",
+    "Abr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Set",
+    "Out",
+    "Nov",
+    "Dez",
+  ];
+
+  const hasFilters =
+    segmento !== "todos" || series.length > 0 || meses.length > 0 || projetos.length > 0;
 
   return (
     <>
@@ -560,24 +578,24 @@ export function CalendarioAcademicoPage({
         </div>
       </div>
 
-      {/* ── Controles linha 2: segmento + série + projeto ── */}
-      <div className="no-print flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+      {/* ── Controles linha 2: filtros ── */}
+      <div className="no-print space-y-2 rounded-xl border border-border bg-card px-4 py-3">
         {/* Segmento */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-14 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
             Segmento
           </span>
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
             <button
               type="button"
               onClick={() => {
                 setSegmento("todos");
-                setSerie("todas");
+                setSeries([]);
               }}
-              className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-all ${
+              className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-all border ${
                 segmento === "todos"
-                  ? "bg-[rgb(91,184,193)]/10 text-[rgb(91,184,193)] ring-1 ring-[rgb(91,184,193)]/40"
-                  : "text-muted-foreground/50 ring-1 ring-border/40 hover:text-muted-foreground"
+                  ? "bg-[rgb(91,184,193)]/10 text-[rgb(91,184,193)] border-[rgb(91,184,193)]/30"
+                  : "border-border text-muted-foreground/50 hover:text-muted-foreground"
               }`}
             >
               Todos
@@ -590,12 +608,12 @@ export function CalendarioAcademicoPage({
                   type="button"
                   onClick={() => {
                     setSegmento(s);
-                    setSerie("todas");
+                    setSeries([]);
                   }}
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-all ${
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-all border ${
                     segmento === s
-                      ? `${cfg.bg} ${cfg.text} ring-1 ${cfg.ring}`
-                      : "text-muted-foreground/50 ring-1 ring-border/40 hover:text-muted-foreground"
+                      ? `${cfg.bg} ${cfg.text} border-transparent`
+                      : "border-border text-muted-foreground/50 hover:text-muted-foreground"
                   }`}
                 >
                   {cfg.label}
@@ -605,86 +623,108 @@ export function CalendarioAcademicoPage({
           </div>
         </div>
 
-        <div className="hidden h-4 w-px bg-border/60 sm:block" />
+        <div className="h-px bg-border/40" />
 
-        {/* Série */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+        {/* Série — multi-select com cores por segmento */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-14 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
             Série
           </span>
-          <select
-            value={serieEfetiva}
-            onChange={(e) => setSerie(e.target.value)}
-            className="rounded-lg border border-input bg-background px-2 py-1 text-xs text-foreground focus:border-ring focus:outline-none"
-          >
-            <option value="todas">Todas</option>
-            {seriesDisponiveis.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap gap-1">
+            {seriesDisponiveis.map((s) => {
+              const seg = SERIES_TO_SEG[s] as "EFAI" | "EFAF" | "EM" | undefined;
+              const cfg = seg ? SEG_CONFIG[seg] : SEG_CONFIG.EFAF;
+              const active = series.includes(s);
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSeries((prev) => toggleItem(prev, s))}
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-all border ${
+                    active
+                      ? `${cfg.bg} ${cfg.text} border-transparent`
+                      : "border-border text-muted-foreground/50 hover:text-muted-foreground"
+                  }`}
+                >
+                  {s}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="hidden h-4 w-px bg-border/60 sm:block" />
+        <div className="h-px bg-border/40" />
 
-        {/* Mês */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+        {/* Mês — multi-select turquesa */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-14 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
             Mês
           </span>
-          <select
-            value={mes}
-            onChange={(e) => setMes(Number(e.target.value))}
-            className="rounded-lg border border-input bg-background px-2 py-1 text-xs text-foreground focus:border-ring focus:outline-none"
-          >
-            <option value={0}>Todos</option>
-            {mesesDisponiveis.map((m) => (
-              <option key={m} value={m}>
-                {new Date(selectedAno, m - 1, 1).toLocaleDateString("pt-BR", { month: "long" })}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap gap-1">
+            {mesesDisponiveis.map((m) => {
+              const active = meses.includes(m);
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMeses((prev) => toggleItem(prev, m))}
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-all border ${
+                    active
+                      ? "bg-[rgb(91,184,193)]/10 text-[rgb(91,184,193)] border-[rgb(91,184,193)]/30"
+                      : "border-border text-muted-foreground/50 hover:text-muted-foreground"
+                  }`}
+                >
+                  {MES_ABREV[m - 1]}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="hidden h-4 w-px bg-border/60 sm:block" />
+        <div className="h-px bg-border/40" />
 
-        {/* Projeto */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+        {/* Projeto — multi-select âmbar */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-14 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
             Projeto
           </span>
-          <select
-            value={projetoId}
-            onChange={(e) => setProjetoId(e.target.value)}
-            className="rounded-lg border border-input bg-background px-2 py-1 text-xs text-foreground focus:border-ring focus:outline-none max-w-[200px]"
-          >
-            <option value="todos">Todos</option>
-            {projetos.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nome}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap gap-1">
+            {projetosOpts.map((p) => {
+              const active = projetos.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setProjetos((prev) => toggleItem(prev, p.id))}
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-all border ${
+                    active
+                      ? "bg-amber-400/10 text-amber-400 border-amber-400/30"
+                      : "border-border text-muted-foreground/50 hover:text-muted-foreground"
+                  }`}
+                >
+                  {p.nome.length > 28 ? p.nome.slice(0, 26) + "…" : p.nome}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Reset */}
-        {(segmento !== "todos" ||
-          serieEfetiva !== "todas" ||
-          projetoId !== "todos" ||
-          mes !== 0) && (
-          <button
-            type="button"
-            onClick={() => {
-              setSegmento("todos");
-              setSerie("todas");
-              setProjetoId("todos");
-              setMes(0);
-            }}
-            className="ml-auto text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Limpar filtros
-          </button>
+        {/* Limpar filtros */}
+        {hasFilters && (
+          <div className="flex justify-end pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setSegmento("todos");
+                setSeries([]);
+                setMeses([]);
+                setProjetos([]);
+              }}
+              className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Limpar filtros
+            </button>
+          </div>
         )}
       </div>
 
@@ -711,7 +751,7 @@ export function CalendarioAcademicoPage({
       </div>
 
       {/* Timeline */}
-      {meses.length === 0 ? (
+      {mesesAgrupados.length === 0 ? (
         <div className="rounded-xl border border-border bg-card px-5 py-10 text-center">
           <p className="text-sm text-muted-foreground">
             Nenhum evento encontrado para os filtros selecionados.
@@ -722,7 +762,7 @@ export function CalendarioAcademicoPage({
         </div>
       ) : (
         <div className="space-y-8">
-          {meses.map(([key, { label, eventos: evs }]) => (
+          {mesesAgrupados.map(([key, { label, eventos: evs }]) => (
             <div key={key}>
               <p
                 className="mb-3 text-xs font-semibold uppercase tracking-wider capitalize"

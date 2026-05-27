@@ -223,9 +223,22 @@ export async function GET(req: NextRequest) {
   const url = req.nextUrl;
   const ano = Number(url.searchParams.get("ano")) || new Date().getFullYear();
   const segmento = url.searchParams.get("segmento") ?? "";
-  const serie = url.searchParams.get("serie") ?? "";
-  const projetoId = url.searchParams.get("projeto") ?? "";
-  const mes = Number(url.searchParams.get("mes")) || 0; // 0 = todos
+  const seriesParam = url.searchParams.get("series") ?? url.searchParams.get("serie") ?? "";
+  const seriesList = seriesParam
+    ? seriesParam
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+  const projetosParam = url.searchParams.get("projetos") ?? url.searchParams.get("projeto") ?? "";
+  const projetosList = projetosParam
+    ? projetosParam
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+  const mesesParam = url.searchParams.get("meses") ?? url.searchParams.get("mes") ?? "";
+  const mesesList = mesesParam ? mesesParam.split(",").map(Number).filter(Boolean) : [];
   const marcaParam = url.searchParams.get("marca") ?? "";
 
   // Determina marca
@@ -271,11 +284,16 @@ export async function GET(req: NextRequest) {
   for (const f of (fasesData ?? []) as any[]) {
     const ol = f.olimpiada;
     if (!ol || ol.ano_letivo !== ano) continue;
-    if (projetoId) continue; // quando filtrando por projeto, oculta fases
+    if (projetosList.length > 0) continue; // quando filtrando por projeto, oculta fases
     const seriesEl: string[] = ol.series_elegiveis ?? [];
     if (segmento && !matchesSeg(seriesEl, segmento)) continue;
-    if (serie && !matchesSerie(seriesEl, serie)) continue;
-    if (mes && new Date(f.data_inicio + "T12:00:00").getMonth() + 1 !== mes) continue;
+    if (seriesList.length > 0 && !seriesList.some((s) => matchesSerie(seriesEl, s))) continue;
+    if (
+      mesesList.length > 0 &&
+      !mesesList.includes(new Date(f.data_inicio + "T12:00:00").getMonth() + 1)
+    )
+      continue;
+    if (projetosList.length > 0) continue;
 
     const label = FASE_LABELS[f.tipo] ?? f.tipo;
     const color = FASE_COLORS[f.tipo] ?? C.subtle;
@@ -295,11 +313,12 @@ export async function GET(req: NextRequest) {
   for (const a of (aulasData ?? []) as any[]) {
     const proj = a.projeto;
     if (!proj || proj.ano_letivo !== ano) continue;
-    if (projetoId && proj.id !== projetoId) continue;
+    if (projetosList.length > 0 && !projetosList.includes(proj.id)) continue;
     const seriesEl: string[] = proj.series_elegiveis ?? [];
     if (segmento && !matchesSeg(seriesEl, segmento)) continue;
-    if (serie && !matchesSerie(seriesEl, serie)) continue;
-    if (mes && new Date(a.data_hora).getMonth() + 1 !== mes) continue;
+    if (seriesList.length > 0 && !seriesList.some((s) => matchesSerie(seriesEl, s))) continue;
+    if (mesesList.length > 0 && !mesesList.includes(new Date(a.data_hora).getMonth() + 1)) continue;
+    if (projetosList.length > 0 && (!proj.id || !projetosList.includes(proj.id))) continue;
 
     const label = AULA_LABELS[a.tipo] ?? a.tipo;
     const color = AULA_COLORS[a.tipo] ?? C.subtle;
@@ -354,14 +373,14 @@ export async function GET(req: NextRequest) {
       });
 
   // Subtítulo de filtros ativos
-  const nomeMes = mes
-    ? new Date(ano, mes - 1, 1).toLocaleDateString("pt-BR", { month: "long" })
-    : "";
+  const nomesMeses = mesesList.map((m) =>
+    new Date(ano, m - 1, 1).toLocaleDateString("pt-BR", { month: "short" }),
+  );
   const filtrosLabel = [
     segmento ? `Segmento: ${segmento}` : "",
-    serie ? `Série: ${serie}` : "",
-    nomeMes ? `Mês: ${nomeMes}` : "",
-    projetoId ? "Projeto selecionado" : "",
+    seriesList.length > 0 ? `Séries: ${seriesList.join(", ")}` : "",
+    nomesMeses.length > 0 ? `Meses: ${nomesMeses.join(", ")}` : "",
+    projetosList.length > 0 ? "Projeto(s) selecionado(s)" : "",
   ]
     .filter(Boolean)
     .join("  ·  ");
