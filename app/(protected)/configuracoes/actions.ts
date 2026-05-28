@@ -7,14 +7,19 @@ import { getServerSession } from "@/lib/auth/session";
 export type ConfigState = { error: string } | { ok: true; message: string } | null;
 
 export async function getConfigValue(chave: string): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createAdminClient() as any;
-  const { data } = await supabase
-    .from("configuracao_sistema")
-    .select("valor")
-    .eq("chave", chave)
-    .single();
-  return data?.valor ?? "";
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const supabase = createAdminClient() as any;
+    const { data, error } = await supabase
+      .from("configuracao_sistema")
+      .select("valor")
+      .eq("chave", chave)
+      .single();
+    if (error) return "";
+    return data?.valor ?? "";
+  } catch {
+    return "";
+  }
 }
 
 export async function salvarConfig(_prev: ConfigState, formData: FormData): Promise<ConfigState> {
