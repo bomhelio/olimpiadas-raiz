@@ -40,7 +40,7 @@ export default async function LoginPage({
             <img
               src={`/marcas/${logoFile}.png`}
               alt={marcaNome ?? ""}
-              className="mx-auto mb-4 h-14 w-auto object-contain"
+              className="mx-auto mb-4 block max-h-24 max-w-full"
             />
           ) : (
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-700">
