@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export type StudentSession = {
   aluno: Aluno;
   supabaseUserId: string;
+  marcaSlug: string | null;
 } | null;
 
 /**
@@ -50,14 +51,20 @@ export async function getStudentSession(): Promise<StudentSession> {
   if (staff) return null;
 
   // Leitura do aluno via cliente autenticado (policy aluno_read_own: supabase_auth_id = auth.uid())
-  const { data: aluno, error } = await supabase
+  const { data: alunoRow, error } = await supabase
     .from("aluno")
-    .select("*")
+    .select("*, turma:turma_id(unidade:unidade_id(marca:marca_id(slug)))")
     .eq("supabase_auth_id", authUser.id)
     .eq("ativo", true)
     .single();
 
-  if (error || !aluno) return null;
+  if (error || !alunoRow) return null;
 
-  return { aluno, supabaseUserId: authUser.id };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const turma = (alunoRow as any).turma;
+  const unidade = Array.isArray(turma) ? turma[0]?.unidade : turma?.unidade;
+  const marca = Array.isArray(unidade) ? unidade[0]?.marca : unidade?.marca;
+  const marcaSlug: string | null = (Array.isArray(marca) ? marca[0]?.slug : marca?.slug) ?? null;
+
+  return { aluno: alunoRow as unknown as Aluno, supabaseUserId: authUser.id, marcaSlug };
 }
