@@ -36,30 +36,12 @@ export default async function LoginPage({
       <div className="w-full max-w-sm">
         {/* Logo / Header */}
         <div className="mb-8 text-center">
-          {logoFile ? (
-            <img
-              src={`/marcas/${logoFile}.png`}
-              alt={marcaNome ?? ""}
-              className="mx-auto mb-4 block max-h-40 max-w-full"
-            />
-          ) : (
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-700">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-6 w-6 text-white"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="8" r="6" />
-                <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
-              </svg>
-            </div>
-          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={logoFile ? `/marcas/${logoFile}.png` : "/logo-raiz.png"}
+            alt={marcaNome ?? "Raiz Educação"}
+            className="mx-auto mb-4 block max-h-40 max-w-full"
+          />
           <h1 className="text-xl font-bold text-foreground">Olimpíadas do Conhecimento</h1>
           <p className="mt-1 text-sm text-muted-foreground">{marcaNome ?? "Raiz Educação"}</p>
         </div>
