@@ -40,8 +40,9 @@ export async function getStudentSession(): Promise<StudentSession> {
 
   if (!authUser) return null;
 
-  // Verificação de staff via adminClient (bypassa RLS de usuario)
   const admin = createAdminClient();
+
+  // Verificação de staff via adminClient (bypassa RLS de usuario)
   const { data: staff } = await admin
     .from("usuario")
     .select("id")
@@ -50,21 +51,32 @@ export async function getStudentSession(): Promise<StudentSession> {
 
   if (staff) return null;
 
-  // Leitura do aluno via cliente autenticado (policy aluno_read_own: supabase_auth_id = auth.uid())
-  const { data: alunoRow, error } = await supabase
+  // Leitura do aluno via cliente autenticado (policy aluno_read_own)
+  const { data: aluno, error } = await supabase
     .from("aluno")
-    .select("*, turma:turma_id(unidade:unidade_id(marca:marca_id(slug)))")
+    .select("*")
     .eq("supabase_auth_id", authUser.id)
     .eq("ativo", true)
     .single();
 
-  if (error || !alunoRow) return null;
+  if (error || !aluno) return null;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const turma = (alunoRow as any).turma;
-  const unidade = Array.isArray(turma) ? turma[0]?.unidade : turma?.unidade;
-  const marca = Array.isArray(unidade) ? unidade[0]?.marca : unidade?.marca;
-  const marcaSlug: string | null = (Array.isArray(marca) ? marca[0]?.slug : marca?.slug) ?? null;
+  // Busca o slug da marca via adminClient (bypassa RLS de turma/unidade/marca)
+  let marcaSlug: string | null = null;
+  if (aluno.turma_id) {
+    const { data: turmaRow } = await admin
+      .from("turma")
+      .select("unidade:unidade_id(marca:marca_id(slug))")
+      .eq("id", aluno.turma_id)
+      .single();
 
-  return { aluno: alunoRow as unknown as Aluno, supabaseUserId: authUser.id, marcaSlug };
+    if (turmaRow) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const unidade = (turmaRow as any).unidade;
+      const marcaObj = Array.isArray(unidade) ? unidade[0]?.marca : unidade?.marca;
+      marcaSlug = (Array.isArray(marcaObj) ? marcaObj[0]?.slug : marcaObj?.slug) ?? null;
+    }
+  }
+
+  return { aluno, supabaseUserId: authUser.id, marcaSlug };
 }
