@@ -97,7 +97,7 @@ export default async function LoginAlunoPage({
       {/* ── Lado esquerdo: vídeo ───────────────────────────────────────── */}
       <div
         className="relative hidden overflow-hidden lg:block lg:w-1/2"
-        style={{ background: "#09090b" }}
+        style={{ background: "#0f172a" }}
       >
         {videoSrc ? (
           <VideoBackground src={videoSrc} />
