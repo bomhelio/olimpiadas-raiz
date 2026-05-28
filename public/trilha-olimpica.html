@@ -89,8 +89,8 @@ html, body {
 /* ===== HUD ===== */
 .progress-wrap { position:absolute; bottom:0; left:0; right:0; height:5px; background:rgba(255,255,255,.08); z-index:99; }
 .progress-fill { height:100%; background:#3b82f6; width:0%; }
-.hud-num  { position:absolute; bottom:14px; right:36px; font-size:22px; color:#3f3f46; font-weight:600; z-index:99; }
-.hud-play { position:absolute; top:16px; right:36px; font-size:28px; color:#3f3f46; z-index:99; cursor:pointer; user-select:none; }
+.hud-num  { display:none; }
+.hud-play { display:none; }
 
 .noise {
   position:absolute; inset:0; pointer-events:none; opacity:.025;
@@ -367,7 +367,7 @@ html, body {
 <script>
 // ===== SCALE =====
 function scaleStage(){
-  const sc = Math.min(window.innerWidth/1920, window.innerHeight/1080);
+  const sc = Math.max(window.innerWidth/1920, window.innerHeight/1080);
   document.getElementById('stage').style.transform = 'scale(' + sc + ')';
 }
 window.addEventListener('resize', scaleStage);

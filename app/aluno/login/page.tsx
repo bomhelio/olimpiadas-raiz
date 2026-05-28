@@ -109,6 +109,11 @@ export default async function LoginAlunoPage({
             title="A Trilha Olímpica"
           />
         )}
+        {/* Gradiente de integração com o painel de login */}
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 w-32"
+          style={{ background: "linear-gradient(to right, transparent, #0f172a)" }}
+        />
       </div>
 
       {/* ── Lado direito: formulário ───────────────────────────────────── */}
