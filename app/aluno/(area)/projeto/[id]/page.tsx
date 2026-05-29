@@ -127,9 +127,9 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
               <Link
                 key={aula.id}
                 href={`/aluno/aula/${aula.id}`}
-                className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 hover:border-ring transition-colors"
+                className="group flex items-center gap-3 rounded-lg border border-border bg-card p-3 hover:border-ring transition-colors"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground group-hover:bg-card">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground group-hover:bg-card">
                   {tipoIcon(aula.tipo)}
                 </div>
                 <div className="flex-1 min-w-0">

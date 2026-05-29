@@ -174,31 +174,31 @@ export default async function AlunoDashboard() {
                 <Link
                   key={projeto.id}
                   href={`/aluno/projeto/${projeto.id}`}
-                  className="group rounded-xl border border-border bg-card p-5 hover:border-ring transition-colors"
+                  className="group rounded-lg border border-border bg-card p-3 hover:border-ring transition-colors"
                 >
-                  <div className="mb-3 flex items-start justify-between gap-2">
+                  <div className="mb-1.5 flex items-start justify-between gap-2">
                     <div
-                      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-white"
+                      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
                       style={{ background: TEAL }}
                     >
                       {projeto.olimpiada_sigla}
                     </div>
                     {aulaViva && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-500">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-semibold text-red-500">
                         <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
                         AO VIVO
                       </span>
                     )}
                   </div>
-                  <h3 className="mb-1 font-semibold text-foreground group-hover:text-primary transition-colors">
+                  <h3 className="mb-0.5 text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                     {projeto.nome}
                   </h3>
                   {projeto.descricao && (
-                    <p className="mb-3 line-clamp-2 text-xs text-muted-foreground">
+                    <p className="mb-2 line-clamp-1 text-xs text-muted-foreground">
                       {projeto.descricao}
                     </p>
                   )}
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span>{projeto.ano_letivo}</span>
                     <span>·</span>
                     <span>
