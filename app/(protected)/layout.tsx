@@ -67,7 +67,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
                 <img
                   src={`/marcas/${logoFile}.png`}
                   alt={marcaSlug ?? ""}
-                  className="hidden sm:block max-h-16 max-w-[160px] object-contain"
+                  className={`hidden sm:block max-w-[160px] object-contain ${marcaSlug === "uniao" ? "max-h-12" : "max-h-16"}`}
                 />
               ) : (
                 <div className="hidden sm:block">

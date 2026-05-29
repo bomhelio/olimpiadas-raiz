@@ -67,7 +67,7 @@ export default async function LoginPage({
             <img
               src={logoFile ? `/marcas/${logoFile}.png` : "/logo-raiz.png"}
               alt={marcaNome ?? "Raiz Educação"}
-              className="mx-auto mb-4 block max-h-40 max-w-full"
+              className={`mx-auto mb-4 block max-w-full ${marca === "uniao" ? "max-h-32" : "max-h-40"}`}
             />
             <h1 className="text-xl font-bold text-foreground">Olimpíadas do Conhecimento</h1>
             <p className="mt-1 text-sm text-muted-foreground">{marcaNome ?? "Raiz Educação"}</p>

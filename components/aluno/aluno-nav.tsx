@@ -30,7 +30,7 @@ export function AlunoNav({ aluno, marcaSlug }: { aluno: Aluno; marcaSlug?: strin
             <img
               src={`/marcas/${logoFile}.png`}
               alt={marcaSlug ?? ""}
-              className="block max-h-20 max-w-[220px] object-contain"
+              className={`block max-w-[220px] object-contain ${marcaSlug === "uniao" ? "max-h-16" : "max-h-20"}`}
             />
           ) : (
             <>

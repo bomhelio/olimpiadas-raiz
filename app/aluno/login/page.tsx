@@ -133,7 +133,7 @@ export default async function LoginAlunoPage({
             <img
               src={logoFile ? `/marcas/${logoFile}.png` : "/logo-raiz.png"}
               alt={marcaNome ?? "Raiz Educação"}
-              className="mx-auto mb-4 block max-h-40 max-w-full"
+              className={`mx-auto mb-4 block max-w-full ${marca === "uniao" ? "max-h-32" : "max-h-40"}`}
             />
             <h1 className="text-xl font-bold text-foreground">Plataforma Olímpica</h1>
             <p className="mt-1 text-sm text-muted-foreground">
