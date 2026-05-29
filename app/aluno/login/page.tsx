@@ -1,3 +1,5 @@
+import { readFileSync } from "fs";
+import { join } from "path";
 import { LoginAlunoForm } from "@/components/aluno/login-form";
 import { getConfigValue } from "@/app/(protected)/configuracoes/actions";
 
@@ -91,6 +93,10 @@ export default async function LoginAlunoPage({
   const logoFile = marca ? SLUG_TO_LOGO[marca] : null;
   const marcaNome = marca ? SLUG_TO_NOME[marca] : null;
   const videoSrc = await getConfigValue("video_login_url");
+  const presentationHtml = readFileSync(
+    join(process.cwd(), "public", "trilha-olimpica.html"),
+    "utf-8",
+  );
 
   return (
     <main className="flex min-h-screen">
@@ -100,7 +106,7 @@ export default async function LoginAlunoPage({
           <VideoBackground src={videoSrc} />
         ) : (
           <iframe
-            src="/apresentacao"
+            srcDoc={presentationHtml}
             className="absolute inset-0 h-full w-full"
             style={{ border: "none", pointerEvents: "none" }}
             title="A Trilha Olímpica"
