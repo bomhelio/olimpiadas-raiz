@@ -19,7 +19,10 @@ export function AlunoNav({ aluno, marcaSlug }: { aluno: Aluno; marcaSlug?: strin
   const logoFile = marcaSlug ? SLUG_TO_LOGO[marcaSlug] : null;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-card">
+    <header
+      className="sticky top-0 z-30 border-b"
+      style={{ background: "#f1f5f9", borderColor: "#e2e8f0" }}
+    >
       <div className="mx-auto flex h-20 max-w-4xl items-center justify-between px-4 sm:px-6">
         <Link href="/aluno/dashboard" className="flex items-center gap-3">
           {logoFile ? (
@@ -50,19 +53,32 @@ export function AlunoNav({ aluno, marcaSlug }: { aluno: Aluno; marcaSlug?: strin
                   <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
                 </svg>
               </div>
-              <span className="text-sm font-semibold text-foreground">Plataforma Olímpica</span>
+              <span className="text-sm font-semibold" style={{ color: "#1e293b" }}>
+                Plataforma Olímpica
+              </span>
             </>
           )}
         </Link>
 
         <div className="flex items-center gap-3">
           <span className="hidden text-right sm:block">
-            <p className="text-sm font-medium text-foreground leading-tight">{aluno.nome}</p>
+            <p className="text-sm font-medium leading-tight" style={{ color: "#1e293b" }}>
+              {aluno.nome}
+            </p>
           </span>
           <form action={logoutAluno}>
             <button
               type="submit"
-              className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-background hover:text-foreground transition-colors"
+              className="rounded-lg border px-3 py-1.5 text-xs transition-colors"
+              style={{ borderColor: "#cbd5e1", color: "#475569" }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "#e2e8f0";
+                (e.currentTarget as HTMLButtonElement).style.color = "#1e293b";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                (e.currentTarget as HTMLButtonElement).style.color = "#475569";
+              }}
             >
               Sair
             </button>
