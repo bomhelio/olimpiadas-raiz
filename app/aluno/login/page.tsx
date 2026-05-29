@@ -96,7 +96,7 @@ export default async function LoginAlunoPage({
     <main className="flex min-h-screen">
       {/* ── Lado esquerdo: vídeo ───────────────────────────────────────── */}
       <div
-        className="relative hidden overflow-hidden md:block md:w-1/2"
+        className="relative hidden overflow-hidden sm:block sm:w-1/2"
         style={{ background: "#0f172a" }}
       >
         {videoSrc ? (
@@ -117,7 +117,7 @@ export default async function LoginAlunoPage({
       </div>
 
       {/* ── Lado direito: formulário ───────────────────────────────────── */}
-      <div className="flex w-full flex-col items-center justify-center bg-background px-6 py-12 md:w-1/2">
+      <div className="flex w-full flex-col items-center justify-center bg-background px-6 py-12 sm:w-1/2">
         <div className="w-full max-w-sm">
           {/* Header com logo da marca */}
           <div className="mb-8 text-center">

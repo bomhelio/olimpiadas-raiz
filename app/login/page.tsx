@@ -35,7 +35,7 @@ export default async function LoginPage({
     <main className="flex min-h-screen">
       {/* ── Lado esquerdo: apresentação ───────────────────────────────── */}
       <div
-        className="relative hidden overflow-hidden md:block md:w-1/2"
+        className="relative hidden overflow-hidden sm:block sm:w-1/2"
         style={{ background: "#0f172a" }}
       >
         <iframe
@@ -52,7 +52,7 @@ export default async function LoginPage({
       </div>
 
       {/* ── Lado direito: formulário ───────────────────────────────────── */}
-      <div className="flex w-full flex-col items-center justify-center bg-background px-6 py-12 md:w-1/2">
+      <div className="flex w-full flex-col items-center justify-center bg-background px-6 py-12 sm:w-1/2">
         <div className="w-full max-w-sm">
           <div className="mb-8 text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
