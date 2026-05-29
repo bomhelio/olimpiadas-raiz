@@ -27,14 +27,20 @@ export function AlunoNav({ aluno, marcaSlug }: { aluno: Aluno; marcaSlug?: strin
         boxShadow: "0 1px 4px rgba(0,0,0,0.10)",
       }}
     >
-      <div className="flex h-20 w-full items-center justify-between px-6 sm:px-10">
+      <div className="flex h-24 w-full items-center justify-between px-6 sm:px-10">
         <Link href="/aluno/dashboard" className="flex items-center gap-3">
           {logoFile ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={`/marcas/${logoFile}.png`}
               alt={marcaSlug ?? ""}
-              className={`block max-w-[220px] object-contain ${marcaSlug === "uniao" ? "max-h-16" : "max-h-20"}`}
+              className={`block object-contain ${
+                marcaSlug === "uniao"
+                  ? "max-h-16 max-w-[220px]"
+                  : ["apogeu", "matriz-educacao", "qi-bilingue"].includes(marcaSlug ?? "")
+                    ? "max-h-24 max-w-[280px]"
+                    : "max-h-20 max-w-[220px]"
+              }`}
             />
           ) : (
             <>
