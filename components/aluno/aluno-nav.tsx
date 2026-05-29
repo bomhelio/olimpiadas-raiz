@@ -23,7 +23,7 @@ export function AlunoNav({ aluno, marcaSlug }: { aluno: Aluno; marcaSlug?: strin
       className="sticky top-0 z-30 border-b"
       style={{ background: "#94a3b8", borderColor: "#7f8ea3" }}
     >
-      <div className="mx-auto flex h-20 max-w-4xl items-center justify-between px-4 sm:px-6">
+      <div className="flex h-20 w-full items-center justify-between px-6 sm:px-10">
         <Link href="/aluno/dashboard" className="flex items-center gap-3">
           {logoFile ? (
             // eslint-disable-next-line @next/next/no-img-element
