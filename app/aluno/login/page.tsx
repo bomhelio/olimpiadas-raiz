@@ -101,7 +101,7 @@ export default async function LoginAlunoPage({
   return (
     <main className="flex min-h-screen">
       {/* ── Lado esquerdo: vídeo ───────────────────────────────────────── */}
-      <div className="relative w-1/2 overflow-hidden" style={{ background: "#0f172a" }}>
+      <div className="relative w-2/3 overflow-hidden" style={{ background: "#0f172a" }}>
         {videoSrc ? (
           <VideoBackground src={videoSrc} />
         ) : (
@@ -117,7 +117,7 @@ export default async function LoginAlunoPage({
           className="pointer-events-none absolute inset-0"
           style={{
             background: [
-              "linear-gradient(to right,  #0f172a 0%, transparent 15%, transparent 85%, #0f172a 100%)",
+              "linear-gradient(to right,  #0f172a 0%, transparent 15%, transparent 80%, #0f172a 100%)",
               "linear-gradient(to bottom, #0f172a 0%, transparent 12%, transparent 88%, #0f172a 100%)",
             ].join(", "),
           }}
@@ -125,7 +125,7 @@ export default async function LoginAlunoPage({
       </div>
 
       {/* ── Lado direito: formulário ───────────────────────────────────── */}
-      <div className="flex w-1/2 flex-col items-center justify-center bg-background px-6 py-12">
+      <div className="flex w-1/3 flex-col items-center justify-center bg-background px-6 py-12">
         <div className="w-full max-w-sm">
           {/* Header com logo da marca */}
           <div className="mb-8 text-center">
