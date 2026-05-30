@@ -90,12 +90,12 @@ export function TreinoClient({
           >
             Ver meu desempenho
           </Link>
-          <Link
-            href="/aluno/treino"
+          <button
+            onClick={() => window.location.assign("/aluno/treino")}
             className="rounded-lg border border-border px-5 py-2.5 text-sm text-muted-foreground hover:text-foreground"
           >
             Nova sessão
-          </Link>
+          </button>
         </div>
       </div>
     );
