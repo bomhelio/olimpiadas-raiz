@@ -18,12 +18,13 @@ export async function getQuestoesTreino(filtros: {
   const session = await getStudentSession();
   if (!session) return [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createAdminClient() as any;
 
   let query = supabase
     .from("questao")
-    .select("id, olimpiada, nivel, fase, ano, numero, enunciado, imagem_url, assunto, tipo, video_url")
+    .select(
+      "id, olimpiada, nivel, fase, ano, numero, enunciado, imagem_url, assunto, tipo, video_url",
+    )
     .eq("ativo", true);
 
   if (filtros.olimpiada) query = query.eq("olimpiada", filtros.olimpiada);
@@ -51,7 +52,7 @@ export async function getQuestoesTreino(filtros: {
 export async function getAlternativasQuestao(questaoId: string) {
   const session = await getStudentSession();
   if (!session) return [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const supabase = createAdminClient() as any;
   // Retorna apenas id, letra e texto — NÃO retorna "correta" para o client
   const { data } = await supabase
@@ -64,9 +65,15 @@ export async function getAlternativasQuestao(questaoId: string) {
 
 // ─── Responder questão ───────────────────────────────────────────────────────
 
-export type RespostaState = { correta: boolean; alternativa_correta_id: string | null } | { error: string } | null;
+export type RespostaState =
+  | { correta: boolean; alternativa_correta_id: string | null; questao_id: string }
+  | { error: string }
+  | null;
 
-export async function responderQuestao(_prev: RespostaState, formData: FormData): Promise<RespostaState> {
+export async function responderQuestao(
+  _prev: RespostaState,
+  formData: FormData,
+): Promise<RespostaState> {
   const session = await getStudentSession();
   if (!session) return { error: "Não autenticado" };
 
@@ -76,7 +83,7 @@ export async function responderQuestao(_prev: RespostaState, formData: FormData)
   if (!questao_id || !alternativa_id) return { error: "Dados inválidos" };
 
   // Verifica resposta NO SERVIDOR via adminClient — campo "correta" nunca vai ao client
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const admin = createAdminClient() as any;
   const { data: alt } = await admin
     .from("alternativa")
@@ -104,7 +111,7 @@ export async function responderQuestao(_prev: RespostaState, formData: FormData)
     correta,
   });
 
-  return { correta, alternativa_correta_id: altCorreta?.id ?? null };
+  return { correta, alternativa_correta_id: altCorreta?.id ?? null, questao_id };
 }
 
 // ─── Solução (revelada apenas após responder) ────────────────────────────────
@@ -112,7 +119,7 @@ export async function responderQuestao(_prev: RespostaState, formData: FormData)
 export async function getSolucaoQuestao(questaoId: string) {
   const session = await getStudentSession();
   if (!session) return null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const admin = createAdminClient() as any;
   const { data } = await admin
     .from("solucao")
@@ -128,11 +135,12 @@ export async function getDashboardAluno() {
   const session = await getStudentSession();
   if (!session) return { por_olimpiada: [], total: 0, acertos: 0 };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = createAdminClient() as any;
 
   // Usa DISTINCT ON para contar apenas a última tentativa por questão
-  const { data } = await admin.rpc("dashboard_aluno_treino", { p_aluno_id: session.aluno.id }).maybeSingle();
+  const { data } = await admin
+    .rpc("dashboard_aluno_treino", { p_aluno_id: session.aluno.id })
+    .maybeSingle();
 
   // Fallback: query direta se a função RPC não existir ainda
   if (!data) {
@@ -175,11 +183,12 @@ export async function getUltimasErradas(limit = 10) {
   const session = await getStudentSession();
   if (!session) return [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = createAdminClient() as any;
   const { data } = await admin
     .from("resposta_aluno")
-    .select("questao_id, respondido_em, questao:questao_id(olimpiada, nivel, fase, ano, numero, assunto)")
+    .select(
+      "questao_id, respondido_em, questao:questao_id(olimpiada, nivel, fase, ano, numero, assunto)",
+    )
     .eq("aluno_id", session.aluno.id)
     .eq("correta", false)
     .order("respondido_em", { ascending: false })
@@ -198,7 +207,7 @@ export async function getUltimasErradas(limit = 10) {
 export async function getRespostaAluno(questaoId: string) {
   const session = await getStudentSession();
   if (!session) return null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const admin = createAdminClient() as any;
   const { data } = await admin
     .from("resposta_aluno")
