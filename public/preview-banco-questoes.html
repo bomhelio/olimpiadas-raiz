@@ -376,8 +376,8 @@ tr:last-child td { border-bottom:none; }
       </div>
     </div>
 
-    <!-- RESPOSTA CERTA + GABARITO FECHADO -->
-    <p class="note" style="margin-top:12px">Exemplo — resposta correta, gabarito disponível mas fechado</p>
+    <!-- RESPOSTA CERTA + GABARITO EXPANDIDO -->
+    <p class="note" style="margin-top:12px">Exemplo — resposta correta, gabarito expandido (mesmo comportamento)</p>
     <div class="questao-card">
       <div class="questao-meta"><span class="badge badge-olimpiada">OBMEP</span><span class="badge badge-nivel">Nível 1</span><span class="badge badge-ano">2023</span></div>
       <div class="questao-numero">Questão 5</div>
@@ -386,13 +386,45 @@ tr:last-child td { border-bottom:none; }
       </div>
       <div class="alternativas">
         <div class="alt"><div class="alt-row"><div class="alt-letra">A</div><div class="alt-texto">12</div></div></div>
-        <div class="alt selected-right"><div class="alt-row"><div class="alt-letra">B</div><div class="alt-texto">16 &nbsp;✓ sua resposta</div></div></div>
+        <div class="alt selected-right"><div class="alt-row"><div class="alt-letra">B</div><div class="alt-texto">16 &nbsp;✓ sua resposta · correta</div></div></div>
         <div class="alt"><div class="alt-row"><div class="alt-letra">C</div><div class="alt-texto">8</div></div></div>
         <div class="alt"><div class="alt-row"><div class="alt-letra">D</div><div class="alt-texto">24</div></div></div>
       </div>
       <div class="feedback right">✓ &nbsp;Correto!</div>
+
+      <!-- MESMO GABARITO — aparece igual ao caso de erro -->
+      <div class="gabarito">
+        <div class="gabarito-header">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+          <span class="gabarito-title">Gabarito</span>
+        </div>
+        <div class="gabarito-body">
+          <div class="gabarito-resposta">✓ &nbsp;Alternativa B — 16 divisores</div>
+          <div>
+            <div class="gabarito-section-title">Resolução</div>
+            <div class="gabarito-texto">
+              120 = 2³ × 3 × 5<br>
+              Número de divisores = (3+1)(1+1)(1+1) = 4 × 2 × 2 = <strong>16</strong>
+            </div>
+          </div>
+          <div>
+            <div class="gabarito-section-title">Resolução em vídeo</div>
+            <div class="gabarito-video">
+              <div class="play-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+              </div>
+              <div class="video-info">
+                <div class="video-title">Correção — Questão 5 · OBMEP 2023 N1</div>
+                <div class="video-meta">YouTube · Professor cadastrado pelo admin</div>
+              </div>
+              <div class="video-duration">03:15</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="questao-actions">
-        <button class="btn-gabarito">Gabarito</button>
+        <button class="btn-gabarito active">Fechar gabarito</button>
         <button class="btn-proxima">Próxima questão →</button>
       </div>
     </div>
