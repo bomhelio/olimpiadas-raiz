@@ -14,13 +14,21 @@ export function LoginAlunoForm() {
   useEffect(() => {
     const email = sessionStorage.getItem("_test_email");
     const senha = sessionStorage.getItem("_test_senha");
-    if (!email || !senha || !formRef.current) return;
+    if (!email || !senha) return;
     sessionStorage.removeItem("_test_email");
     sessionStorage.removeItem("_test_senha");
-    const f = formRef.current;
-    (f.querySelector('input[name="email"]') as HTMLInputElement).value = email;
-    (f.querySelector('input[name="password"]') as HTMLInputElement).value = senha;
-    f.requestSubmit();
+    const fill = () => {
+      const f = formRef.current;
+      if (!f) return;
+      const emailInput = f.querySelector('input[name="email"]') as HTMLInputElement;
+      const passInput = f.querySelector('input[name="password"]') as HTMLInputElement;
+      if (!emailInput || !passInput) return;
+      emailInput.value = email;
+      passInput.value = senha;
+      const btn = f.querySelector('button[type="submit"]') as HTMLButtonElement;
+      btn?.click();
+    };
+    setTimeout(fill, 200);
   }, []);
 
   return (
