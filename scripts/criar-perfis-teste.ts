@@ -145,7 +145,7 @@ async function criarAluno(marca: (typeof MARCAS)[number]) {
       const d = await criarDiretor(marca);
       diretores.push({ ...d, marca: marca.nome });
     } catch (e: unknown) {
-      console.error(`  ERRO diretor ${marca.nome}: ${e.message}`);
+      console.error(`  ERRO diretor ${marca.nome}: ${e instanceof Error ? e.message : String(e)}`);
     }
 
     try {
@@ -153,7 +153,7 @@ async function criarAluno(marca: (typeof MARCAS)[number]) {
       const a = await criarAluno(marca);
       alunos.push({ ...a, marca: marca.nome });
     } catch (e: unknown) {
-      console.error(`  ERRO aluno ${marca.nome}: ${e.message}`);
+      console.error(`  ERRO aluno ${marca.nome}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
