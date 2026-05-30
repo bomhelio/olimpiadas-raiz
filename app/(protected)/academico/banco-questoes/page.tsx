@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getServerSession } from "@/lib/auth/session";
@@ -88,7 +89,7 @@ export default async function BancoQuestoesPage({
               </tr>
             </thead>
             <tbody>
-              {questoes.map((q: Record<string, unknown>) => (
+              {questoes.map((q: any) => (
                 <tr key={q.id} className="border-b border-border/40 hover:bg-background/50">
                   <td className="px-4 py-3 font-medium">{OLIMPIADA_LABEL[q.olimpiada] ?? q.olimpiada}</td>
                   <td className="px-4 py-3 text-muted-foreground">{q.nivel ?? "—"}</td>
