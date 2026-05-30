@@ -59,6 +59,7 @@ export function TreinoClient({
 
   async function handleGabarito() {
     if (mostrarGabarito) { setMostrarGabarito(false); return; }
+    if (!questao) return;
     if (!gabarito) {
       const s = await getSolucaoQuestao(questao.id);
       setGabarito(s);
