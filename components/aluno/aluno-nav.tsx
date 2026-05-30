@@ -38,7 +38,7 @@ export function AlunoNav({ aluno, marcaSlug }: { aluno: Aluno; marcaSlug?: strin
                 marcaSlug === "uniao"
                   ? "max-h-16 max-w-[220px]"
                   : ["apogeu", "matriz-educacao", "qi-bilingue"].includes(marcaSlug ?? "")
-                    ? "max-h-24 max-w-[280px]"
+                    ? "max-h-[77px] max-w-[224px]"
                     : "max-h-20 max-w-[220px]"
               }`}
             />

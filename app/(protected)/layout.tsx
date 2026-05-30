@@ -68,7 +68,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
                     marcaSlug === "uniao"
                       ? "max-h-12 max-w-[200px]"
                       : ["apogeu", "matriz-educacao", "qi-bilingue"].includes(marcaSlug ?? "")
-                        ? "max-h-24 max-w-[280px]"
+                        ? "max-h-[77px] max-w-[224px]"
                         : "max-h-16 max-w-[200px]"
                   }`}
                 />
