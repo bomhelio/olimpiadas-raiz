@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { loginAluno } from "@/app/aluno/login/actions";
 
 const TEAL = "rgb(91,184,193)";
@@ -9,9 +9,22 @@ export function LoginAlunoForm() {
   const [state, formAction, isPending] = useActionState(loginAluno, null);
   const needsConsent = state !== null && "needsConsent" in state;
   const errorMsg = state !== null && "error" in state ? state.error : null;
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    const email = sessionStorage.getItem("_test_email");
+    const senha = sessionStorage.getItem("_test_senha");
+    if (!email || !senha || !formRef.current) return;
+    sessionStorage.removeItem("_test_email");
+    sessionStorage.removeItem("_test_senha");
+    const f = formRef.current;
+    (f.querySelector('input[name="email"]') as HTMLInputElement).value = email;
+    (f.querySelector('input[name="password"]') as HTMLInputElement).value = senha;
+    f.requestSubmit();
+  }, []);
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form ref={formRef} action={formAction} className="space-y-4">
       {/* ── Passo 1: credenciais ─────────────────────────────── */}
       {!needsConsent && (
         <>

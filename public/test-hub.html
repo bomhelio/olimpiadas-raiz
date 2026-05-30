@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Test Hub — Olimpíadas</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0f172a; font-family:'Segoe UI',Arial,sans-serif; padding:40px 32px; }
+h1 { color:#38bdf8; font-size:13px; letter-spacing:4px; text-transform:uppercase; margin-bottom:32px; }
+h2 { color:#64748b; font-size:11px; letter-spacing:3px; text-transform:uppercase; margin:24px 0 12px; }
+.grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:8px; }
+button {
+  background:#1e293b; border:1px solid #334155; border-radius:8px;
+  color:#e2e8f0; font-size:13px; padding:10px 14px; cursor:pointer;
+  text-align:left; transition:all .15s;
+}
+button:hover { background:#2d3f55; border-color:#38bdf8; color:#38bdf8; }
+button .role { font-size:10px; color:#64748b; display:block; margin-top:2px; }
+.note { color:#475569; font-size:11px; margin-top:32px; }
+</style>
+</head>
+<body>
+<h1>Test Hub — Login Rápido</h1>
+
+<h2>Diretores — /login</h2>
+<div class="grid" id="dir"></div>
+
+<h2>Alunos — /aluno/login</h2>
+<div class="grid" id="alu"></div>
+
+<p class="note">Clique em qualquer perfil para abrir a tela de login já preenchida e logada automaticamente.</p>
+
+<script>
+const SENHA = 'Teste@2026';
+const DIRETORES = [
+  { slug:'apogeu',          email:'diretor.apogeu@olimpiadas.teste',          label:'Apogeu' },
+  { slug:'matriz-educacao', email:'diretor.matriz-educacao@olimpiadas.teste',  label:'Matriz Educação' },
+  { slug:'qi-bilingue',     email:'diretor.qi-bilingue@olimpiadas.teste',      label:'QI Bilíngue' },
+  { slug:'uniao',           email:'diretor.uniao@olimpiadas.teste',            label:'União' },
+  { slug:'unificado',       email:'diretor.unificado@olimpiadas.teste',        label:'Unificado' },
+  { slug:'americano',       email:'diretor.americano@olimpiadas.teste',        label:'Americano' },
+];
+const ALUNOS = [
+  { slug:'apogeu',          email:'aluno.apogeu@olimpiadas.teste',            label:'Apogeu' },
+  { slug:'matriz-educacao', email:'aluno.matriz-educacao@olimpiadas.teste',   label:'Matriz Educação' },
+  { slug:'qi-bilingue',     email:'aluno.qi-bilingue@olimpiadas.teste',       label:'QI Bilíngue' },
+  { slug:'uniao',           email:'aluno.uniao@olimpiadas.teste',             label:'União' },
+  { slug:'unificado',       email:'aluno.unificado@olimpiadas.teste',         label:'Unificado' },
+  { slug:'americano',       email:'aluno.americano@olimpiadas.teste',         label:'Americano' },
+];
+
+function loginAs(conta, tipo) {
+  const url = tipo === 'aluno'
+    ? `/aluno/login?marca=${conta.slug}`
+    : `/login?marca=${conta.slug}`;
+  sessionStorage.setItem('_test_email', conta.email);
+  sessionStorage.setItem('_test_senha', SENHA);
+  window.location.href = url;
+}
+
+function render(contas, tipo, containerId) {
+  const el = document.getElementById(containerId);
+  contas.forEach(c => {
+    const btn = document.createElement('button');
+    btn.innerHTML = c.label + `<span class="role">${c.email}</span>`;
+    btn.onclick = () => loginAs(c, tipo);
+    el.appendChild(btn);
+  });
+}
+
+render(DIRETORES, 'diretor', 'dir');
+render(ALUNOS,    'aluno',   'alu');
+</script>
+</body>
+</html>
