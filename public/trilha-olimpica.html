@@ -24,6 +24,7 @@ html, body {
 #stage {
   width:1920px; height:1080px;
   position:absolute; top:50%; left:50%;
+  margin-left:-960px; margin-top:-540px;
   transform-origin:center center;
   background:#0f172a;
   position:relative;
@@ -364,9 +365,7 @@ function scaleStage(){
   // Mobile (<640px): usa referência menor → zoom ~2.4x para mais impacto visual
   const ref = window.innerWidth < 640 ? 800 : 1920;
   const sc = Math.min(window.innerWidth / ref, window.innerHeight / 1080);
-  // translate(-50%,-50%) + scale garante centralização mesmo com overflow
-  document.getElementById('stage').style.transform =
-    'translate(-50%, -50%) scale(' + sc + ')';
+  document.getElementById('stage').style.transform = 'scale(' + sc + ')';
 }
 window.addEventListener('resize', scaleStage);
 scaleStage();
