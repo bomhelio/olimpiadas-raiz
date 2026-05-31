@@ -73,28 +73,49 @@ export async function getQuestaoDetalhe(id: string) {
 
 // ─── Questão CRUD ────────────────────────────────────────────────────────────
 
-export async function uploadQuestaoImagem(
-  formData: FormData,
+// ─── Validação de upload de imagem ───────────────────────────────────────────
+
+const ALLOWED_IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
+const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+
+function validateImageFile(file: File): string | null {
+  if (!file || file.size === 0) return "Nenhum arquivo enviado.";
+  if (file.size > MAX_IMAGE_SIZE) return "Arquivo muito grande. Máximo 5 MB.";
+  const ext = (file.name.split(".").pop() ?? "").toLowerCase();
+  if (!ALLOWED_IMAGE_EXTS.has(ext)) return "Formato inválido. Use JPG, PNG, GIF ou WEBP.";
+  if (!ALLOWED_MIME_TYPES.has(file.type)) return "Tipo de arquivo inválido.";
+  return null;
+}
+
+async function uploadToStorage(
+  prefix: string,
+  file: File,
 ): Promise<{ url: string } | { error: string }> {
-  const session = await getServerSession();
-  if (!session || !can(session.user.role, "questao:read")) return { error: "Não autorizado" };
-
-  const file = formData.get("file") as File;
-  if (!file || file.size === 0) return { error: "Nenhum arquivo enviado." };
-
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const path = `enunciados/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
+  const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
+  const path = `${prefix}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createAdminClient() as any;
   const { error } = await supabase.storage
     .from("questoes")
     .upload(path, file, { contentType: file.type, upsert: false });
-
-  if (error) return { error: error.message };
-
+  if (error) {
+    console.error("[upload] storage error:", error.message);
+    return { error: "Erro ao enviar imagem. Tente novamente." };
+  }
   const { data } = supabase.storage.from("questoes").getPublicUrl(path);
   return { url: data.publicUrl };
+}
+
+export async function uploadQuestaoImagem(
+  formData: FormData,
+): Promise<{ url: string } | { error: string }> {
+  const session = await getServerSession();
+  if (!session || !can(session.user.role, "questao:read")) return { error: "Não autorizado" };
+  const file = formData.get("file") as File;
+  const err = validateImageFile(file);
+  if (err) return { error: err };
+  return uploadToStorage("enunciados", file);
 }
 
 export async function uploadAlternativaImagem(
@@ -102,23 +123,10 @@ export async function uploadAlternativaImagem(
 ): Promise<{ url: string } | { error: string }> {
   const session = await getServerSession();
   if (!session || !can(session.user.role, "questao:read")) return { error: "Não autorizado" };
-
   const file = formData.get("file") as File;
-  if (!file || file.size === 0) return { error: "Nenhum arquivo enviado." };
-
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const path = `alternativas/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createAdminClient() as any;
-  const { error } = await supabase.storage
-    .from("questoes")
-    .upload(path, file, { contentType: file.type, upsert: false });
-
-  if (error) return { error: error.message };
-
-  const { data } = supabase.storage.from("questoes").getPublicUrl(path);
-  return { url: data.publicUrl };
+  const err = validateImageFile(file);
+  if (err) return { error: err };
+  return uploadToStorage("alternativas", file);
 }
 
 export async function uploadSolucaoImagem(
@@ -126,23 +134,10 @@ export async function uploadSolucaoImagem(
 ): Promise<{ url: string } | { error: string }> {
   const session = await getServerSession();
   if (!session || !can(session.user.role, "questao:read")) return { error: "Não autorizado" };
-
   const file = formData.get("file") as File;
-  if (!file || file.size === 0) return { error: "Nenhum arquivo enviado." };
-
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const path = `solucoes/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createAdminClient() as any;
-  const { error } = await supabase.storage
-    .from("questoes")
-    .upload(path, file, { contentType: file.type, upsert: false });
-
-  if (error) return { error: error.message };
-
-  const { data } = supabase.storage.from("questoes").getPublicUrl(path);
-  return { url: data.publicUrl };
+  const err = validateImageFile(file);
+  if (err) return { error: err };
+  return uploadToStorage("solucoes", file);
 }
 
 function parseBlocos(raw: string): unknown | null {

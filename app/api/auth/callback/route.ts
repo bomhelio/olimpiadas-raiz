@@ -10,7 +10,18 @@ import type { Database } from "@/lib/types/database";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  // Whitelist — impede open redirect para domínios externos
+  const rawNext = searchParams.get("next") ?? "/dashboard";
+  const SAFE_PREFIXES = [
+    "/dashboard",
+    "/aluno/",
+    "/academico/",
+    "/olimpiadas",
+    "/inscricoes",
+    "/resultados",
+    "/configuracoes",
+  ];
+  const next = SAFE_PREFIXES.some((p) => rawNext.startsWith(p)) ? rawNext : "/dashboard";
 
   if (!code) {
     return NextResponse.redirect(new URL("/login?error=invalid_callback", request.url));
@@ -36,7 +47,7 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    console.error("[auth/callback] exchangeCodeForSession error:", error.message);
+    console.error("[auth/callback] exchangeCodeForSession error:", error.code ?? "unknown");
     return NextResponse.redirect(new URL("/login?error=auth_callback_failed", request.url));
   }
 

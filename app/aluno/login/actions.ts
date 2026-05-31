@@ -106,7 +106,7 @@ export async function loginAluno(
     .maybeSingle();
 
   if (alunoError) {
-    console.error("Erro ao buscar aluno:", alunoError.message, alunoError.code);
+    console.error("Erro ao buscar aluno:", alunoError.code ?? "unknown");
     await supabase.auth.signOut();
     return { error: "Não foi possível verificar o acesso. Tente novamente." };
   }

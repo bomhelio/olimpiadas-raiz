@@ -49,4 +49,6 @@ next-env.d.ts
 
 .vercel
 
-.vercel
+# Scripts com chaves hardcoded — nunca commitar
+process-q14-q18.mjs
+public/preview-questao-*.html
