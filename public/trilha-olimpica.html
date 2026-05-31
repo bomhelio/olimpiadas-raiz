@@ -361,7 +361,9 @@ html, body {
 <script>
 // ===== SCALE =====
 function scaleStage(){
-  const sc = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  // Mobile (<640px): usa referência menor → zoom ~2.4x para mais impacto visual
+  const ref = window.innerWidth < 640 ? 800 : 1920;
+  const sc = Math.min(window.innerWidth / ref, window.innerHeight / 1080);
   document.getElementById('stage').style.transform = 'scale(' + sc + ')';
 }
 window.addEventListener('resize', scaleStage);
