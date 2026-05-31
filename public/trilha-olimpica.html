@@ -367,8 +367,20 @@ html, body {
 <script>
 // ===== SCALE =====
 function scaleStage(){
-  const sc = Math.min(window.innerWidth/1920, window.innerHeight/1080);
-  document.getElementById('stage').style.transform = 'scale(' + sc + ')';
+  var W = window.innerWidth, H = window.innerHeight;
+  var stage = document.getElementById('stage');
+  if (W < 640) {
+    // Mobile: zoom in (ref 800px) + centralização explícita via translate
+    var sc = Math.min(W / 800, H / 1080);
+    var ox = (W - 1920 * sc) / 2;
+    var oy = (H - 1080 * sc) / 2;
+    stage.style.transformOrigin = '0 0';
+    stage.style.transform = 'translate(' + ox + 'px,' + oy + 'px) scale(' + sc + ')';
+  } else {
+    // Desktop: comportamento original (flexbox centraliza, scale do centro)
+    stage.style.transformOrigin = 'center center';
+    stage.style.transform = 'scale(' + Math.min(W / 1920, H / 1080) + ')';
+  }
 }
 window.addEventListener('resize', scaleStage);
 scaleStage();
