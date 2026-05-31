@@ -23,7 +23,7 @@ export async function getQuestoesTreino(filtros: {
   let query = supabase
     .from("questao")
     .select(
-      "id, olimpiada, nivel, fase, ano, numero, enunciado, imagem_url, assunto, tipo, video_url",
+      "id, olimpiada, nivel, fase, ano, numero, enunciado, enunciado_blocos, imagem_url, assunto, tipo, video_url",
     )
     .eq("ativo", true);
 
