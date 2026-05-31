@@ -2,13 +2,21 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useState, useActionState, useEffect } from "react";
+import { useState, useActionState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { responderQuestao, getSolucaoQuestao, getAlternativasQuestao } from "./actions";
 import type { Questao, Alternativa } from "@/lib/types/database";
 
 const OLIMPIADA_LABEL: Record<string, string> = { obmep_mirim: "OBMEP Mirim", obmep: "OBMEP" };
 const TEAL = "rgb(91,184,193)";
+
+type RespostaLocal = {
+  correta: boolean;
+  alternativa_id: string;
+  alternativa_correta_id: string | null;
+};
+
+type GabaritoLocal = { texto: string | null; imagem_url: string | null } | null;
 
 export function TreinoClient({
   questoes,
@@ -18,30 +26,43 @@ export function TreinoClient({
   primeiraAlt: Alternativa[];
 }) {
   const [idx, setIdx] = useState(0);
+  const total = questoes.length;
+
+  /* ── Alternativas pré-carregadas ─────────────────────────────────────────── */
   const initialAlts: Record<string, Alternativa[]> = {};
   if (questoes[0]?.id) initialAlts[questoes[0].id] = primeiraAlt;
   const [altsMap, setAltsMap] = useState<Record<string, Alternativa[]>>(initialAlts);
-  const [gabarito, setGabarito] = useState<{
-    texto: string | null;
-    imagem_url: string | null;
-  } | null>(null);
+
+  /* ── Respostas da sessão (persistem ao navegar) ───────────────────────────── */
+  const [respostas, setRespostas] = useState<Record<string, RespostaLocal>>({});
+  // Ref que captura qual alternativa o aluno clicou antes da resposta do servidor
+  const altSelecionadaRef = useRef<Record<string, string>>({});
+
+  /* ── Gabarito por questão (cache) ────────────────────────────────────────── */
+  const [gabaritoMap, setGabaritoMap] = useState<Record<string, GabaritoLocal>>({});
   const [mostrarGabarito, setMostrarGabarito] = useState(false);
 
-  const questao = questoes[idx];
-  const alts = (questao?.id ? altsMap[questao.id] : undefined) ?? [];
-  const total = questoes.length;
+  /* ── Finalizar treino ────────────────────────────────────────────────────── */
+  const [finalizado, setFinalizado] = useState(false);
 
+  /* ── Server action ───────────────────────────────────────────────────────── */
   const [estado, action, isPending] = useActionState(responderQuestao, null);
-  // Verifica se o estado pertence à questão ATUAL — impede que a resposta da Q anterior
-  // desabilite os botões da próxima questão (useActionState persiste entre renders).
-  const respondido =
-    estado !== null &&
-    !("error" in estado) &&
-    "questao_id" in estado &&
-    estado.questao_id === questao?.id;
-  const correta = respondido && "correta" in estado ? estado.correta : null;
-  const altCorretaId =
-    respondido && "alternativa_correta_id" in estado ? estado.alternativa_correta_id : null;
+
+  // Quando chega nova resposta do servidor, persiste no mapa local
+  useEffect(() => {
+    if (estado && !("error" in estado) && "questao_id" in estado) {
+      const qid = estado.questao_id;
+      const altId = altSelecionadaRef.current[qid] ?? "";
+      setRespostas((prev) => ({
+        ...prev,
+        [qid]: {
+          correta: estado.correta,
+          alternativa_id: altId,
+          alternativa_correta_id: estado.alternativa_correta_id,
+        },
+      }));
+    }
+  }, [estado]);
 
   // Pré-carrega alternativas da próxima questão
   useEffect(() => {
@@ -51,37 +72,45 @@ export function TreinoClient({
     }
   }, [idx, questoes, altsMap]);
 
-  // Reset gabarito ao trocar questão — usa ref para evitar setState síncrono no effect
-  const prevIdx = useState(idx)[0];
+  // Fecha gabarito ao trocar de questão
   useEffect(() => {
-    if (prevIdx !== idx) {
-      setGabarito(null);
-      setMostrarGabarito(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setMostrarGabarito(false);
   }, [idx]);
 
+  /* ── Dados da questão atual ──────────────────────────────────────────────── */
+  const questao = questoes[idx];
+  const alts = (questao?.id ? altsMap[questao.id] : undefined) ?? [];
+
+  const respostaAtual: RespostaLocal | undefined = questao ? respostas[questao.id] : undefined;
+  const respondido = !!respostaAtual;
+  const correta = respostaAtual?.correta ?? null;
+  const altCorretaId = respostaAtual?.alternativa_correta_id ?? null;
+  const altRespondidaId = respostaAtual?.alternativa_id ?? null;
+
+  const gabarito: GabaritoLocal = questao ? (gabaritoMap[questao.id] ?? null) : null;
+
   async function handleGabarito() {
+    if (!questao) return;
     if (mostrarGabarito) {
       setMostrarGabarito(false);
       return;
     }
-    if (!questao) return;
-    if (!gabarito) {
+    if (gabaritoMap[questao.id] === undefined) {
       const s = await getSolucaoQuestao(questao.id);
-      setGabarito(s);
+      setGabaritoMap((prev) => ({ ...prev, [questao.id]: s }));
     }
     setMostrarGabarito(true);
   }
 
-  if (!questao) return null;
+  /* ── Tela de conclusão ───────────────────────────────────────────────────── */
+  const respondidas = Object.keys(respostas).length;
 
-  if (idx >= total) {
+  if (finalizado || idx >= total) {
     return (
       <div className="rounded-xl border border-border bg-card p-12 text-center">
-        <p className="text-xl font-bold text-foreground mb-2">Sessão concluída! 🎉</p>
+        <p className="text-xl font-bold text-foreground mb-2">Sessão concluída!</p>
         <p className="text-muted-foreground mb-6">
-          Você respondeu todas as {total} questões desta sessão.
+          Você respondeu {respondidas} de {total} questões nesta sessão.
         </p>
         <div className="flex justify-center gap-3">
           <Link
@@ -101,19 +130,35 @@ export function TreinoClient({
     );
   }
 
+  if (!questao) return null;
+
+  /* ── Render principal ────────────────────────────────────────────────────── */
   return (
     <div>
-      {/* Progresso */}
-      <div className="mb-4">
-        <div className="h-1.5 rounded-full bg-card overflow-hidden mb-1.5">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${(idx / total) * 100}%`, background: TEAL }}
-          />
+      {/* Progresso + botão Finalizar */}
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex-1">
+          <div className="h-1.5 rounded-full bg-card overflow-hidden mb-1.5">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${(idx / total) * 100}%`, background: TEAL }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Questão {idx + 1} de {total}
+            {respondidas > 0 && (
+              <span className="ml-2 text-muted-foreground/60">· {respondidas} respondidas</span>
+            )}
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Questão {idx + 1} de {total}
-        </p>
+        <button
+          onClick={() => {
+            if (window.confirm("Finalizar o treino agora?")) setFinalizado(true);
+          }}
+          className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-red-500/50 hover:text-red-400"
+        >
+          Finalizar Treino
+        </button>
       </div>
 
       {/* Card da questão */}
@@ -210,8 +255,7 @@ export function TreinoClient({
             ) : (
               alts.map((alt) => {
                 const isCorreta = respondido && alt.id === altCorretaId;
-                const isErrada =
-                  respondido && alt.id === (estado as any)?.alternativa_id && !correta;
+                const isErrada = respondido && alt.id === altRespondidaId && !correta;
                 const isNeutra = !respondido;
                 return (
                   <div
@@ -224,6 +268,9 @@ export function TreinoClient({
                       <button
                         type="submit"
                         disabled={respondido || isPending}
+                        onClick={() => {
+                          altSelecionadaRef.current[questao.id] = alt.id;
+                        }}
                         className="flex items-start gap-3 w-full p-3 text-left"
                       >
                         <span
@@ -280,7 +327,6 @@ export function TreinoClient({
               </span>
             </div>
             <div className="p-5 space-y-4">
-              {/* Resolução em texto */}
               {gabarito?.texto ? (
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
@@ -303,7 +349,6 @@ export function TreinoClient({
                   className="max-w-full rounded-lg border border-border"
                 />
               )}
-              {/* Vídeo */}
               {questao.video_url && (
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
@@ -341,7 +386,7 @@ export function TreinoClient({
             {mostrarGabarito ? "Fechar gabarito" : "Gabarito"}
           </button>
 
-          {/* Voltar — sempre visível, desabilitado apenas na primeira questão */}
+          {/* Voltar — sempre visível */}
           <button
             onClick={() => setIdx((i) => Math.max(0, i - 1))}
             disabled={idx === 0}
@@ -350,7 +395,7 @@ export function TreinoClient({
             ← Voltar
           </button>
 
-          {/* Avançar / Próxima questão — sempre visível, muda estilo após responder */}
+          {/* Avançar / Próxima — sempre visível */}
           <button
             onClick={() => setIdx((i) => i + 1)}
             className={
