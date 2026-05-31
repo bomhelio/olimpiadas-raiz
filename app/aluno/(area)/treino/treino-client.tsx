@@ -383,7 +383,7 @@ export function TreinoClient({
             disabled={!respondido}
             className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-35 disabled:cursor-not-allowed ${mostrarGabarito ? "border-sky-400 text-sky-400 bg-sky-400/8" : "border-border text-muted-foreground hover:border-sky-400 hover:text-sky-400"}`}
           >
-            {mostrarGabarito ? "Fechar gabarito" : "Gabarito"}
+            {mostrarGabarito ? "Fechar resolução" : "Resolução"}
           </button>
 
           {/* Voltar — sempre visível */}
