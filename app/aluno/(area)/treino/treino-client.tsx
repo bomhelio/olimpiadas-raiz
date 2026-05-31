@@ -88,6 +88,7 @@ export function TreinoClient({
   const altRespondidaId = respostaAtual?.alternativa_id ?? null;
 
   const gabarito: GabaritoLocal = questao ? (gabaritoMap[questao.id] ?? null) : null;
+  const altCorretaLetra = alts.find((a) => a.id === altCorretaId)?.letra ?? null;
 
   async function handleGabarito() {
     if (!questao) return;
@@ -325,6 +326,14 @@ export function TreinoClient({
               <span className="text-xs font-bold uppercase tracking-widest" style={{ color: TEAL }}>
                 Gabarito
               </span>
+              {altCorretaLetra && (
+                <span
+                  className="ml-2 flex h-6 w-6 items-center justify-center rounded-full border-2 text-xs font-bold"
+                  style={{ borderColor: TEAL, color: TEAL }}
+                >
+                  {altCorretaLetra}
+                </span>
+              )}
             </div>
             <div className="p-5 space-y-4">
               {gabarito?.texto ? (
