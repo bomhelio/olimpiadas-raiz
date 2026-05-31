@@ -668,6 +668,7 @@ export type Database = {
           ano: number;
           numero: number;
           enunciado: string;
+          enunciado_blocos: Json | null;
           imagem_url: string | null;
           assunto: string | null;
           tipo: TipoQuestao;
@@ -683,6 +684,7 @@ export type Database = {
           ano: number;
           numero: number;
           enunciado: string;
+          enunciado_blocos?: Json | null;
           imagem_url?: string | null;
           assunto?: string | null;
           tipo?: TipoQuestao;
@@ -698,6 +700,7 @@ export type Database = {
           ano?: number;
           numero?: number;
           enunciado?: string;
+          enunciado_blocos?: Json | null;
           imagem_url?: string | null;
           assunto?: string | null;
           tipo?: TipoQuestao;

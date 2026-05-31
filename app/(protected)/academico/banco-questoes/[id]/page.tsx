@@ -87,7 +87,7 @@ export default async function QuestaoDetalhePage({ params }: { params: Promise<{
       {/* Solução */}
       <section className="rounded-xl border border-border bg-card p-6">
         <h2 className="mb-4 text-sm font-semibold text-foreground">Resolução</h2>
-        <SolucaoEditor questaoId={id} solucao={solucao} />
+        <SolucaoEditor questaoId={id} solucao={solucao} videoUrl={questao.video_url} />
       </section>
     </div>
   );

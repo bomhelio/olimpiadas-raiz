@@ -73,6 +73,39 @@ export async function getQuestaoDetalhe(id: string) {
 
 // ─── Questão CRUD ────────────────────────────────────────────────────────────
 
+export async function uploadQuestaoImagem(
+  formData: FormData,
+): Promise<{ url: string } | { error: string }> {
+  const session = await getServerSession();
+  if (!session || !can(session.user.role, "questao:read")) return { error: "Não autorizado" };
+
+  const file = formData.get("file") as File;
+  if (!file || file.size === 0) return { error: "Nenhum arquivo enviado." };
+
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `enunciados/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createAdminClient() as any;
+  const { error } = await supabase.storage
+    .from("questoes")
+    .upload(path, file, { contentType: file.type, upsert: false });
+
+  if (error) return { error: error.message };
+
+  const { data } = supabase.storage.from("questoes").getPublicUrl(path);
+  return { url: data.publicUrl };
+}
+
+function parseBlocos(raw: string): unknown | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export async function criarQuestao(_prev: QuestaoState, formData: FormData): Promise<QuestaoState> {
   const session = await getServerSession();
   if (!session || !can(session.user.role, "questao:create")) return { error: "Não autorizado" };
@@ -83,9 +116,9 @@ export async function criarQuestao(_prev: QuestaoState, formData: FormData): Pro
   const ano = Number(formData.get("ano"));
   const numero = Number(formData.get("numero"));
   const enunciado = ((formData.get("enunciado") as string) ?? "").trim();
+  const enunciado_blocos = parseBlocos((formData.get("enunciado_blocos") as string) ?? "");
   const assunto = ((formData.get("assunto") as string) ?? "").trim() || null;
   const tipo = (formData.get("tipo") as TipoQuestao) || "multipla_escolha";
-  const video_url = ((formData.get("video_url") as string) ?? "").trim() || null;
 
   if (!olimpiada || !fase || !ano || !numero || !enunciado)
     return { error: "Preencha todos os campos obrigatórios." };
@@ -94,7 +127,7 @@ export async function criarQuestao(_prev: QuestaoState, formData: FormData): Pro
   const supabase = createAdminClient() as any;
   const { data, error } = await supabase
     .from("questao")
-    .insert({ olimpiada, nivel, fase, ano, numero, enunciado, assunto, tipo, video_url })
+    .insert({ olimpiada, nivel, fase, ano, numero, enunciado, enunciado_blocos, assunto, tipo })
     .select("id")
     .single();
 
@@ -111,6 +144,8 @@ export async function atualizarQuestao(
   const session = await getServerSession();
   if (!session || !can(session.user.role, "questao:update")) return { error: "Não autorizado" };
 
+  const enunciado_blocos = parseBlocos((formData.get("enunciado_blocos") as string) ?? "");
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createAdminClient() as any;
   const { error } = await supabase
@@ -121,10 +156,10 @@ export async function atualizarQuestao(
       fase: Number(formData.get("fase")),
       ano: Number(formData.get("ano")),
       numero: Number(formData.get("numero")),
-      enunciado: formData.get("enunciado"),
+      enunciado: ((formData.get("enunciado") as string) ?? "").trim(),
+      enunciado_blocos,
       assunto: ((formData.get("assunto") as string) ?? "").trim() || null,
       tipo: formData.get("tipo"),
-      video_url: ((formData.get("video_url") as string) ?? "").trim() || null,
     })
     .eq("id", id);
 
@@ -194,9 +229,13 @@ export async function salvarSolucao(
 
   const questao_id = formData.get("questao_id") as string;
   const texto = ((formData.get("texto") as string) ?? "").trim() || null;
+  const video_url = ((formData.get("video_url") as string) ?? "").trim() || null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createAdminClient() as any;
+
+  await supabase.from("questao").update({ video_url }).eq("id", questao_id);
+
   const { error } = await supabase
     .from("solucao")
     .upsert({ questao_id, texto }, { onConflict: "questao_id" });

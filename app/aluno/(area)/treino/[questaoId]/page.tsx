@@ -18,7 +18,6 @@ export default async function RevisaoQuestaoPage({
 
   const { questaoId } = await params;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = createAdminClient() as any;
   const [{ data: questao }, alternativas, solucao, resposta] = await Promise.all([
     admin.from("questao").select("*").eq("id", questaoId).single(),
@@ -40,7 +39,9 @@ export default async function RevisaoQuestaoPage({
   return (
     <div className="max-w-2xl">
       <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/aluno/treino/dashboard" className="hover:text-foreground">Desempenho</Link>
+        <Link href="/aluno/treino/dashboard" className="hover:text-foreground">
+          Desempenho
+        </Link>
         <span>/</span>
         <span className="text-foreground">Revisão</span>
       </div>
@@ -61,11 +62,47 @@ export default async function RevisaoQuestaoPage({
           )}
         </div>
 
-        {/* Enunciado */}
-        <p className="text-[15px] leading-relaxed text-foreground whitespace-pre-wrap">{questao.enunciado}</p>
-        {questao.imagem_url && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={questao.imagem_url} alt="Figura" className="max-w-full rounded-lg border border-border" />
+        {/* Enunciado (blocos texto+imagem ou texto plano legado) */}
+        {Array.isArray((questao as any).enunciado_blocos) &&
+        (questao as any).enunciado_blocos.length > 0 ? (
+          (
+            (questao as any).enunciado_blocos as Array<{
+              tipo: string;
+              conteudo?: string;
+              url?: string;
+            }>
+          ).map((b, i) =>
+            b.tipo === "texto" ? (
+              <p
+                key={i}
+                className="text-[15px] leading-relaxed text-foreground whitespace-pre-wrap"
+              >
+                {b.conteudo}
+              </p>
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={i}
+                src={b.url}
+                alt={`Figura ${i + 1}`}
+                className="max-w-full rounded-lg border border-border"
+              />
+            ),
+          )
+        ) : (
+          <>
+            <p className="text-[15px] leading-relaxed text-foreground whitespace-pre-wrap">
+              {questao.enunciado}
+            </p>
+            {questao.imagem_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={questao.imagem_url}
+                alt="Figura"
+                className="max-w-full rounded-lg border border-border"
+              />
+            )}
+          </>
         )}
 
         {/* Alternativas (read-only com gabarito) */}
@@ -74,17 +111,28 @@ export default async function RevisaoQuestaoPage({
             const isCorreta = alt.id === altCorreta?.id;
             const isAluno = alt.id === resposta?.alternativa_id;
             return (
-              <div key={alt.id} className={`flex items-start gap-3 rounded-lg border-2 p-3 ${isCorreta ? "border-emerald-500 bg-emerald-500/8" : isAluno && !resposta?.correta ? "border-red-500 bg-red-500/8" : "border-border opacity-60"}`}>
-                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold ${isCorreta ? "border-emerald-500 text-emerald-400" : "border-muted-foreground text-muted-foreground"}`}>
+              <div
+                key={alt.id}
+                className={`flex items-start gap-3 rounded-lg border-2 p-3 ${isCorreta ? "border-emerald-500 bg-emerald-500/8" : isAluno && !resposta?.correta ? "border-red-500 bg-red-500/8" : "border-border opacity-60"}`}
+              >
+                <span
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold ${isCorreta ? "border-emerald-500 text-emerald-400" : "border-muted-foreground text-muted-foreground"}`}
+                >
                   {alt.letra}
                 </span>
                 <div className="flex-1">
                   {alt.texto && <p className="text-sm text-foreground">{alt.texto}</p>}
                   {alt.imagem_url && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={alt.imagem_url} alt={`Alt ${alt.letra}`} className="mt-1 max-w-xs rounded border border-border" />
+                    <img
+                      src={alt.imagem_url}
+                      alt={`Alt ${alt.letra}`}
+                      className="mt-1 max-w-xs rounded border border-border"
+                    />
                   )}
-                  {isAluno && !resposta?.correta && <p className="text-xs text-red-400 mt-1">← sua resposta</p>}
+                  {isAluno && !resposta?.correta && (
+                    <p className="text-xs text-red-400 mt-1">← sua resposta</p>
+                  )}
                   {isCorreta && <p className="text-xs text-emerald-400 mt-1">✓ resposta correta</p>}
                 </div>
               </div>
@@ -95,29 +143,59 @@ export default async function RevisaoQuestaoPage({
         {/* Gabarito / Resolução */}
         <div className="rounded-xl border border-border bg-background overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-3 border-b border-border">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: TEAL }}>Gabarito</span>
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={TEAL}
+              strokeWidth="2"
+            >
+              <path d="M9 12l2 2 4-4" />
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: TEAL }}>
+              Gabarito
+            </span>
           </div>
           <div className="p-5 space-y-4">
             {solucao?.texto ? (
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Resolução</p>
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{solucao.texto}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                  Resolução
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {solucao.texto}
+                </p>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground italic">Resolução em texto não disponível.</p>
+              <p className="text-sm text-muted-foreground italic">
+                Resolução em texto não disponível.
+              </p>
             )}
             {solucao?.imagem_url && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={solucao.imagem_url} alt="Resolução" className="max-w-full rounded-lg border border-border" />
+              <img
+                src={solucao.imagem_url}
+                alt="Resolução"
+                className="max-w-full rounded-lg border border-border"
+              />
             )}
             {questao.video_url && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Resolução em vídeo</p>
-                <a href={questao.video_url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-3 rounded-xl border border-violet-500/30 bg-violet-500/8 px-4 py-3 hover:bg-violet-500/15 transition-colors">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                  Resolução em vídeo
+                </p>
+                <a
+                  href={questao.video_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 rounded-xl border border-violet-500/30 bg-violet-500/8 px-4 py-3 hover:bg-violet-500/15 transition-colors"
+                >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-500">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                      <polygon points="5,3 19,12 5,21" />
+                    </svg>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-foreground">Assistir resolução</p>
@@ -129,7 +207,10 @@ export default async function RevisaoQuestaoPage({
           </div>
         </div>
 
-        <Link href="/aluno/treino/dashboard" className="inline-block text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          href="/aluno/treino/dashboard"
+          className="inline-block text-sm text-muted-foreground hover:text-foreground"
+        >
           ← Voltar ao desempenho
         </Link>
       </div>

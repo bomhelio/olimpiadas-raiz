@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { criarQuestao } from "../actions";
 import { inputClass, selectClass } from "@/components/ui/form-field";
+import { EnunciadoBlocosEditor } from "../enunciado-blocos-editor";
 
 export default function NovaBancoQuestaoPage() {
   const [state, action, isPending] = useActionState(criarQuestao, null);
@@ -11,7 +12,9 @@ export default function NovaBancoQuestaoPage() {
   return (
     <div className="max-w-2xl">
       <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/academico/banco-questoes" className="hover:text-foreground">Banco de Questões</Link>
+        <Link href="/academico/banco-questoes" className="hover:text-foreground">
+          Banco de Questões
+        </Link>
         <span>/</span>
         <span className="text-foreground">Nova Questão</span>
       </div>
@@ -56,11 +59,26 @@ export default function NovaBancoQuestaoPage() {
           </div>
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-foreground">Ano *</label>
-            <input name="ano" type="number" min={2000} max={2100} placeholder="2024" required className={inputClass} />
+            <input
+              name="ano"
+              type="number"
+              min={2000}
+              max={2100}
+              placeholder="2024"
+              required
+              className={inputClass}
+            />
           </div>
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-foreground">Número *</label>
-            <input name="numero" type="number" min={1} placeholder="1" required className={inputClass} />
+            <input
+              name="numero"
+              type="number"
+              min={1}
+              placeholder="1"
+              required
+              className={inputClass}
+            />
           </div>
         </div>
 
@@ -74,26 +92,35 @@ export default function NovaBancoQuestaoPage() {
           </div>
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-foreground">Assunto</label>
-            <input name="assunto" type="text" placeholder="ex: Geometria, Aritmética…" className={inputClass} />
+            <input
+              name="assunto"
+              type="text"
+              placeholder="ex: Geometria, Aritmética…"
+              className={inputClass}
+            />
           </div>
         </div>
 
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-foreground">Enunciado *</label>
-          <textarea name="enunciado" required rows={5} placeholder="Digite o enunciado da questão…" className={inputClass} />
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-foreground">URL do vídeo de resolução</label>
-          <input name="video_url" type="url" placeholder="https://youtube.com/…" className={inputClass} />
-          <p className="text-xs text-muted-foreground">YouTube, Vimeo ou link direto. Pode ser preenchido depois.</p>
+          <p className="text-xs text-muted-foreground mb-2">
+            Use blocos de texto e imagem — arranje na ordem que quiser (texto · imagem · texto…).
+          </p>
+          <EnunciadoBlocosEditor />
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button type="submit" disabled={isPending} className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+          <button
+            type="submit"
+            disabled={isPending}
+            className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          >
             {isPending ? "Salvando…" : "Criar questão"}
           </button>
-          <Link href="/academico/banco-questoes" className="rounded-lg border border-border px-5 py-2.5 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            href="/academico/banco-questoes"
+            className="rounded-lg border border-border px-5 py-2.5 text-sm text-muted-foreground hover:text-foreground"
+          >
             Cancelar
           </Link>
         </div>

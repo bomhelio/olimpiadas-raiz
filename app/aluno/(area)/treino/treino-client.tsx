@@ -143,22 +143,50 @@ export function TreinoClient({
 
         <p className="text-xs text-muted-foreground mb-3">Questão {questao.numero}</p>
 
-        {/* Enunciado */}
-        <p className="text-[15px] leading-relaxed text-foreground mb-4 whitespace-pre-wrap">
-          {questao.enunciado}
-        </p>
-
-        {/* Imagem do enunciado */}
-        {questao.imagem_url && (
-          <div className="mb-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={questao.imagem_url}
-              alt="Figura da questão"
-              className="max-w-full rounded-lg border border-border"
-            />
-          </div>
-        )}
+        {/* Enunciado (blocos texto+imagem ou texto plano legado) */}
+        <div className="mb-4">
+          {Array.isArray((questao as any).enunciado_blocos) &&
+          (questao as any).enunciado_blocos.length > 0 ? (
+            (
+              (questao as any).enunciado_blocos as Array<{
+                tipo: string;
+                conteudo?: string;
+                url?: string;
+              }>
+            ).map((b, i) =>
+              b.tipo === "texto" ? (
+                <p
+                  key={i}
+                  className="text-[15px] leading-relaxed text-foreground mb-3 whitespace-pre-wrap"
+                >
+                  {b.conteudo}
+                </p>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={i}
+                  src={b.url}
+                  alt={`Figura ${i + 1}`}
+                  className="max-w-full rounded-lg border border-border mb-3"
+                />
+              ),
+            )
+          ) : (
+            <>
+              <p className="text-[15px] leading-relaxed text-foreground mb-4 whitespace-pre-wrap">
+                {questao.enunciado}
+              </p>
+              {questao.imagem_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={questao.imagem_url}
+                  alt="Figura da questão"
+                  className="max-w-full rounded-lg border border-border"
+                />
+              )}
+            </>
+          )}
+        </div>
 
         {/* Alternativas */}
         {questao.tipo === "multipla_escolha" && (
