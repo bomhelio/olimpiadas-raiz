@@ -121,6 +121,30 @@ export async function uploadAlternativaImagem(
   return { url: data.publicUrl };
 }
 
+export async function uploadSolucaoImagem(
+  formData: FormData,
+): Promise<{ url: string } | { error: string }> {
+  const session = await getServerSession();
+  if (!session || !can(session.user.role, "questao:read")) return { error: "Não autorizado" };
+
+  const file = formData.get("file") as File;
+  if (!file || file.size === 0) return { error: "Nenhum arquivo enviado." };
+
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `solucoes/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createAdminClient() as any;
+  const { error } = await supabase.storage
+    .from("questoes")
+    .upload(path, file, { contentType: file.type, upsert: false });
+
+  if (error) return { error: error.message };
+
+  const { data } = supabase.storage.from("questoes").getPublicUrl(path);
+  return { url: data.publicUrl };
+}
+
 function parseBlocos(raw: string): unknown | null {
   if (!raw) return null;
   try {
@@ -256,6 +280,7 @@ export async function salvarSolucao(
   const questao_id = formData.get("questao_id") as string;
   const texto = ((formData.get("texto") as string) ?? "").trim() || null;
   const video_url = ((formData.get("video_url") as string) ?? "").trim() || null;
+  const imagem_url = ((formData.get("imagem_url") as string) ?? "").trim() || null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createAdminClient() as any;
@@ -264,7 +289,7 @@ export async function salvarSolucao(
 
   const { error } = await supabase
     .from("solucao")
-    .upsert({ questao_id, texto }, { onConflict: "questao_id" });
+    .upsert({ questao_id, texto, imagem_url }, { onConflict: "questao_id" });
 
   if (error) return { error: error.message };
   revalidatePath(`/academico/banco-questoes/${questao_id}`);

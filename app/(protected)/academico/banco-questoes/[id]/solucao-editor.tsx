@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { salvarSolucao } from "../actions";
+import { useActionState, useState, useTransition, useRef } from "react";
+import { salvarSolucao, uploadSolucaoImagem } from "../actions";
 import { inputClass } from "@/components/ui/form-field";
 import type { Solucao } from "@/lib/types/database";
 
@@ -9,16 +9,40 @@ export function SolucaoEditor({
   questaoId,
   solucao,
   videoUrl,
+  imagemUrl: initialImagemUrl,
 }: {
   questaoId: string;
   solucao?: Solucao | null;
   videoUrl?: string | null;
+  imagemUrl?: string | null;
 }) {
   const [state, action, isPending] = useActionState(salvarSolucao, null);
+  const [imagemUrl, setImagemUrl] = useState<string | null>(initialImagemUrl ?? null);
+  const [isUploading, startUploadTransition] = useTransition();
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError(null);
+    const fd = new FormData();
+    fd.append("file", file);
+    startUploadTransition(async () => {
+      const result = await uploadSolucaoImagem(fd);
+      if ("url" in result) {
+        setImagemUrl(result.url);
+      } else {
+        setUploadError(result.error);
+      }
+    });
+    e.target.value = "";
+  };
 
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="questao_id" value={questaoId} />
+      <input type="hidden" name="imagem_url" value={imagemUrl ?? ""} />
 
       {state && "error" in state && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
@@ -42,6 +66,51 @@ export function SolucaoEditor({
           placeholder="Digite a resolução completa da questão…"
           className={inputClass}
         />
+      </div>
+
+      {/* Imagem da resolução */}
+      <div className="space-y-2">
+        <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Imagem da resolução
+        </label>
+
+        {imagemUrl && (
+          <div className="relative inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imagemUrl}
+              alt="Resolução"
+              className="max-h-48 rounded-lg border border-border object-contain"
+              style={{ maxWidth: "480px" }}
+            />
+            <button
+              type="button"
+              onClick={() => setImagemUrl(null)}
+              className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border border-red-500/50 bg-card text-[10px] text-red-400 hover:text-red-300"
+              title="Remover imagem"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {isUploading && <p className="text-xs text-muted-foreground">Enviando imagem…</p>}
+        {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
+
+        <label
+          className={`inline-flex cursor-pointer rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors ${
+            isUploading ? "pointer-events-none opacity-50" : "hover:text-foreground"
+          }`}
+        >
+          {imagemUrl ? "Trocar imagem" : "+ Imagem"}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageSelect}
+          />
+        </label>
       </div>
 
       <div className="space-y-1.5">
