@@ -338,6 +338,14 @@ export function TreinoClient({
           >
             {mostrarGabarito ? "Fechar gabarito" : "Gabarito"}
           </button>
+          {!respondido && (
+            <button
+              onClick={() => setIdx((i) => i + 1)}
+              className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+            >
+              Pular →
+            </button>
+          )}
           {respondido && (
             <button
               onClick={() => setIdx((i) => i + 1)}
