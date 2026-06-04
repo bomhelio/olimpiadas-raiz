@@ -20,6 +20,7 @@ export type AulaCompleta = {
   id: string;
   titulo: string;
   tipo: string;
+  modalidade_online: "ao_vivo" | "gravada" | null;
   data_hora: string | null;
   duracao_minutos: number | null;
   link_aula: string | null;
@@ -30,6 +31,33 @@ export type AulaCompleta = {
   questoes: Questao[];
   primeiraAlt: Alternativa[];
 };
+
+function TipoBadgeAluno({ tipo, modalidade }: { tipo: string; modalidade: string | null }) {
+  if (tipo === "presencial")
+    return (
+      <span className="shrink-0 rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-400">
+        Presencial
+      </span>
+    );
+  if (tipo === "simulado")
+    return (
+      <span className="shrink-0 rounded-full bg-indigo-400/10 px-2 py-0.5 text-[10px] font-semibold text-indigo-400">
+        Simulado
+      </span>
+    );
+  if (tipo === "online" && modalidade === "ao_vivo")
+    return (
+      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-semibold text-red-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-red-400" />Ao vivo
+      </span>
+    );
+  // online gravada (default)
+  return (
+    <span className="shrink-0 rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-400">
+      Gravada
+    </span>
+  );
+}
 
 function tipoIcon(tipo: string) {
   if (tipo === "online")
@@ -108,9 +136,7 @@ export function ProjetoPageClient({
               onClick={() => setExpandida(aberta ? null : aula.id)}
               className="group flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-white/[0.03]"
             >
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                {tipoIcon(aula.tipo)}
-              </div>
+              <TipoBadgeAluno tipo={aula.tipo} modalidade={aula.modalidade_online} />
               <div className="flex-1 min-w-0">
                 <p className="truncate text-sm font-medium text-foreground">
                   <span className="mr-2 text-muted-foreground">{idx + 1}.</span>

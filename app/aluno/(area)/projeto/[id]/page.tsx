@@ -79,6 +79,7 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
         id: aula.id,
         titulo: aula.titulo,
         tipo: aula.tipo,
+        modalidade_online: aula.modalidade_online ?? null,
         data_hora: aula.data_hora,
         duracao_minutos: aula.duracao_minutos,
         link_aula: aula.link_aula,
