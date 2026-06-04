@@ -105,6 +105,7 @@ export default async function BancoQuestoesPage({
                 <th className="px-4 py-3 text-left font-semibold">Ano</th>
                 <th className="px-4 py-3 text-left font-semibold">Nº</th>
                 <th className="px-4 py-3 text-left font-semibold">Tópico</th>
+                <th className="px-4 py-3 text-left font-semibold">Subtópico</th>
                 <th className="px-4 py-3 text-left font-semibold">Status</th>
                 <th className="px-4 py-3"></th>
               </tr>
@@ -120,6 +121,7 @@ export default async function BancoQuestoesPage({
                   <td className="px-4 py-3">{q.ano}</td>
                   <td className="px-4 py-3">{q.numero}</td>
                   <td className="px-4 py-3 text-muted-foreground">{q.topico ?? q.assunto ?? "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{q.subtopico ?? "—"}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${q.ativo ? "bg-emerald-500/10 text-emerald-400" : "bg-zinc-500/10 text-zinc-400"}`}
