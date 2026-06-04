@@ -107,13 +107,20 @@ function PencilIcon() {
 
 // ─── Badge tipo aula ─────────────────────────────────────────────────────────
 
-function TipoBadge({ tipo }: { tipo: string }) {
-  if (tipo === "online")
+function TipoBadge({ tipo, modalidade }: { tipo: string; modalidade?: string | null }) {
+  if (tipo === "online") {
+    if (modalidade === "ao_vivo")
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-red-400" />Ao vivo
+        </span>
+      );
     return (
       <span className="rounded-full bg-sky-400/10 px-2 py-0.5 text-[11px] font-medium text-sky-400">
-        Online
+        Gravada
       </span>
     );
+  }
   if (tipo === "presencial")
     return (
       <span className="rounded-full bg-violet-400/10 px-2 py-0.5 text-[11px] font-medium text-violet-400">
@@ -281,18 +288,23 @@ function NovaAulaForm({ projetoId, onClose }: { projetoId: string; onClose: () =
           <div className="mt-1 flex gap-3">
             {(["online", "presencial"] as const).map((t) => (
               <label key={t} className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="tipo"
-                  value={t}
-                  checked={tipo === t}
-                  onChange={() => setTipo(t)}
-                  className="accent-[rgb(91,184,193)]"
-                />
-                <span className="text-sm text-foreground capitalize">{t}</span>
+                <input type="radio" name="tipo" value={t} checked={tipo === t}
+                  onChange={() => setTipo(t)} className="accent-[rgb(91,184,193)]" />
+                <span className="text-sm text-foreground">{t === "online" ? "Online" : "Presencial"}</span>
               </label>
             ))}
           </div>
+          {tipo === "online" && (
+            <div className="mt-2 flex gap-4 pl-1">
+              {(["gravada", "ao_vivo"] as const).map((m) => (
+                <label key={m} className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="radio" name="modalidade_online" value={m} defaultChecked={m === "gravada"}
+                    className="accent-[rgb(91,184,193)]" />
+                  <span className="text-xs text-muted-foreground">{m === "gravada" ? "Gravada" : "Ao vivo"}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <label className="text-xs font-medium text-muted-foreground">Data e hora</label>
@@ -695,18 +707,24 @@ function EditarAulaForm({ aula, onClose }: { aula: Aula; onClose: () => void }) 
           <div className="mt-1 flex gap-3">
             {(["online", "presencial"] as const).map((t) => (
               <label key={t} className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="tipo"
-                  value={t}
-                  checked={tipo === t}
-                  onChange={() => setTipo(t)}
-                  className="accent-[rgb(91,184,193)]"
-                />
-                <span className="text-sm text-foreground capitalize">{t}</span>
+                <input type="radio" name="tipo" value={t} checked={tipo === t}
+                  onChange={() => setTipo(t)} className="accent-[rgb(91,184,193)]" />
+                <span className="text-sm text-foreground">{t === "online" ? "Online" : "Presencial"}</span>
               </label>
             ))}
           </div>
+          {tipo === "online" && (
+            <div className="mt-2 flex gap-4 pl-1">
+              {(["gravada", "ao_vivo"] as const).map((m) => (
+                <label key={m} className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="radio" name="modalidade_online" value={m}
+                    defaultChecked={(aula.modalidade_online ?? "gravada") === m}
+                    className="accent-[rgb(91,184,193)]" />
+                  <span className="text-xs text-muted-foreground">{m === "gravada" ? "Gravada" : "Ao vivo"}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <label className="text-xs font-medium text-muted-foreground">Data e hora</label>
@@ -823,7 +841,7 @@ function AulaCard({ aula }: { aula: Aula }) {
   return (
     <div className="rounded-lg border border-border bg-card">
       <div className="flex items-center gap-3 px-4 py-3">
-        <TipoBadge tipo={aula.tipo} />
+        <TipoBadge tipo={aula.tipo} modalidade={aula.modalidade_online} />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground">{aula.titulo}</p>
           <p className="text-xs text-muted-foreground">

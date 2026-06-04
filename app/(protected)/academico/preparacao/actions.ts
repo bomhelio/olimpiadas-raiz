@@ -138,9 +138,13 @@ export async function criarAula(
   const polos = (formData.get("polos") as string)?.trim() || null;
   const descricao = (formData.get("descricao") as string)?.trim() || null;
 
+  const modalidade_online = tipoRaw === "online"
+    ? ((formData.get("modalidade_online") as string) || "gravada") as "ao_vivo" | "gravada"
+    : null;
+
   if (!titulo) return { error: "Título é obrigatório" };
-  if (!["online", "presencial", "simulado"].includes(tipoRaw)) return { error: "Tipo inválido" };
-  const tipo = tipoRaw as "online" | "presencial" | "simulado";
+  if (!["online", "presencial", "simulado", "modulo"].includes(tipoRaw)) return { error: "Tipo inválido" };
+  const tipo = tipoRaw as "online" | "presencial" | "simulado" | "modulo";
 
   const supabase = createAdminClient();
 
@@ -154,13 +158,14 @@ export async function criarAula(
     projeto_id: projetoId,
     titulo,
     tipo,
+    modalidade_online,
     data_hora: dataHora,
     duracao_minutos: duracao,
     link_aula: link,
     polos,
     descricao,
     ordem: (count ?? 0) + 1,
-  });
+  } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
   if (error) return { error: error.message };
   revalidatePath(PATH);
@@ -183,9 +188,13 @@ export async function atualizarAula(
   const polos = (formData.get("polos") as string)?.trim() || null;
   const descricao = (formData.get("descricao") as string)?.trim() || null;
 
+  const modalidade_online_upd = tipoRaw === "online"
+    ? ((formData.get("modalidade_online") as string) || "gravada") as "ao_vivo" | "gravada"
+    : null;
+
   if (!titulo) return { error: "Título é obrigatório" };
-  if (!["online", "presencial", "simulado"].includes(tipoRaw)) return { error: "Tipo inválido" };
-  const tipo = tipoRaw as "online" | "presencial" | "simulado";
+  if (!["online", "presencial", "simulado", "modulo"].includes(tipoRaw)) return { error: "Tipo inválido" };
+  const tipo = tipoRaw as "online" | "presencial" | "simulado" | "modulo";
 
   const supabase = createAdminClient();
   const { error } = await supabase
@@ -193,12 +202,13 @@ export async function atualizarAula(
     .update({
       titulo,
       tipo,
+      modalidade_online: modalidade_online_upd,
       data_hora: dataHora,
       duracao_minutos: duracao,
       link_aula: link,
       polos,
       descricao,
-    })
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     .eq("id", id);
 
   if (error) return { error: error.message };
@@ -301,6 +311,7 @@ export type Aula = {
   projeto_id: string;
   titulo: string;
   tipo: string;
+  modalidade_online: "ao_vivo" | "gravada" | null;
   data_hora: string | null;
   duracao_minutos: number | null;
   link_aula: string | null;
