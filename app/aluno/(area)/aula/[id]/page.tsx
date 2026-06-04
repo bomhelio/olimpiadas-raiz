@@ -189,6 +189,8 @@ export default async function AulaPage({ params }: { params: Promise<{ id: strin
             numeracaoSequencial
             completionUrl={projeto ? `/aluno/projeto/${projeto.id}` : "/aluno/dashboard"}
             completionLabel="Voltar ao projeto"
+            contexto={(aula as any).tipo === "simulado" ? "simulado" : "aula"}
+            aulaId={id}
           />
         </div>
       )}

@@ -24,12 +24,16 @@ export function TreinoClient({
   numeracaoSequencial = false,
   completionUrl,
   completionLabel,
+  contexto = "banco",
+  aulaId,
 }: {
   questoes: Questao[];
   primeiraAlt: Alternativa[];
   numeracaoSequencial?: boolean;
   completionUrl?: string;
   completionLabel?: string;
+  contexto?: "banco" | "aula" | "simulado";
+  aulaId?: string;
 }) {
   const [idx, setIdx] = useState(0);
   const total = questoes.length;
@@ -394,6 +398,8 @@ export function TreinoClient({
                     <form action={action}>
                       <input type="hidden" name="questao_id" value={questao.id} />
                       <input type="hidden" name="alternativa_id" value={alt.id} />
+                      <input type="hidden" name="contexto" value={contexto} />
+                      {aulaId && <input type="hidden" name="aula_id" value={aulaId} />}
                       <button
                         type="submit"
                         disabled={respondido || isPending}

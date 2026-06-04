@@ -183,6 +183,8 @@ export function ProjetoPageClient({
                           numeracaoSequencial
                           completionUrl={`/aluno/projeto/${projetoId}`}
                           completionLabel="Fechar"
+                          contexto={aula.tipo === "simulado" ? "simulado" : "aula"}
+                          aulaId={aula.id}
                         />
                       </div>
                     )}

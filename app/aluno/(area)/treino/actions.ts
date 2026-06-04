@@ -79,6 +79,8 @@ export async function responderQuestao(
 
   const questao_id = formData.get("questao_id") as string;
   const alternativa_id = formData.get("alternativa_id") as string;
+  const contexto = (formData.get("contexto") as string) || "banco";
+  const aula_id = (formData.get("aula_id") as string) || null;
 
   if (!questao_id || !alternativa_id) return { error: "Dados inválidos" };
 
@@ -103,12 +105,14 @@ export async function responderQuestao(
     .eq("correta", true)
     .single();
 
-  // Registra resposta
+  // Registra resposta com contexto
   await admin.from("resposta_aluno").insert({
     aluno_id: session.aluno.id,
     questao_id,
     alternativa_id,
     correta,
+    contexto,
+    aula_id,
   });
 
   return { correta, alternativa_correta_id: altCorreta?.id ?? null, questao_id };
@@ -131,63 +135,111 @@ export async function getSolucaoQuestao(questaoId: string) {
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 
+function deduplicarPorQuestao(raw: any[]) {
+  const visto = new Set<string>();
+  return raw.filter((r: any) => {
+    const key = `${r.questao_id}-${r.contexto ?? "banco"}-${r.aula_id ?? ""}`;
+    if (visto.has(key)) return false;
+    visto.add(key);
+    return true;
+  });
+}
+
+function agruparPorTopico(items: any[]) {
+  const mapa: Record<string, { total: number; acertos: number }> = {};
+  for (const r of items) {
+    const key = r.questao?.topico ?? r.questao?.assunto ?? "Sem tópico";
+    if (!mapa[key]) mapa[key] = { total: 0, acertos: 0 };
+    mapa[key].total++;
+    if (r.correta) mapa[key].acertos++;
+  }
+  return Object.entries(mapa)
+    .map(([topico, v]) => ({ topico, ...v, erros: v.total - v.acertos }))
+    .sort((a, b) => a.acertos / a.total - b.acertos / b.total);
+}
+
 export async function getDashboardAluno() {
   const session = await getStudentSession();
-  if (!session) return { por_olimpiada: [], por_assunto: [], total: 0, acertos: 0 };
+  if (!session) {
+    return { banco: null, aulas: null, simulados: null, total_geral: 0, acertos_geral: 0 };
+  }
 
   const admin = createAdminClient() as any;
 
   const { data: raw } = await admin
     .from("resposta_aluno")
-    .select("questao_id, correta, questao:questao_id(olimpiada, nivel, assunto)")
+    .select(
+      "questao_id, correta, contexto, aula_id, respondido_em, questao:questao_id(olimpiada, nivel, topico, assunto)",
+    )
     .eq("aluno_id", session.aluno.id)
     .order("respondido_em", { ascending: false });
 
-  // Deduplica: conta apenas a última tentativa por questão
-  const visto = new Set<string>();
-  const deduped = (raw ?? []).filter((r: any) => {
-    const key = r.questao_id as string;
-    if (visto.has(key)) return false;
-    visto.add(key);
-    return true;
-  });
+  const todas = deduplicarPorQuestao(raw ?? []);
 
-  const total = deduped.length;
-  const acertos = deduped.filter((r: any) => r.correta).length;
+  // ── Banco de Questões (livre) ──────────────────────────────────────────────
+  const doBanco = todas.filter((r: any) => (r.contexto ?? "banco") === "banco");
+  const bancoPorTopico = agruparPorTopico(doBanco);
 
-  // Agrega por olimpíada
-  const mapaOlimpiada: Record<string, { total: number; acertos: number }> = {};
-  for (const r of deduped) {
-    const key = r.questao?.olimpiada ?? "?";
-    if (!mapaOlimpiada[key]) mapaOlimpiada[key] = { total: 0, acertos: 0 };
-    mapaOlimpiada[key].total++;
-    if (r.correta) mapaOlimpiada[key].acertos++;
+  // ── Aulas ──────────────────────────────────────────────────────────────────
+  const deAulas = todas.filter((r: any) => r.contexto === "aula");
+
+  // ── Simulados ──────────────────────────────────────────────────────────────
+  const deSimulados = todas.filter((r: any) => r.contexto === "simulado");
+
+  // Busca nomes das aulas/simulados
+  const aulaIds = [...new Set([
+    ...deAulas.map((r: any) => r.aula_id),
+    ...deSimulados.map((r: any) => r.aula_id),
+  ].filter(Boolean))];
+
+  let aulasMeta: Record<string, { titulo: string; tipo: string }> = {};
+  if (aulaIds.length > 0) {
+    const { data: aulasData } = await admin
+      .from("preparacao_aula")
+      .select("id, titulo, tipo")
+      .in("id", aulaIds);
+    for (const a of aulasData ?? []) {
+      aulasMeta[a.id] = { titulo: a.titulo, tipo: a.tipo };
+    }
   }
 
-  // Agrega por assunto — base para o aluno guiar os estudos
-  const mapaAssunto: Record<string, { total: number; acertos: number }> = {};
-  for (const r of deduped) {
-    const key = r.questao?.assunto ?? "Sem assunto";
-    if (!mapaAssunto[key]) mapaAssunto[key] = { total: 0, acertos: 0 };
-    mapaAssunto[key].total++;
-    if (r.correta) mapaAssunto[key].acertos++;
+  function agruparPorAula(items: any[]) {
+    const mapa: Record<string, { aula_id: string; titulo: string; total: number; acertos: number }> = {};
+    for (const r of items) {
+      const key = r.aula_id ?? "desconhecida";
+      if (!mapa[key]) mapa[key] = {
+        aula_id: key,
+        titulo: aulasMeta[key]?.titulo ?? "Aula desconhecida",
+        total: 0,
+        acertos: 0,
+      };
+      mapa[key].total++;
+      if (r.correta) mapa[key].acertos++;
+    }
+    return Object.values(mapa).sort((a, b) => a.acertos / a.total - b.acertos / b.total);
   }
 
-  // Ordena por % de acerto crescente (assuntos mais fracos primeiro)
-  const por_assunto = Object.entries(mapaAssunto)
-    .map(([assunto, v]) => ({
-      assunto,
-      total: v.total,
-      acertos: v.acertos,
-      erros: v.total - v.acertos,
-    }))
-    .sort((a, b) => a.acertos / a.total - b.acertos / b.total);
+  const total_geral = todas.length;
+  const acertos_geral = todas.filter((r: any) => r.correta).length;
 
   return {
-    total,
-    acertos,
-    por_olimpiada: Object.entries(mapaOlimpiada).map(([olimpiada, v]) => ({ olimpiada, ...v })),
-    por_assunto,
+    total_geral,
+    acertos_geral,
+    banco: {
+      total: doBanco.length,
+      acertos: doBanco.filter((r: any) => r.correta).length,
+      por_topico: bancoPorTopico,
+    },
+    aulas: {
+      total: deAulas.length,
+      acertos: deAulas.filter((r: any) => r.correta).length,
+      por_aula: agruparPorAula(deAulas),
+    },
+    simulados: {
+      total: deSimulados.length,
+      acertos: deSimulados.filter((r: any) => r.correta).length,
+      por_simulado: agruparPorAula(deSimulados),
+    },
   };
 }
 
@@ -199,7 +251,7 @@ export async function getUltimasErradas(limit = 10) {
   const { data } = await admin
     .from("resposta_aluno")
     .select(
-      "questao_id, respondido_em, questao:questao_id(olimpiada, nivel, fase, ano, numero, assunto)",
+      "questao_id, respondido_em, questao:questao_id(olimpiada, nivel, fase, ano, numero, assunto, topico)",
     )
     .eq("aluno_id", session.aluno.id)
     .eq("correta", false)
