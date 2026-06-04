@@ -157,7 +157,7 @@ export function ProjetoPageClient({
                       className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
                     >
                       <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                        Questões desta aula ({aula.questoes.length})
+                        Lista de questões
                       </span>
                       <svg
                         className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${questoesAbertas.has(aula.id) ? "rotate-90" : ""}`}
