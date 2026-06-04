@@ -6,6 +6,7 @@ import Link from "next/link";
 const cls = "rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground";
 
 interface TreinoFiltrosProps {
+  olimpiadas: string[];
   topicos: string[];
   subtopicosMap: Record<string, string[]>;
   defaults: {
@@ -19,7 +20,12 @@ interface TreinoFiltrosProps {
   };
 }
 
-export function TreinoFiltros({ topicos, subtopicosMap, defaults }: TreinoFiltrosProps) {
+export function TreinoFiltros({
+  olimpiadas,
+  topicos,
+  subtopicosMap,
+  defaults,
+}: TreinoFiltrosProps) {
   const [topicoSel, setTopicoSel] = useState(defaults.topico ?? "");
   const [subtopico, setSubtopico] = useState(defaults.subtopico ?? "");
 
@@ -45,8 +51,11 @@ export function TreinoFiltros({ topicos, subtopicosMap, defaults }: TreinoFiltro
           className={`${cls} min-w-[120px]`}
         >
           <option value="">Todas</option>
-          <option value="obmep">OBMEP</option>
-          <option value="obmep_mirim">OBMEP Mirim</option>
+          {olimpiadas.map((o) => (
+            <option key={o} value={o}>
+              {o.toUpperCase().replace(/_/g, " ")}
+            </option>
+          ))}
         </select>
       </div>
 

@@ -10,19 +10,25 @@ export async function getTopicosDisponiveis() {
   const admin = createAdminClient() as any;
   const { data } = await admin
     .from("questao")
-    .select("topico, subtopico")
-    .eq("ativo", true)
-    .not("topico", "is", null);
-  const rows: { topico: string; subtopico: string | null }[] = data ?? [];
-  const topicos = [...new Set(rows.map((r) => r.topico).filter(Boolean))].sort();
+    .select("olimpiada, topico, subtopico")
+    .eq("ativo", true);
+  const rows: { olimpiada: string | null; topico: string | null; subtopico: string | null }[] =
+    data ?? [];
+
+  const olimpiadas = [...new Set(rows.map((r) => r.olimpiada).filter(Boolean))].sort() as string[];
+
+  const topicoRows = rows.filter((r) => r.topico);
+  const topicos = [...new Set(topicoRows.map((r) => r.topico).filter(Boolean))].sort() as string[];
+
   const subtopicosMap: Record<string, string[]> = {};
-  for (const r of rows) {
+  for (const r of topicoRows) {
     if (!r.topico || !r.subtopico) continue;
     const bucket = subtopicosMap[r.topico] ?? (subtopicosMap[r.topico] = []);
     if (!bucket.includes(r.subtopico)) bucket.push(r.subtopico);
   }
   for (const t of topicos) subtopicosMap[t]?.sort();
-  return { topicos, subtopicosMap };
+
+  return { olimpiadas, topicos, subtopicosMap };
 }
 
 export async function getQuestoesTreino(filtros: {

@@ -21,7 +21,7 @@ export default async function TreinoPage({
   if (!session) redirect("/aluno/login");
 
   const sp = await searchParams;
-  const [questoes, { topicos, subtopicosMap }] = await Promise.all([
+  const [questoes, { olimpiadas, topicos, subtopicosMap }] = await Promise.all([
     getQuestoesTreino({
       olimpiada: sp.olimpiada,
       nivel: sp.nivel,
@@ -39,7 +39,12 @@ export default async function TreinoPage({
 
   return (
     <div>
-      <TreinoFiltros topicos={topicos} subtopicosMap={subtopicosMap} defaults={sp} />
+      <TreinoFiltros
+        olimpiadas={olimpiadas}
+        topicos={topicos}
+        subtopicosMap={subtopicosMap}
+        defaults={sp}
+      />
 
       {questoes.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground">
