@@ -182,9 +182,9 @@ export function TreinoClient({
           <span className="inline-flex items-center rounded-full border border-border bg-card px-2.5 py-0.5 text-[11px] text-muted-foreground">
             {questao.ano}
           </span>
-          {questao.assunto && (
+          {((questao as any).topico ?? questao.assunto) && (
             <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-400">
-              {questao.assunto}
+              {(questao as any).topico ?? questao.assunto}
             </span>
           )}
         </div>

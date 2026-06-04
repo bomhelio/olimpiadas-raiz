@@ -106,16 +106,31 @@ export function QuestaoEditForm({ questao }: { questao: Questao }) {
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Assunto
-        </label>
-        <input
-          name="assunto"
-          type="text"
-          defaultValue={questao.assunto ?? ""}
-          className={inputClass}
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Tópico
+          </label>
+          <input
+            name="topico"
+            type="text"
+            defaultValue={(questao as any).topico ?? questao.assunto ?? ""}
+            placeholder="ex: Geometria, Aritmética…"
+            className={inputClass}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Subtópico
+          </label>
+          <input
+            name="subtopico"
+            type="text"
+            defaultValue={(questao as any).subtopico ?? ""}
+            placeholder="ex: Triângulos, Frações…"
+            className={inputClass}
+          />
+        </div>
       </div>
 
       <div className="space-y-1.5">

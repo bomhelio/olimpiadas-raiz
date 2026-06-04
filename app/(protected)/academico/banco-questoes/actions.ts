@@ -34,7 +34,7 @@ export async function getQuestoes(filtros?: {
 
   let query = supabase
     .from("questao")
-    .select("id, olimpiada, nivel, fase, ano, numero, assunto, tipo, ativo, criado_em")
+    .select("id, olimpiada, nivel, fase, ano, numero, assunto, topico, subtopico, tipo, ativo, criado_em")
     .order("olimpiada")
     .order("fase")
     .order("ano")
@@ -160,17 +160,15 @@ export async function criarQuestao(_prev: QuestaoState, formData: FormData): Pro
   const numero = Number(formData.get("numero"));
   const enunciado = ((formData.get("enunciado") as string) ?? "").trim();
   const enunciado_blocos = parseBlocos((formData.get("enunciado_blocos") as string) ?? "");
-  const assunto = ((formData.get("assunto") as string) ?? "").trim() || null;
+  const topico = ((formData.get("topico") as string) ?? "").trim() || null;
+  const subtopico = ((formData.get("subtopico") as string) ?? "").trim() || null;
   const tipo = (formData.get("tipo") as TipoQuestao) || "multipla_escolha";
-
-  if (!olimpiada || !fase || !ano || !numero || !enunciado)
-    return { error: "Preencha todos os campos obrigatórios." };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createAdminClient() as any;
   const { data, error } = await supabase
     .from("questao")
-    .insert({ olimpiada, nivel, fase, ano, numero, enunciado, enunciado_blocos, assunto, tipo })
+    .insert({ olimpiada, nivel, fase, ano, numero, enunciado, enunciado_blocos, topico, subtopico, tipo })
     .select("id")
     .single();
 
@@ -202,7 +200,8 @@ export async function atualizarQuestao(
       enunciado: ((formData.get("enunciado") as string) ?? "").trim(),
       enunciado_blocos,
       imagem_url: null, // limpa campo legado ao salvar com editor de blocos
-      assunto: ((formData.get("assunto") as string) ?? "").trim() || null,
+      topico: ((formData.get("topico") as string) ?? "").trim() || null,
+      subtopico: ((formData.get("subtopico") as string) ?? "").trim() || null,
       tipo: formData.get("tipo"),
     })
     .eq("id", id);

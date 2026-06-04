@@ -114,14 +114,24 @@ export default function NovaBancoQuestaoPage() {
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-foreground">Assunto</label>
+            <label className="block text-sm font-medium text-foreground">Tópico</label>
             <input
-              name="assunto"
+              name="topico"
               type="text"
               placeholder="ex: Geometria, Aritmética…"
               className={inputClass}
             />
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-foreground">Subtópico</label>
+          <input
+            name="subtopico"
+            type="text"
+            placeholder="ex: Triângulos, Frações…"
+            className={inputClass}
+          />
         </div>
 
         <div className="space-y-1.5">

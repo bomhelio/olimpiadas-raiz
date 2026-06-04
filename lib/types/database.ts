@@ -671,6 +671,8 @@ export type Database = {
           enunciado_blocos: Json | null;
           imagem_url: string | null;
           assunto: string | null;
+          topico: string | null;
+          subtopico: string | null;
           tipo: TipoQuestao;
           ativo: boolean;
           video_url: string | null;
@@ -687,6 +689,8 @@ export type Database = {
           enunciado_blocos?: Json | null;
           imagem_url?: string | null;
           assunto?: string | null;
+          topico?: string | null;
+          subtopico?: string | null;
           tipo?: TipoQuestao;
           ativo?: boolean;
           video_url?: string | null;
@@ -703,6 +707,8 @@ export type Database = {
           enunciado_blocos?: Json | null;
           imagem_url?: string | null;
           assunto?: string | null;
+          topico?: string | null;
+          subtopico?: string | null;
           tipo?: TipoQuestao;
           ativo?: boolean;
           video_url?: string | null;
