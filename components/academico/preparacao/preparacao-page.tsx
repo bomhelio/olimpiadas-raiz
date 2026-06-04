@@ -1304,11 +1304,20 @@ function ProjetoCard({ projeto }: { projeto: Projeto }) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground">{projeto.nome}</p>
           <p className="text-[11px] text-muted-foreground/70">
-            {projeto.ano_letivo} · {projeto.aulas.length} aula
-            {projeto.aulas.length !== 1 ? "s" : ""}
-            {(projeto.series_elegiveis ?? []).length > 0 && (
-              <span className="ml-1">· {(projeto.series_elegiveis ?? []).join(", ")}</span>
-            )}
+            {(() => {
+              const aulaCount = projeto.aulas.filter((a) => a.tipo !== "simulado").length;
+              const simCount  = projeto.aulas.filter((a) => a.tipo === "simulado").length;
+              const series    = projeto.series_elegiveis ?? [];
+              const segmentos = Object.entries(SERIES_POR_SEGMENTO)
+                .filter(([, s]) => s.some((v) => series.includes(v)))
+                .map(([seg]) => seg);
+              const parts: string[] = [String(projeto.ano_letivo)];
+              if (segmentos.length > 0) parts.push(segmentos.join(" · "));
+              else if (series.length > 0) parts.push(series.join(", "));
+              if (aulaCount > 0) parts.push(`${aulaCount} aula${aulaCount !== 1 ? "s" : ""}`);
+              if (simCount  > 0) parts.push(`${simCount} simulado${simCount !== 1 ? "s" : ""}`);
+              return parts.join(" · ");
+            })()}
           </p>
         </div>
         <button
