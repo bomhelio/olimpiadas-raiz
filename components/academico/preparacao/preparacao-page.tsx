@@ -114,6 +114,12 @@ function TipoBadge({ tipo }: { tipo: string }) {
         Presencial
       </span>
     );
+  if (tipo === "modulo")
+    return (
+      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+        Módulo
+      </span>
+    );
   return (
     <span className="rounded-full bg-indigo-400/10 px-2 py-0.5 text-[11px] font-medium text-indigo-400">
       Simulado
@@ -349,6 +355,53 @@ function NovaAulaForm({ projetoId, onClose }: { projetoId: string; onClose: () =
           onClick={onClose}
           className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// ─── Formulário de módulo online ──────────────────────────────────────────────
+
+function NovoModuloOnlineForm({ projetoId, onClose }: { projetoId: string; onClose: () => void }) {
+  const bound = criarAula.bind(null, projetoId);
+  const [state, formAction, isPending] = useActionState(bound, null);
+  if (state && "ok" in state) onClose();
+
+  return (
+    <form
+      action={formAction}
+      className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5 space-y-4"
+    >
+      <p className="text-xs font-bold uppercase tracking-wider text-emerald-400">Módulo online</p>
+      <input type="hidden" name="tipo" value="modulo" />
+
+      {state && "error" in state && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {state.error}
+        </div>
+      )}
+
+      <div className="space-y-1.5">
+        <label className="block text-xs font-medium text-foreground">Título *</label>
+        <input name="titulo" type="text" required placeholder="Ex: Lista de exercícios — Aritmética"
+          className={inputClass} />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="block text-xs font-medium text-foreground">Descrição</label>
+        <textarea name="descricao" rows={2} placeholder="Instruções ou contexto do módulo…"
+          className={inputClass} />
+      </div>
+
+      <div className="flex gap-2">
+        <button type="submit" disabled={isPending}
+          className="rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-50 bg-emerald-500 text-white">
+          {isPending ? "Salvando…" : "Criar módulo"}
+        </button>
+        <button type="button" onClick={onClose}
+          className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
           Cancelar
         </button>
       </div>
@@ -1210,6 +1263,7 @@ function ProjetoCard({ projeto }: { projeto: Projeto }) {
   const [editing, setEditing] = useState(false);
   const [showAulaForm, setShowAulaForm] = useState(false);
   const [showSimuladoForm, setShowSimuladoForm] = useState(false);
+  const [showModuloForm, setShowModuloForm] = useState(false);
   const [deleting, startDelete] = useTransition();
   const [publishing, startPublish] = useTransition();
 
@@ -1336,19 +1390,16 @@ function ProjetoCard({ projeto }: { projeto: Projeto }) {
             <NovaAulaForm projetoId={projeto.id} onClose={() => setShowAulaForm(false)} />
           ) : showSimuladoForm ? (
             <NovoSimuladoForm projetoId={projeto.id} onClose={() => setShowSimuladoForm(false)} />
+          ) : showModuloForm ? (
+            <NovoModuloOnlineForm projetoId={projeto.id} onClose={() => setShowModuloForm(false)} />
           ) : (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setShowAulaForm(true)}
                 className="flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground hover:border-ring hover:text-foreground transition-colors"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="h-4 w-4"
-                >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                   <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
                 </svg>
                 Adicionar aula
@@ -1358,15 +1409,20 @@ function ProjetoCard({ projeto }: { projeto: Projeto }) {
                 onClick={() => setShowSimuladoForm(true)}
                 className="flex items-center gap-1.5 rounded-lg border border-dashed border-indigo-400/30 px-3 py-2 text-xs text-indigo-400/70 hover:border-indigo-400 hover:text-indigo-400 transition-colors"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="h-4 w-4"
-                >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                   <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
                 </svg>
                 Adicionar simulado
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowModuloForm(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-dashed border-emerald-500/30 px-3 py-2 text-xs text-emerald-500/70 hover:border-emerald-500 hover:text-emerald-500 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                </svg>
+                Módulo online
               </button>
             </div>
           )}
