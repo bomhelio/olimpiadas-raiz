@@ -31,7 +31,7 @@ export default async function BancoQuestoesPage({
     <div>
       <PageHeader
         title="Banco de Questões"
-        description="OBMEP · Questões de múltipla escolha e abertas"
+        description={undefined}
         action={
           can(session.user.role, "questao:create")
             ? { label: "Nova Questão", href: "/academico/banco-questoes/nova" }
@@ -46,7 +46,7 @@ export default async function BancoQuestoesPage({
           defaultValue={sp.olimpiada ?? ""}
           className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
         >
-          <option value="">Todas as olimpíadas</option>
+          <option value="">Origem</option>
           <option value="obmep">OBMEP</option>
           <option value="obmep_mirim">OBMEP Mirim</option>
         </select>
@@ -55,7 +55,7 @@ export default async function BancoQuestoesPage({
           defaultValue={sp.fase ?? ""}
           className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
         >
-          <option value="">Todas as fases</option>
+          <option value="">Fase</option>
           <option value="1">1ª Fase</option>
           <option value="2">2ª Fase</option>
         </select>
@@ -64,7 +64,7 @@ export default async function BancoQuestoesPage({
           defaultValue={sp.ano ?? ""}
           className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
         >
-          <option value="">Todos os anos</option>
+          <option value="">Ano</option>
           {Array.from({ length: 11 }, (_, i) => 2015 + i).map((a) => (
             <option key={a} value={a}>
               {a}
