@@ -107,7 +107,12 @@ function PencilIcon() {
 
 // ─── Badge tipo aula ─────────────────────────────────────────────────────────
 
-function TipoBadge({ tipo, modalidade }: { tipo: string; modalidade?: string | null }) {
+function TipoBadge({ tipo, modalidade, polos }: { tipo: string; modalidade?: string | null; polos?: string | null }) {
+  if (tipo === "simulado") {
+    return polos
+      ? <span className="rounded-full bg-violet-400/10 px-2 py-0.5 text-[11px] font-medium text-violet-400">Presencial</span>
+      : <span className="rounded-full bg-sky-400/10 px-2 py-0.5 text-[11px] font-medium text-sky-400">Online</span>;
+  }
   if (tipo === "online") {
     if (modalidade === "ao_vivo")
       return (
@@ -841,7 +846,7 @@ function AulaCard({ aula }: { aula: Aula }) {
   return (
     <div className="rounded-lg border border-border bg-card">
       <div className="flex items-center gap-3 px-4 py-3">
-        <TipoBadge tipo={aula.tipo} modalidade={aula.modalidade_online} />
+        <TipoBadge tipo={aula.tipo} modalidade={aula.modalidade_online} polos={aula.polos} />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground">{aula.titulo}</p>
           <p className="text-xs text-muted-foreground">
