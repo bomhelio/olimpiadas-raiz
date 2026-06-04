@@ -79,7 +79,12 @@ const TEAL = "rgb(91,184,193)";
 
 function toDatetimeLocal(iso: string | null): string {
   if (!iso) return "";
-  return iso.slice(0, 16);
+  // Converte o timestamp UTC para horário de Brasília antes de montar o valor do input
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(new Date(iso)).replace(" ", "T");
 }
 
 // ─── Ícone lápis ─────────────────────────────────────────────────────────────
