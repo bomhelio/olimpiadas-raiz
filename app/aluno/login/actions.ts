@@ -3,13 +3,20 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import type { Database } from "@/lib/types/database";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  ALUNO_SESSION_COOKIE,
+  ALUNO_PENDING_COOKIE,
+  signStudentCookie,
+  verifyStudentCookie,
+  cookieSessionOpts,
+  cookiePendingOpts,
+} from "@/lib/auth/student-cookie";
 
 export type LoginAlunoState = { error: string } | { needsConsent: true } | null;
 
 function makeSupabase(cookieStore: Awaited<ReturnType<typeof cookies>>) {
-  return createServerClient<Database>(
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -30,60 +37,52 @@ export async function loginAluno(
   formData: FormData,
 ): Promise<LoginAlunoState> {
   const cookieStore = await cookies();
-  const supabase = makeSupabase(cookieStore);
   const adminClient = createAdminClient();
 
-  // ── Passo 2: sessão ativa — verificar se é aluno (pode ser admin na aba) ────
-  const {
-    data: { user: existingUser },
-  } = await supabase.auth.getUser();
-
-  if (existingUser) {
-    // Usa o cliente autenticado — a policy aluno_read_own permite leitura própria
-    const { data: aluno } = await supabase
-      .from("aluno")
-      .select("id, consentimento_responsavel")
-      .eq("supabase_auth_id", existingUser.id)
-      .maybeSingle();
-
-    if (aluno) {
-      // Sessão válida de aluno — processar consentimento se necessário
-      if (!aluno.consentimento_responsavel) {
-        const nome = (formData.get("responsavel_nome") as string)?.trim();
-        const tipo = formData.get("responsavel_tipo") as string;
-        const aceito = formData.get("consentimento_aceito") === "on";
-
-        if (!nome) return { error: "Informe o nome completo do responsável." };
-        if (!tipo || !["pedagogico", "financeiro"].includes(tipo))
-          return { error: "Selecione o tipo de responsável." };
-        if (!aceito)
-          return { error: "O responsável deve aceitar os termos para liberar o acesso." };
-
-        await adminClient
-          .from("aluno")
-          .update({
-            consentimento_responsavel: true,
-            consentimento_data: new Date().toISOString(),
-            consentimento_responsavel_nome: nome,
-            consentimento_responsavel_tipo: tipo as "pedagogico" | "financeiro",
-          })
-          .eq("id", aluno.id);
-      }
-
-      redirect("/aluno/dashboard");
-    }
-
-    // Sessão não é de aluno (ex: admin com sessão ativa na mesma aba)
-    // Encerra a sessão atual e continua para o login com as credenciais digitadas
-    await supabase.auth.signOut();
+  // ── Já tem sessão própria ───────────────────────────────────────────────────
+  const existingSession = cookieStore.get(ALUNO_SESSION_COOKIE)?.value;
+  if (existingSession && verifyStudentCookie(existingSession)) {
+    redirect("/aluno/dashboard");
   }
 
-  // ── Passo 1: autenticar com e-mail e senha ──────────────────────────────────
+  // ── Reenvio do formulário de consentimento ──────────────────────────────────
+  const pendingRaw = cookieStore.get(ALUNO_PENDING_COOKIE)?.value;
+  const pendingAlunoId = pendingRaw ? verifyStudentCookie(pendingRaw) : null;
+
+  if (pendingAlunoId && formData.get("responsavel_nome")) {
+    const nome = (formData.get("responsavel_nome") as string)?.trim();
+    const tipo = formData.get("responsavel_tipo") as string;
+    const aceito = formData.get("consentimento_aceito") === "on";
+
+    if (!nome) return { error: "Informe o nome completo do responsável." };
+    if (!tipo || !["pedagogico", "financeiro"].includes(tipo))
+      return { error: "Selecione o tipo de responsável." };
+    if (!aceito)
+      return { error: "O responsável deve aceitar os termos para liberar o acesso." };
+
+    await adminClient
+      .from("aluno")
+      .update({
+        consentimento_responsavel: true,
+        consentimento_data: new Date().toISOString(),
+        consentimento_responsavel_nome: nome,
+        consentimento_responsavel_tipo: tipo as "pedagogico" | "financeiro",
+      })
+      .eq("id", pendingAlunoId);
+
+    cookieStore.delete(ALUNO_PENDING_COOKIE);
+    cookieStore.set(ALUNO_SESSION_COOKIE, signStudentCookie(pendingAlunoId), cookieSessionOpts());
+    redirect("/aluno/dashboard");
+  }
+
+  // ── Login com e-mail e senha ────────────────────────────────────────────────
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
   if (!email || !password) return { error: "Preencha e-mail e senha." };
 
+  // Usamos Supabase Auth APENAS para verificar as credenciais
+  const supabase = makeSupabase(cookieStore);
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
@@ -97,36 +96,42 @@ export async function loginAluno(
     };
   }
 
-  // Usa cliente autenticado — após signIn, auth.uid() = data.user.id
-  // A policy aluno_read_own permite: supabase_auth_id = auth.uid()
-  const { data: aluno, error: alunoError } = await supabase
+  // Busca o aluno via adminClient (não depende da sessão Supabase)
+  const { data: aluno, error: alunoError } = await adminClient
     .from("aluno")
     .select("id, consentimento_responsavel")
     .eq("supabase_auth_id", data.user.id)
+    .eq("ativo", true)
     .maybeSingle();
+
+  // Encerra a sessão Supabase Auth IMEDIATAMENTE — cookie próprio do aluno é suficiente
+  // Isso garante que logout do admin NÃO afeta a sessão do aluno
+  await supabase.auth.signOut();
 
   if (alunoError) {
     console.error("Erro ao buscar aluno:", alunoError.code ?? "unknown");
-    await supabase.auth.signOut();
     return { error: "Não foi possível verificar o acesso. Tente novamente." };
   }
 
   if (!aluno) {
-    await supabase.auth.signOut();
     return { error: "Acesso não encontrado. Fale com a coordenação da sua escola." };
   }
 
-  // Primeiro acesso: sinalizar para exibir o formulário de consentimento
   if (!aluno.consentimento_responsavel) {
+    // Guarda o aluno_id temporariamente (10 min) para o formulário de consentimento
+    cookieStore.set(ALUNO_PENDING_COOKIE, signStudentCookie(aluno.id), cookiePendingOpts());
     return { needsConsent: true };
   }
 
+  // Define o cookie de sessão próprio do aluno (7 dias, independente do admin)
+  cookieStore.set(ALUNO_SESSION_COOKIE, signStudentCookie(aluno.id), cookieSessionOpts());
   redirect("/aluno/dashboard");
 }
 
 export async function logoutAluno() {
   const cookieStore = await cookies();
-  const supabase = makeSupabase(cookieStore);
-  await supabase.auth.signOut();
+  // Apaga APENAS o cookie próprio do aluno — não toca nos cookies do admin
+  cookieStore.delete(ALUNO_SESSION_COOKIE);
+  cookieStore.delete(ALUNO_PENDING_COOKIE);
   redirect("/aluno/login");
 }
