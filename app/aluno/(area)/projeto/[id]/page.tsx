@@ -45,8 +45,9 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const aulasRaw = ((projeto as any).aulas ?? []) as any[];
 
+  // Exclui simulados — eles têm área própria em /aluno/simulados
   const aulasCompletas: AulaCompleta[] = await Promise.all(
-    aulasRaw.map(async (aula: any) => {
+    aulasRaw.filter((a: any) => a.tipo !== "simulado").map(async (aula: any) => {
       // 1. Signed URLs dos materiais
       const materiaisComUrl = await Promise.all(
         (aula.materiais ?? []).map(async (m: any) => {

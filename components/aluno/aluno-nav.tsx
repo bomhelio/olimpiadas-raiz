@@ -137,6 +137,7 @@ export function AlunoNav({ aluno, marcaSlug }: { aluno: Aluno; marcaSlug?: strin
         <div className="hidden sm:flex items-center gap-5">
           <nav className="flex items-center gap-1">
             <NavLink href="/aluno/dashboard" label="Projetos" />
+            <NavLink href="/aluno/simulados" label="Simulados" />
             <NavLink href="/aluno/treino" label="Banco de Questões" exact />
             <NavLink href="/aluno/treino/dashboard" label="Meu Desempenho" />
           </nav>
@@ -208,12 +209,9 @@ export function AlunoNav({ aluno, marcaSlug }: { aluno: Aluno; marcaSlug?: strin
           style={{ borderColor: "#e2e8f0", background: "#ffffff" }}
         >
           <MobileNavLink href="/aluno/dashboard" label="Projetos" onClick={closeMenu} />
+          <MobileNavLink href="/aluno/simulados" label="Simulados" onClick={closeMenu} />
           <MobileNavLink href="/aluno/treino" label="Banco de Questões" exact onClick={closeMenu} />
-          <MobileNavLink
-            href="/aluno/treino/dashboard"
-            label="Meu Desempenho"
-            onClick={closeMenu}
-          />
+          <MobileNavLink href="/aluno/treino/dashboard" label="Meu Desempenho" onClick={closeMenu} />
 
           <div
             className="mt-3 pt-3 flex items-center justify-between"
