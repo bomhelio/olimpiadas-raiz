@@ -64,6 +64,7 @@ export function SimuladoClient({
   const [tempo, setTempo] = useState(sessaoInicial.tempo_restante);
   const [idx, setIdx] = useState(sessaoInicial.questao_idx);
   const [finalizado, setFinalizado] = useState(false);
+  const [concluido, setConcluido] = useState(false); // mostra tela de conclusão
 
   // Respostas carregadas da sessão salva + novas durante esta sessão
   const [respostas, setRespostas] = useState<RespostasSalvas>(
@@ -143,7 +144,7 @@ export function SimuladoClient({
     setFinalizado(true);
     const tempoUsado = tempoTotal - tempoRef.current;
     await finalizarSimulado(sessaoInicial.id, aulaId, tempoUsado, respostasRef.current);
-    window.location.assign(`/aluno/simulados/${aulaId}/relatorio`);
+    setConcluido(true); // mostra tela de conclusão inline
   }, [finalizado, tempoTotal, sessaoInicial.id, aulaId]);
 
   // Ref para handleFinalizar (evita stale closure no timer)
@@ -201,8 +202,8 @@ export function SimuladoClient({
     const naoRespondidas = total - respondidas;
     const msg =
       naoRespondidas > 0
-        ? `Entregar simulado? Ainda há ${naoRespondidas} questão(ões) não respondida(s).`
-        : "Entregar simulado? Esta ação não pode ser desfeita.";
+        ? `Terminar simulado? Ainda há ${naoRespondidas} questão(ões) não respondida(s).`
+        : "Terminar simulado? Esta ação não pode ser desfeita.";
     if (!confirm(msg)) return;
     handleFinalizar();
   }, [total, handleFinalizar]);
@@ -233,6 +234,37 @@ export function SimuladoClient({
   const respondidas = Object.keys(respostas).length;
 
   if (!questao) return null;
+
+  /* ── Tela de conclusão ──────────────────────────────────────────────────── */
+  if (concluido) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+        <div className="rounded-2xl border border-border bg-card p-10 text-center max-w-sm w-full mx-4 space-y-6">
+          <div>
+            <p className="text-2xl font-black text-foreground mb-2">Simulado encerrado!</p>
+            <p className="text-sm text-muted-foreground">
+              {respondidas} de {total} questões respondidas. Suas respostas foram salvas.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => window.location.assign(`/aluno/simulados/${aulaId}/relatorio`)}
+              className="rounded-xl py-3 text-sm font-bold text-[#0f172a] block w-full"
+              style={{ background: TEAL }}
+            >
+              Ver meu desempenho
+            </button>
+            <button
+              onClick={() => window.location.assign("/aluno/simulados")}
+              className="rounded-xl border border-border py-3 text-sm text-muted-foreground hover:text-foreground transition-colors block w-full"
+            >
+              Voltar aos simulados
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     /* Overlay fullscreen — cobre o AlunoNav durante a avaliação */
@@ -279,7 +311,7 @@ export function SimuladoClient({
               className="rounded-lg px-4 py-1.5 text-xs font-bold text-[#0f172a] disabled:opacity-40"
               style={{ background: TEAL }}
             >
-              Entregar
+              Terminar
             </button>
           </div>
         </div>
@@ -468,7 +500,7 @@ export function SimuladoClient({
                   ? "Próxima →"
                   : "Avançar →"
                 : respondido
-                  ? "Entregar"
+                  ? "Terminar"
                   : "Avançar →"}
             </button>
           </div>
