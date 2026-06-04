@@ -1,18 +1,22 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStudentSession } from "@/lib/auth/student-session";
 import { revalidatePath } from "next/cache";
 
-const admin = () => createAdminClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+const admin = () => createAdminClient() as any;
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-export type RespostasSalvas = Record<string, {
-  correta: boolean;
-  alternativa_id: string;
-  alternativa_correta_id: string | null;
-}>;
+export type RespostasSalvas = Record<
+  string,
+  {
+    correta: boolean;
+    alternativa_id: string;
+    alternativa_correta_id: string | null;
+  }
+>;
 
 export type SimuladoSessao = {
   id: string;
@@ -51,7 +55,9 @@ export async function getSimuladosDisponiveis(): Promise<SimuladoDisponivel[]> {
   // Busca aulas do tipo simulado publicadas de projetos publicados
   const { data: aulas } = await db
     .from("preparacao_aula")
-    .select("id, titulo, tipo, polos, duracao_minutos, data_hora, descricao, publicada, projeto:projeto_id(id, nome, olimpiada_sigla, publicado)")
+    .select(
+      "id, titulo, tipo, polos, duracao_minutos, data_hora, descricao, publicada, projeto:projeto_id(id, nome, olimpiada_sigla, publicado)",
+    )
     .eq("tipo", "simulado")
     .eq("publicada", true);
 
@@ -110,7 +116,9 @@ export async function getOrCreateSessao(aulaId: string): Promise<{
   // Busca questões vinculadas
   const { data: aulaQuestoes } = await db
     .from("preparacao_aula_questao")
-    .select("*, questao:questao_id(id, olimpiada, nivel, fase, ano, numero, enunciado, enunciado_blocos, imagem_url, assunto, topico, subtopico, tipo, video_url, ativo)")
+    .select(
+      "*, questao:questao_id(id, olimpiada, nivel, fase, ano, numero, enunciado, enunciado_blocos, imagem_url, assunto, topico, subtopico, tipo, video_url, ativo)",
+    )
     .eq("aula_id", aulaId)
     .order("ordem");
 
@@ -119,9 +127,16 @@ export async function getOrCreateSessao(aulaId: string): Promise<{
     .filter((q: any) => q && q.ativo);
 
   // Pré-carrega alternativas da primeira questão
-  const primeiraAlt = questoes.length > 0
-    ? (await db.from("alternativa").select("id, letra, texto, imagem_url").eq("questao_id", questoes[0].id).order("letra")).data ?? []
-    : [];
+  const primeiraAlt =
+    questoes.length > 0
+      ? ((
+          await db
+            .from("alternativa")
+            .select("id, letra, texto, imagem_url")
+            .eq("questao_id", questoes[0].id)
+            .order("letra")
+        ).data ?? [])
+      : [];
 
   // Verifica sessão existente (em_andamento ou pausado)
   const { data: sessaoExistente } = await db
@@ -135,10 +150,16 @@ export async function getOrCreateSessao(aulaId: string): Promise<{
   if (sessaoExistente) {
     // Retoma sessão pausada
     if (sessaoExistente.status === "pausado") {
-      await db.from("simulado_sessao")
+      await db
+        .from("simulado_sessao")
         .update({ status: "em_andamento", pausado_em: null })
         .eq("id", sessaoExistente.id);
-      return { sessao: { ...sessaoExistente, status: "em_andamento" }, questoes, primeiraAlt, aula };
+      return {
+        sessao: { ...sessaoExistente, status: "em_andamento" },
+        questoes,
+        primeiraAlt,
+        aula,
+      };
     }
     return { sessao: sessaoExistente, questoes, primeiraAlt, aula };
   }
@@ -172,7 +193,8 @@ export async function salvarProgresso(
   const session = await getStudentSession();
   if (!session) return;
   const db = admin();
-  await db.from("simulado_sessao")
+  await db
+    .from("simulado_sessao")
     .update({ tempo_restante: tempoRestante, questao_idx: questaoIdx, respostas })
     .eq("id", sessaoId)
     .eq("aluno_id", session.aluno.id);
@@ -189,7 +211,8 @@ export async function pausarSimulado(
   const session = await getStudentSession();
   if (!session) return;
   const db = admin();
-  await db.from("simulado_sessao")
+  await db
+    .from("simulado_sessao")
     .update({
       status: "pausado",
       tempo_restante: tempoRestante,
@@ -229,7 +252,8 @@ export async function finalizarSimulado(
   }
 
   // Marca sessão como concluída
-  await db.from("simulado_sessao")
+  await db
+    .from("simulado_sessao")
     .update({
       status: "concluido",
       respostas,
@@ -272,10 +296,18 @@ export async function getRelatorioSimulado(sessaoId: string) {
   for (const q of questoes ?? []) qMap[q.id] = q;
 
   const total = questaoIds.length;
-  const acertos = questaoIds.filter(id => respostas[id]?.correta).length;
+  const acertos = questaoIds.filter((id) => respostas[id]?.correta).length;
 
   // Por tópico
-  const porTopico: Record<string, { topico: string; subtopicos: Record<string, { total: number; acertos: number }>; total: number; acertos: number }> = {};
+  const porTopico: Record<
+    string,
+    {
+      topico: string;
+      subtopicos: Record<string, { total: number; acertos: number }>;
+      total: number;
+      acertos: number;
+    }
+  > = {};
   for (const id of questaoIds) {
     const q = qMap[id];
     const topico = q?.topico ?? q?.assunto ?? "Sem tópico";
@@ -283,7 +315,8 @@ export async function getRelatorioSimulado(sessaoId: string) {
     if (!porTopico[topico]) porTopico[topico] = { topico, subtopicos: {}, total: 0, acertos: 0 };
     porTopico[topico].total++;
     if (respostas[id]?.correta) porTopico[topico].acertos++;
-    if (!porTopico[topico].subtopicos[subtopico]) porTopico[topico].subtopicos[subtopico] = { total: 0, acertos: 0 };
+    if (!porTopico[topico].subtopicos[subtopico])
+      porTopico[topico].subtopicos[subtopico] = { total: 0, acertos: 0 };
     porTopico[topico].subtopicos[subtopico].total++;
     if (respostas[id]?.correta) porTopico[topico].subtopicos[subtopico].acertos++;
   }

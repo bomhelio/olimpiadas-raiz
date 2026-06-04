@@ -24,7 +24,10 @@ function fmtTempo(seg: number) {
 function PctBar({ pct }: { pct: number }) {
   return (
     <div className="h-2 rounded-full bg-card overflow-hidden">
-      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pctColor(pct) }} />
+      <div
+        className="h-full rounded-full transition-all"
+        style={{ width: `${pct}%`, background: pctColor(pct) }}
+      />
     </div>
   );
 }
@@ -64,9 +67,21 @@ export default async function RelatorioSimuladoPage({
       {/* Cabeçalho */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Link href="/aluno/simulados" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-              <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
+          <Link
+            href="/aluno/simulados"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="h-4 w-4"
+            >
+              <path
+                fillRule="evenodd"
+                d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
+                clipRule="evenodd"
+              />
             </svg>
             Simulados
           </Link>
@@ -74,7 +89,9 @@ export default async function RelatorioSimuladoPage({
           <p className="mt-1 text-sm text-muted-foreground">{dados.aula.titulo}</p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-3xl font-black" style={{ color: pctColor(pctGeral) }}>{pctGeral}%</p>
+          <p className="text-3xl font-black" style={{ color: pctColor(pctGeral) }}>
+            {pctGeral}%
+          </p>
           <p className="text-xs text-muted-foreground mt-0.5">de acerto</p>
         </div>
       </div>
@@ -99,7 +116,9 @@ export default async function RelatorioSimuladoPage({
         <div className="rounded-xl border border-border bg-card overflow-hidden">
           <div className="px-5 py-4 border-b border-border flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">Desempenho por tópico</h2>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">mais fraco → mais forte</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              mais fraco → mais forte
+            </p>
           </div>
           <div className="divide-y divide-border/40">
             {(porTopico as any[]).map((t: any) => {
@@ -110,9 +129,15 @@ export default async function RelatorioSimuladoPage({
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
                     <span className="text-sm font-semibold text-foreground">{t.topico}</span>
                     <div className="flex items-center gap-3 text-xs">
-                      <span className="text-muted-foreground">{t.total} questão{t.total !== 1 ? "ões" : ""}</span>
-                      <span className="font-bold text-emerald-400">{t.acertos} acerto{t.acertos !== 1 ? "s" : ""}</span>
-                      <span className="font-bold" style={{ color: pctColor(pA) }}>{pA}%</span>
+                      <span className="text-muted-foreground">
+                        {t.total} questão{t.total !== 1 ? "ões" : ""}
+                      </span>
+                      <span className="font-bold text-emerald-400">
+                        {t.acertos} acerto{t.acertos !== 1 ? "s" : ""}
+                      </span>
+                      <span className="font-bold" style={{ color: pctColor(pA) }}>
+                        {pA}%
+                      </span>
                     </div>
                   </div>
                   <PctBar pct={pA} />
@@ -120,16 +145,25 @@ export default async function RelatorioSimuladoPage({
                   {/* Subtópicos */}
                   {Object.keys(t.subtopicos ?? {}).length > 0 && (
                     <div className="mt-3 space-y-1.5 pl-3 border-l border-border/40">
-                      {Object.entries(t.subtopicos as Record<string, { total: number; acertos: number }>).map(([sub, v]) => {
+                      {Object.entries(
+                        t.subtopicos as Record<string, { total: number; acertos: number }>,
+                      ).map(([sub, v]) => {
                         const pS = v.total > 0 ? Math.round((v.acertos / v.total) * 100) : 0;
                         return (
                           <div key={sub} className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground truncate flex-1 mr-3">{sub}</span>
+                            <span className="text-muted-foreground truncate flex-1 mr-3">
+                              {sub}
+                            </span>
                             <div className="flex items-center gap-2 shrink-0">
                               <span className="text-muted-foreground/60">{v.total}q</span>
-                              <span className="font-semibold" style={{ color: pctColor(pS) }}>{pS}%</span>
+                              <span className="font-semibold" style={{ color: pctColor(pS) }}>
+                                {pS}%
+                              </span>
                               <div className="w-16 h-1.5 rounded-full bg-card overflow-hidden">
-                                <div className="h-full rounded-full" style={{ width: `${pS}%`, background: pctColor(pS) }} />
+                                <div
+                                  className="h-full rounded-full"
+                                  style={{ width: `${pS}%`, background: pctColor(pS) }}
+                                />
                               </div>
                             </div>
                           </div>
@@ -146,13 +180,17 @@ export default async function RelatorioSimuladoPage({
 
       {/* Ações */}
       <div className="flex justify-center gap-3">
-        <Link href="/aluno/simulados"
-          className="rounded-lg border border-border px-5 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <Link
+          href="/aluno/simulados"
+          className="rounded-lg border border-border px-5 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
           Ver todos os simulados
         </Link>
-        <Link href="/aluno/treino/dashboard"
+        <Link
+          href="/aluno/treino/dashboard"
           className="rounded-lg px-5 py-2.5 text-sm font-semibold text-[#0f172a]"
-          style={{ background: TEAL }}>
+          style={{ background: TEAL }}
+        >
           Meu desempenho completo
         </Link>
       </div>

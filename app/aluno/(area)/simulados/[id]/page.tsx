@@ -1,13 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getStudentSession } from "@/lib/auth/student-session";
 import { getOrCreateSessao } from "../actions";
 import { SimuladoClient } from "./simulado-client";
 
-export default async function SimuladoAtivoPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function SimuladoAtivoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await getStudentSession();
   if (!session) redirect("/aluno/login");
@@ -30,11 +28,13 @@ export default async function SimuladoAtivoPage({
           <p className="text-sm text-muted-foreground mb-4">
             Este simulado ainda não tem questões vinculadas.
           </p>
-          <a href="/aluno/simulados"
+          <Link
+            href="/aluno/simulados"
             className="text-sm font-medium"
-            style={{ color: "rgb(91,184,193)" }}>
+            style={{ color: "rgb(91,184,193)" }}
+          >
             ← Voltar aos simulados
-          </a>
+          </Link>
         </div>
       </div>
     );
