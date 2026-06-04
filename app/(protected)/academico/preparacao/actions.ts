@@ -418,3 +418,65 @@ export async function removerQuestaoAula(aulaId: string, questaoId: string): Pro
     .eq("questao_id", questaoId);
   revalidatePath(PATH);
 }
+
+export type QuestaoResumo = {
+  id: string;
+  olimpiada: string;
+  nivel: string | null;
+  fase: number;
+  ano: number;
+  numero: number;
+  enunciado: string;
+  topico: string | null;
+  subtopico: string | null;
+  tipo: string;
+};
+
+export async function buscarQuestoesBanco(
+  busca: string,
+  origem?: string,
+  topico?: string,
+): Promise<QuestaoResumo[]> {
+  const session = await getServerSession();
+  if (!session) return [];
+
+  const supabase = createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let query = (supabase as any)
+    .from("questao")
+    .select("id, olimpiada, nivel, fase, ano, numero, enunciado, topico, subtopico, tipo")
+    .eq("ativo", true)
+    .order("olimpiada")
+    .order("fase")
+    .order("ano")
+    .order("numero")
+    .limit(30);
+
+  if (origem) query = query.eq("olimpiada", origem);
+  if (topico) query = query.ilike("topico", `%${topico}%`);
+  if (busca) query = query.ilike("enunciado", `%${busca}%`);
+
+  const { data } = await query;
+  return (data ?? []) as QuestaoResumo[];
+}
+
+export async function vincularQuestaoExistente(
+  aulaId: string,
+  questaoId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const session = await getServerSession();
+  if (!session) return { error: "Não autorizado" };
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("preparacao_aula_questao")
+    .insert({ aula_id: aulaId, questao_id: questaoId } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  if (error) {
+    if (error.code === "23505") return { error: "Questão já vinculada a esta aula." };
+    return { error: error.message };
+  }
+
+  revalidatePath(PATH);
+  return { ok: true };
+}

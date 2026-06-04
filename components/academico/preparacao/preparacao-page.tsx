@@ -17,10 +17,13 @@ import {
   despublicarAula,
   criarQuestaoParaAula,
   removerQuestaoAula,
+  buscarQuestoesBanco,
+  vincularQuestaoExistente,
   type Projeto,
   type Aula,
   type AulaQuestao,
   type Material,
+  type QuestaoResumo,
 } from "@/app/(protected)/academico/preparacao/actions";
 import { CATALOGO } from "@/lib/olimpiadas/catalogo";
 import { EnunciadoBlocosEditor } from "@/app/(protected)/academico/banco-questoes/enunciado-blocos-editor";
@@ -731,6 +734,7 @@ function AulaCard({ aula }: { aula: Aula }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [showQuestaoForm, setShowQuestaoForm] = useState(false);
+  const [showBuscaForm, setShowBuscaForm] = useState(false);
   const [deleting, startDelete] = useTransition();
   const [publishing, startPublish] = useTransition();
   const [removingQ, startRemoveQ] = useTransition();
@@ -911,17 +915,35 @@ function AulaCard({ aula }: { aula: Aula }) {
           {/* ── Adicionar questão ────────────────────────────────────────── */}
           {showQuestaoForm ? (
             <NovaQuestaoAulaForm aulaId={aula.id} onClose={() => setShowQuestaoForm(false)} />
+          ) : showBuscaForm ? (
+            <BuscarQuestaoAulaForm
+              aulaId={aula.id}
+              jaVinculadas={(aula.questoes ?? []).map((q) => q.questao_id)}
+              onClose={() => setShowBuscaForm(false)}
+            />
           ) : (
-            <button
-              type="button"
-              onClick={() => setShowQuestaoForm(true)}
-              className="mt-3 flex items-center gap-1.5 rounded-lg border border-dashed border-amber-500/30 px-3 py-2 text-xs text-amber-500/70 hover:border-amber-500 hover:text-amber-500 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-              </svg>
-              Adicionar questão
-            </button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setShowQuestaoForm(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-dashed border-amber-500/30 px-3 py-2 text-xs text-amber-500/70 hover:border-amber-500 hover:text-amber-500 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                </svg>
+                Nova questão
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowBuscaForm(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-dashed border-sky-500/30 px-3 py-2 text-xs text-sky-500/70 hover:border-sky-500 hover:text-sky-500 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+                </svg>
+                Buscar no banco
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -1030,6 +1052,154 @@ function NovaQuestaoAulaForm({ aulaId, onClose }: { aulaId: string; onClose: () 
         </button>
       </div>
     </form>
+  );
+}
+
+// ─── Buscar questão no banco ──────────────────────────────────────────────────
+
+function BuscarQuestaoAulaForm({
+  aulaId,
+  jaVinculadas,
+  onClose,
+}: {
+  aulaId: string;
+  jaVinculadas: string[];
+  onClose: () => void;
+}) {
+  const [busca, setBusca] = useState("");
+  const [origem, setOrigem] = useState("");
+  const [topico, setTopico] = useState("");
+  const [resultados, setResultados] = useState<QuestaoResumo[]>([]);
+  const [buscando, startBusca] = useTransition();
+  const [vinculando, startVincular] = useTransition();
+  const [erro, setErro] = useState<string | null>(null);
+  const [sucesso, setSuccesso] = useState<string | null>(null);
+
+  function handleBuscar(e: React.FormEvent) {
+    e.preventDefault();
+    setErro(null);
+    setSuccesso(null);
+    startBusca(async () => {
+      const r = await buscarQuestoesBanco(busca, origem || undefined, topico || undefined);
+      setResultados(r);
+    });
+  }
+
+  function handleVincular(questaoId: string, numero: number) {
+    setErro(null);
+    startVincular(async () => {
+      const r = await vincularQuestaoExistente(aulaId, questaoId);
+      if ("error" in r) {
+        setErro(r.error);
+      } else {
+        setSuccesso(`Questão ${numero} vinculada com sucesso.`);
+        setResultados((prev) => prev.filter((q) => q.id !== questaoId));
+      }
+    });
+  }
+
+  return (
+    <div className="mt-3 space-y-3 rounded-xl border border-border bg-background p-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Buscar no Banco de Questões
+      </p>
+
+      {erro && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {erro}
+        </div>
+      )}
+      {sucesso && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-400">
+          {sucesso}
+        </div>
+      )}
+
+      {/* Filtros de busca */}
+      <form onSubmit={handleBuscar} className="flex flex-wrap gap-2">
+        <input
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Trecho do enunciado…"
+          className={inputClass + " flex-1 min-w-[180px]"}
+        />
+        <input
+          value={origem}
+          onChange={(e) => setOrigem(e.target.value)}
+          placeholder="Origem (obmep, obm…)"
+          className={inputClass + " w-36"}
+        />
+        <input
+          value={topico}
+          onChange={(e) => setTopico(e.target.value)}
+          placeholder="Tópico"
+          className={inputClass + " w-32"}
+        />
+        <button
+          type="submit"
+          disabled={buscando}
+          className="rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+          style={{ backgroundColor: TEAL, color: "white" }}
+        >
+          {buscando ? "Buscando…" : "Buscar"}
+        </button>
+      </form>
+
+      {/* Resultados */}
+      {resultados.length === 0 && !buscando && sucesso === null && (
+        <p className="text-xs text-muted-foreground">
+          Use os filtros acima para buscar questões do banco.
+        </p>
+      )}
+
+      {resultados.length > 0 && (
+        <div className="space-y-2 max-h-72 overflow-y-auto">
+          {resultados.map((q) => {
+            const jaVinculada = jaVinculadas.includes(q.id);
+            return (
+              <div
+                key={q.id}
+                className="flex items-start gap-3 rounded-lg border border-border bg-card/50 px-3 py-2"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                      {q.olimpiada} · {q.fase}ª fase · {q.ano} · Q{q.numero}
+                    </span>
+                    {q.topico && (
+                      <span className="text-[10px] font-semibold text-amber-400">
+                        {q.topico}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-foreground line-clamp-2">{q.enunciado}</p>
+                </div>
+                <button
+                  type="button"
+                  disabled={jaVinculada || vinculando}
+                  onClick={() => handleVincular(q.id, q.numero)}
+                  className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                    jaVinculada
+                      ? "bg-emerald-500/10 text-emerald-400"
+                      : "bg-primary text-primary-foreground hover:opacity-90"
+                  }`}
+                >
+                  {jaVinculada ? "Vinculada" : "Vincular"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={onClose}
+        className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        Fechar
+      </button>
+    </div>
   );
 }
 
