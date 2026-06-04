@@ -198,13 +198,13 @@ export function TreinoClient({
             >
               Fechar
             </button>
-            <Link
-              href={completionUrl}
+            <button
+              onClick={() => { setFinalizado(false); setIdx(0); setMostrarDesempenhoAula(false); }}
               className="rounded-lg px-5 py-2.5 text-sm font-bold text-[#0f172a]"
               style={{ background: TEAL }}
             >
               Concluir
-            </Link>
+            </button>
           </div>
         </div>
       );
@@ -227,13 +227,13 @@ export function TreinoClient({
               >
                 Ver desempenho
               </button>
-              <Link
-                href={completionUrl}
+              <button
+                onClick={() => { setFinalizado(false); setIdx(0); setMostrarDesempenhoAula(false); }}
                 className="rounded-lg px-5 py-2.5 text-sm font-bold text-[#0f172a]"
                 style={{ background: TEAL }}
               >
                 Concluir
-              </Link>
+              </button>
             </>
           ) : (
             // Contexto de treino livre: Ver meu desempenho + Nova sessão
