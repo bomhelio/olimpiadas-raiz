@@ -50,12 +50,11 @@ export default function NovaBancoQuestaoPage() {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-foreground">Olimpíada *</label>
+            <label className="block text-sm font-medium text-foreground">Origem da questão</label>
             <input
               name="olimpiada"
               type="text"
               list="dl-olimpiada"
-              required
               placeholder="ex: obmep, obm, obf…"
               className={inputClass}
             />
@@ -74,36 +73,33 @@ export default function NovaBancoQuestaoPage() {
 
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-foreground">Fase *</label>
+            <label className="block text-sm font-medium text-foreground">Fase</label>
             <input
               name="fase"
               type="number"
               min={1}
               placeholder="1"
-              required
               className={inputClass}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-foreground">Ano *</label>
+            <label className="block text-sm font-medium text-foreground">Ano</label>
             <input
               name="ano"
               type="number"
               min={2000}
               max={2100}
               placeholder="2024"
-              required
               className={inputClass}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-foreground">Número *</label>
+            <label className="block text-sm font-medium text-foreground">Número</label>
             <input
               name="numero"
               type="number"
               min={1}
               placeholder="1"
-              required
               className={inputClass}
             />
           </div>
@@ -129,7 +125,7 @@ export default function NovaBancoQuestaoPage() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-foreground">Enunciado *</label>
+          <label className="block text-sm font-medium text-foreground">Enunciado</label>
           <p className="text-xs text-muted-foreground mb-2">
             Use blocos de texto e imagem — arranje na ordem que quiser (texto · imagem · texto…).
           </p>
