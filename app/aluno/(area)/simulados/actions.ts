@@ -328,3 +328,25 @@ export async function getRelatorioSimulado(sessaoId: string) {
     porTopico: Object.values(porTopico).sort((a, b) => a.acertos / a.total - b.acertos / b.total),
   };
 }
+
+export async function getSessaoConcluida(aulaId: string) {
+  const session = await getStudentSession();
+  if (!session) return null;
+  const db = admin();
+  const { data: aula } = await db
+    .from("preparacao_aula")
+    .select("id, titulo, duracao_minutos, polos, descricao, tipo")
+    .eq("id", aulaId)
+    .single();
+  if (!aula) return null;
+  const { data: sessao } = await db
+    .from("simulado_sessao")
+    .select("*")
+    .eq("aluno_id", session.aluno.id)
+    .eq("aula_id", aulaId)
+    .eq("status", "concluido")
+    .order("concluido_em", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return sessao ? { sessao, aula } : null;
+}

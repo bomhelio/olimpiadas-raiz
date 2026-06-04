@@ -2,7 +2,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getStudentSession } from "@/lib/auth/student-session";
-import { getRelatorioSimulado, getOrCreateSessao } from "../../actions";
+import { getRelatorioSimulado, getSessaoConcluida } from "../../actions";
 
 const TEAL = "rgb(91,184,193)";
 
@@ -41,12 +41,10 @@ export default async function RelatorioSimuladoPage({
   const session = await getStudentSession();
   if (!session) redirect("/aluno/login");
 
-  // Busca sessão concluída mais recente
-  const dados = await getOrCreateSessao(id);
-  if (!dados) notFound();
-
-  // Se não está concluída, redireciona para o simulado ativo
-  if (dados.sessao.status !== "concluido") {
+  // Busca a sessão concluída mais recente para este simulado
+  const dados = await getSessaoConcluida(id);
+  if (!dados) {
+    // Sem sessão concluída — redireciona para o simulado (início ou retomada)
     redirect(`/aluno/simulados/${id}`);
   }
 
