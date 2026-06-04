@@ -125,6 +125,10 @@ export function ProjetoPageClient({
                     <span>· {aula.questoes.length} {aula.questoes.length === 1 ? "questão" : "questões"}</span>
                   )}
                 </div>
+                {/* Descrição visível mesmo fechado */}
+                {aula.descricao && (
+                  <p className="mt-1.5 text-xs text-muted-foreground/70 line-clamp-2">{aula.descricao}</p>
+                )}
               </div>
               <svg
                 className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${aberta ? "rotate-90" : ""}`}
@@ -139,6 +143,13 @@ export function ProjetoPageClient({
               <div className="border-t border-border p-4 space-y-5">
                 {aula.descricao && (
                   <p className="text-sm text-muted-foreground">{aula.descricao}</p>
+                )}
+
+                {aula.polos && (
+                  <div className="rounded-lg border border-violet-400/20 bg-violet-400/5 px-4 py-3">
+                    <p className="text-xs font-semibold text-violet-400 mb-1">Local / Polo</p>
+                    <p className="text-sm text-violet-300 whitespace-pre-line">{aula.polos}</p>
+                  </div>
                 )}
 
                 {aula.link_aula && (
