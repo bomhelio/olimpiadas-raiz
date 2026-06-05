@@ -5,7 +5,7 @@ import { getServerSession } from "@/lib/auth/session";
 import { can } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/ui/page-header";
 import { ConfirmButton } from "@/components/ui/confirm-button";
-import { getQuestoes, excluirQuestao } from "./actions";
+import { getQuestoes, excluirQuestao, toggleAtivo } from "./actions";
 
 const OLIMPIADA_LABEL: Record<string, string> = {
   obmep_mirim: "OBMEP Mirim",
@@ -15,16 +15,18 @@ const OLIMPIADA_LABEL: Record<string, string> = {
 export default async function BancoQuestoesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ olimpiada?: string; fase?: string; ano?: string }>;
+  searchParams: Promise<{ olimpiada?: string; fase?: string; ano?: string; status?: string }>;
 }) {
   const session = await getServerSession();
   if (!session || !can(session.user.role, "questao:read")) redirect("/dashboard");
 
   const sp = await searchParams;
+  const ativoFiltro = sp.status === "ativa" ? true : sp.status === "inativa" ? false : undefined;
   const questoes = await getQuestoes({
     olimpiada: sp.olimpiada as "obmep_mirim" | "obmep" | undefined,
     fase: sp.fase ? Number(sp.fase) : undefined,
     ano: sp.ano ? Number(sp.ano) : undefined,
+    ativo: ativoFiltro,
   });
 
   return (
@@ -70,6 +72,15 @@ export default async function BancoQuestoesPage({
               {a}
             </option>
           ))}
+        </select>
+        <select
+          name="status"
+          defaultValue={sp.status ?? ""}
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
+        >
+          <option value="">Status</option>
+          <option value="ativa">Ativa</option>
+          <option value="inativa">Inativa</option>
         </select>
         <button
           type="submit"
@@ -120,14 +131,28 @@ export default async function BancoQuestoesPage({
                   <td className="px-4 py-3">{q.fase}ª</td>
                   <td className="px-4 py-3">{q.ano}</td>
                   <td className="px-4 py-3">{q.numero}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{q.topico ?? q.assunto ?? "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {q.topico ?? q.assunto ?? "—"}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">{q.subtopico ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${q.ativo ? "bg-emerald-500/10 text-emerald-400" : "bg-zinc-500/10 text-zinc-400"}`}
-                    >
-                      {q.ativo ? "Ativa" : "Inativa"}
-                    </span>
+                    {can(session.user.role, "questao:update") ? (
+                      <form action={toggleAtivo.bind(null, q.id, !q.ativo)}>
+                        <button
+                          type="submit"
+                          title={q.ativo ? "Clique para desativar" : "Clique para ativar"}
+                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold transition-opacity hover:opacity-70 ${q.ativo ? "bg-emerald-500/10 text-emerald-400" : "bg-zinc-500/10 text-zinc-400"}`}
+                        >
+                          {q.ativo ? "Ativa" : "Inativa"}
+                        </button>
+                      </form>
+                    ) : (
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${q.ativo ? "bg-emerald-500/10 text-emerald-400" : "bg-zinc-500/10 text-zinc-400"}`}
+                      >
+                        {q.ativo ? "Ativa" : "Inativa"}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-3">
