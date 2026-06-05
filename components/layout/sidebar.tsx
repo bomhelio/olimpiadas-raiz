@@ -201,7 +201,7 @@ function SidebarContent() {
             active={pathname.startsWith("/academico/preparacao")}
             onClick={() => go("/academico/preparacao")}
           >
-            Preparação
+            Projetos
           </SubItem>
           <SubItem
             active={pathname.startsWith("/academico/simulados")}
