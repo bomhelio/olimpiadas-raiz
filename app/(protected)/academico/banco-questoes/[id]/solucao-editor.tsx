@@ -5,6 +5,13 @@ import { salvarSolucao, uploadSolucaoImagem } from "../actions";
 import { inputClass } from "@/components/ui/form-field";
 import type { Solucao } from "@/lib/types/database";
 
+const LARGURA_MAP: Record<string, string> = {
+  pequena: "180px",
+  media: "360px",
+  grande: "560px",
+  completa: "100%",
+};
+
 export function SolucaoEditor({
   questaoId,
   solucao,
@@ -18,6 +25,8 @@ export function SolucaoEditor({
 }) {
   const [state, action, isPending] = useActionState(salvarSolucao, null);
   const [imagemUrl, setImagemUrl] = useState<string | null>(initialImagemUrl ?? null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [largura, setLargura] = useState<string>((solucao as any)?.imagem_largura ?? "completa");
   const [isUploading, startUploadTransition] = useTransition();
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -43,6 +52,7 @@ export function SolucaoEditor({
     <form action={action} className="space-y-4">
       <input type="hidden" name="questao_id" value={questaoId} />
       <input type="hidden" name="imagem_url" value={imagemUrl ?? ""} />
+      <input type="hidden" name="imagem_largura" value={largura} />
 
       {state && "error" in state && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
@@ -75,22 +85,48 @@ export function SolucaoEditor({
         </label>
 
         {imagemUrl && (
-          <div className="relative inline-block">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={imagemUrl}
-              alt="Resolução"
-              className="max-h-48 rounded-lg border border-border object-contain"
-              style={{ maxWidth: "480px" }}
-            />
-            <button
-              type="button"
-              onClick={() => setImagemUrl(null)}
-              className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border border-red-500/50 bg-card text-[10px] text-red-400 hover:text-red-300"
-              title="Remover imagem"
-            >
-              ✕
-            </button>
+          <div className="space-y-2">
+            <div className="relative inline-block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imagemUrl}
+                alt="Resolução"
+                className="rounded-lg border border-border object-contain"
+                style={{ width: LARGURA_MAP[largura] ?? "100%", maxWidth: "100%" }}
+              />
+              <button
+                type="button"
+                onClick={() => setImagemUrl(null)}
+                className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border border-red-500/50 bg-card text-[10px] text-red-400 hover:text-red-300"
+                title="Remover imagem"
+              >
+                ✕
+              </button>
+            </div>
+            {/* Seletor de largura */}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">Largura:</span>
+              {(["pequena", "media", "grande", "completa"] as const).map((op) => (
+                <button
+                  key={op}
+                  type="button"
+                  onClick={() => setLargura(op)}
+                  className={`rounded px-2 py-0.5 text-[11px] capitalize transition-colors ${
+                    largura === op
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {op === "media"
+                    ? "Média"
+                    : op === "pequena"
+                      ? "Pequena"
+                      : op === "grande"
+                        ? "Grande"
+                        : "Completa"}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

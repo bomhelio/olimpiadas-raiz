@@ -203,7 +203,19 @@ export default async function RevisaoQuestaoPage({
               <img
                 src={solucao.imagem_url}
                 alt="Resolução"
-                className="max-w-full rounded-lg border border-border"
+                className="rounded-lg border border-border"
+                style={{
+                  width:
+                    (
+                      {
+                        pequena: "180px",
+                        media: "360px",
+                        grande: "560px",
+                        completa: "100%",
+                      } as Record<string, string>
+                    )[(solucao as any).imagem_largura ?? "completa"] ?? "100%",
+                  maxWidth: "100%",
+                }}
               />
             )}
             {questao.video_url && (

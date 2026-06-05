@@ -168,7 +168,7 @@ export async function getSolucaoQuestao(questaoId: string) {
   const admin = createAdminClient() as any;
   const { data } = await admin
     .from("solucao")
-    .select("texto, imagem_url")
+    .select("texto, imagem_url, imagem_largura")
     .eq("questao_id", questaoId)
     .maybeSingle();
   return data;

@@ -297,6 +297,7 @@ export async function salvarSolucao(
   const texto = ((formData.get("texto") as string) ?? "").trim() || null;
   const video_url = ((formData.get("video_url") as string) ?? "").trim() || null;
   const imagem_url = ((formData.get("imagem_url") as string) ?? "").trim() || null;
+  const imagem_largura = ((formData.get("imagem_largura") as string) ?? "").trim() || null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createAdminClient() as any;
@@ -305,7 +306,7 @@ export async function salvarSolucao(
 
   const { error } = await supabase
     .from("solucao")
-    .upsert({ questao_id, texto, imagem_url }, { onConflict: "questao_id" });
+    .upsert({ questao_id, texto, imagem_url, imagem_largura }, { onConflict: "questao_id" });
 
   if (error) return { error: error.message };
   revalidatePath(`/academico/banco-questoes/${questao_id}`);

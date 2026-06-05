@@ -770,6 +770,7 @@ export type Database = {
           questao_id: string;
           texto: string | null;
           imagem_url: string | null;
+          imagem_largura: string | null;
           criado_em: string;
         };
         Insert: {
@@ -777,6 +778,7 @@ export type Database = {
           questao_id: string;
           texto?: string | null;
           imagem_url?: string | null;
+          imagem_largura?: string | null;
           criado_em?: string;
         };
         Update: {
@@ -784,6 +786,7 @@ export type Database = {
           questao_id?: string;
           texto?: string | null;
           imagem_url?: string | null;
+          imagem_largura?: string | null;
           criado_em?: string;
         };
         Relationships: [];
