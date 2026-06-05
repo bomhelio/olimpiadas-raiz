@@ -137,6 +137,7 @@ export async function getOrCreateSessao(aulaId: string): Promise<{
       "*, questao:questao_id(id, olimpiada, nivel, fase, ano, numero, enunciado, enunciado_blocos, imagem_url, assunto, topico, subtopico, tipo, video_url, ativo)",
     )
     .eq("aula_id", aulaId)
+    .eq("visivel_aluno", true)
     .order("ordem");
 
   const questoes = (aulaQuestoes ?? [])

@@ -228,35 +228,54 @@ export function SimuladoForm({
             )}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-4">
             <p className="text-xs text-muted-foreground">
               Somente as turmas selecionadas terão acesso a este simulado.
             </p>
             {turmas.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhuma turma ativa cadastrada.</p>
             ) : (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {turmas.map((t) => (
-                  <label
-                    key={t.id}
-                    className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 cursor-pointer hover:border-primary/40 transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      name="turma_ids[]"
-                      value={t.id}
-                      defaultChecked={defaults.turma_ids?.includes(t.id)}
-                      className="accent-primary"
-                    />
-                    <span className="text-sm text-foreground">
-                      {t.nome}
-                      <span className="ml-1 text-xs text-muted-foreground">
-                        {t.serie} · {t.unidade_nome}
-                      </span>
-                    </span>
-                  </label>
-                ))}
-              </div>
+              (() => {
+                const EFAI = ["1º", "2º", "3º", "4º", "5º"];
+                const EFAF = ["6º", "7º", "8º", "9º"];
+                const EM = ["1º EM", "2º EM", "3º EM"];
+                const segmentos: { label: string; series: string[] }[] = [
+                  { label: "EFAI — 1º ao 5º ano", series: EFAI },
+                  { label: "EFAF — 6º ao 9º ano", series: EFAF },
+                  { label: "Ensino Médio", series: EM },
+                ];
+                return segmentos.map(({ label, series }) => {
+                  const turmasSeg = turmas.filter((t) => series.includes(t.serie));
+                  if (!turmasSeg.length) return null;
+                  return (
+                    <div key={label} className="space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {turmasSeg.map((t) => (
+                          <label
+                            key={t.id}
+                            className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 cursor-pointer hover:border-primary/40 transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              name="turma_ids[]"
+                              value={t.id}
+                              defaultChecked={defaults.turma_ids?.includes(t.id)}
+                              className="accent-primary"
+                            />
+                            <span className="text-sm text-foreground">
+                              {t.nome}
+                              <span className="ml-1 text-xs text-muted-foreground">
+                                {t.serie} · {t.unidade_nome}
+                              </span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                });
+              })()
             )}
           </div>
         )}

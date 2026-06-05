@@ -13,6 +13,7 @@ import {
   despublicarSimulado,
   vincularQuestao,
   desvincularQuestao,
+  toggleVisivelAluno,
   buscarQuestoes,
   criarQuestaoParaSimulado,
 } from "../actions";
@@ -196,10 +197,15 @@ export default function EditarSimuladoPage({ params }: { params: Promise<{ id: s
           <div className="space-y-2">
             {questoesVinculadas.map((aq: any) => {
               const q = aq.questao;
+              const visivel = aq.visivel_aluno !== false;
               return (
                 <div
                   key={aq.id}
-                  className="flex items-start justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2"
+                  className={`flex items-start justify-between gap-3 rounded-lg border px-3 py-2 transition-colors ${
+                    visivel
+                      ? "border-border bg-background"
+                      : "border-border/40 bg-muted/20 opacity-60"
+                  }`}
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground">
@@ -209,19 +215,41 @@ export default function EditarSimuladoPage({ params }: { params: Promise<{ id: s
                     </p>
                     <p className="text-sm text-foreground truncate">{q.enunciado}</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await desvincularQuestao(id, q.id);
-                      setSimulado({
-                        ...simulado,
-                        questoes: simulado.questoes.filter((x: any) => x.questao_id !== q.id),
-                      });
-                    }}
-                    className="shrink-0 text-xs text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    Remover
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      title={visivel ? "Ocultar para o aluno" : "Liberar para o aluno"}
+                      onClick={async () => {
+                        await toggleVisivelAluno(id, aq.id, !visivel);
+                        setSimulado({
+                          ...simulado,
+                          questoes: simulado.questoes.map((x: any) =>
+                            x.id === aq.id ? { ...x, visivel_aluno: !visivel } : x,
+                          ),
+                        });
+                      }}
+                      className={`text-xs font-medium transition-colors ${
+                        visivel
+                          ? "text-emerald-400 hover:text-amber-400"
+                          : "text-muted-foreground hover:text-emerald-400"
+                      }`}
+                    >
+                      {visivel ? "Visível" : "Oculta"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await desvincularQuestao(id, q.id);
+                        setSimulado({
+                          ...simulado,
+                          questoes: simulado.questoes.filter((x: any) => x.questao_id !== q.id),
+                        });
+                      }}
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      Remover
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -398,6 +426,15 @@ export default function EditarSimuladoPage({ params }: { params: Promise<{ id: s
                   <label className="text-xs text-muted-foreground">Subtópico</label>
                   <input
                     name="subtopico"
+                    type="text"
+                    placeholder="opcional"
+                    className={`${inputClass} mt-1`}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Categoria</label>
+                  <input
+                    name="categoria"
                     type="text"
                     placeholder="opcional"
                     className={`${inputClass} mt-1`}

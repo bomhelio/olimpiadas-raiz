@@ -66,7 +66,7 @@ export async function getSimuladoDetalhe(id: string) {
       `id, titulo, publicada, data_hora, duracao_minutos, link_aula, polos, descricao,
        projeto_id, projeto_ids, turma_ids, criado_em,
        questoes:preparacao_aula_questao(
-         id, ordem, questao:questao_id(
+         id, ordem, questao_id, visivel_aluno, questao:questao_id(
            id, olimpiada, nivel, fase, ano, numero, enunciado, topico, subtopico
          )
        )`,
@@ -236,6 +236,21 @@ export async function vincularQuestao(
   if (error) return { error: error.message };
   revalidatePath(`${PATH}/${simuladoId}`);
   return { ok: true };
+}
+
+export async function toggleVisivelAluno(
+  simuladoId: string,
+  aulaQuestaoId: string,
+  visivel: boolean,
+): Promise<void> {
+  await requireSession();
+  const supabase = createAdminClient() as any;
+  await supabase
+    .from("preparacao_aula_questao")
+    .update({ visivel_aluno: visivel })
+    .eq("id", aulaQuestaoId)
+    .eq("aula_id", simuladoId);
+  revalidatePath(`${PATH}/${simuladoId}`);
 }
 
 export async function desvincularQuestao(simuladoId: string, questaoId: string): Promise<void> {
