@@ -15,9 +15,11 @@ export type StudentSession = {
 export async function getStudentSession(): Promise<StudentSession> {
   const cookieStore = await cookies();
   const raw = cookieStore.get(ALUNO_SESSION_COOKIE)?.value;
+  console.log("[getStudentSession] cookie present:", !!raw, raw ? `len=${raw.length}` : "");
   if (!raw) return null;
 
   const alunoId = verifyStudentCookie(raw);
+  console.log("[getStudentSession] alunoId after verify:", alunoId ?? "NULL");
   if (!alunoId) return null;
 
   const admin = createAdminClient();
