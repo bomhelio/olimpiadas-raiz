@@ -1,6 +1,6 @@
 "use server";
 
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -15,18 +15,15 @@ import {
 
 export type LoginAlunoState = { error: string } | { needsConsent: true } | null;
 
-function makeSupabase(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+// Cliente isolado: não lê nem escreve cookies do request — não interfere com sessão do admin.
+function makeVerifySupabase() {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
-          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
-        },
+        getAll: () => [],
+        setAll: () => {},
       },
     },
   );
@@ -57,8 +54,7 @@ export async function loginAluno(
     if (!nome) return { error: "Informe o nome completo do responsável." };
     if (!tipo || !["pedagogico", "financeiro"].includes(tipo))
       return { error: "Selecione o tipo de responsável." };
-    if (!aceito)
-      return { error: "O responsável deve aceitar os termos para liberar o acesso." };
+    if (!aceito) return { error: "O responsável deve aceitar os termos para liberar o acesso." };
 
     await adminClient
       .from("aluno")
@@ -81,8 +77,8 @@ export async function loginAluno(
 
   if (!email || !password) return { error: "Preencha e-mail e senha." };
 
-  // Usamos Supabase Auth APENAS para verificar as credenciais
-  const supabase = makeSupabase(cookieStore);
+  // Cliente isolado: verifica credenciais sem tocar nos cookies do request
+  const supabase = makeVerifySupabase();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
@@ -103,10 +99,6 @@ export async function loginAluno(
     .eq("supabase_auth_id", data.user.id)
     .eq("ativo", true)
     .maybeSingle();
-
-  // Encerra a sessão Supabase Auth IMEDIATAMENTE — cookie próprio do aluno é suficiente
-  // Isso garante que logout do admin NÃO afeta a sessão do aluno
-  await supabase.auth.signOut();
 
   if (alunoError) {
     console.error("Erro ao buscar aluno:", alunoError.code ?? "unknown");
