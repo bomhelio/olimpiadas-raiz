@@ -302,13 +302,31 @@ export default function NovaBancoQuestaoPage() {
           <EnunciadoBlocosEditor />
         </div>
 
-        {/* Resolução — flags de status */}
-        <div className="rounded-lg border border-border/60 bg-background/40 p-4 space-y-3">
+        {/* Resolução — flags de status + conteúdo */}
+        <div className="rounded-lg border border-border/60 bg-background/40 p-4 space-y-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Resolução
           </p>
-          <RadioGroup name="tem_resolucao_video" label="Tem resolução em vídeo?" />
-          <RadioGroup name="tem_resolucao_texto" label="Tem resolução em texto/imagem?" />
+
+          <div className="space-y-2">
+            <RadioGroup name="tem_resolucao_video" label="Tem resolução em vídeo?" />
+            <input
+              name="video_url"
+              type="url"
+              placeholder="URL do vídeo (YouTube, Google Drive…)"
+              className={inputClass}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <RadioGroup name="tem_resolucao_texto" label="Tem resolução em texto/imagem?" />
+            <textarea
+              name="solucao_texto"
+              placeholder="Texto da resolução… (opcional)"
+              rows={4}
+              className={`${inputClass} resize-y`}
+            />
+          </div>
         </div>
 
         <div className="flex gap-3 pt-2">

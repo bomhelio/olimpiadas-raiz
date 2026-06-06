@@ -152,6 +152,8 @@ export async function criarQuestao(_prev: QuestaoState, formData: FormData): Pro
   const publico_alvo = (formData.get("publico_alvo") as string) || null;
   const tem_resolucao_video = (formData.get("tem_resolucao_video") as string) || "nao";
   const tem_resolucao_texto = (formData.get("tem_resolucao_texto") as string) || "nao";
+  const video_url = ((formData.get("video_url") as string) ?? "").trim() || null;
+  const solucao_texto = ((formData.get("solucao_texto") as string) ?? "").trim() || null;
 
   // Questões criadas por não-raiz entram como aguardando revisão
   const status_cadastro = session.user.role === "raiz" ? "publicado" : "aguardando_revisao";
@@ -192,12 +194,18 @@ export async function criarQuestao(_prev: QuestaoState, formData: FormData): Pro
       publico_alvo,
       tem_resolucao_video,
       tem_resolucao_texto,
+      video_url,
       status_cadastro,
     })
     .select("id")
     .single();
 
   if (error) return { error: error.message };
+
+  if (solucao_texto) {
+    await supabase.from("solucao").insert({ questao_id: data.id, texto: solucao_texto });
+  }
+
   revalidatePath("/academico/banco-questoes");
   redirect(`/academico/banco-questoes/${data.id}`);
 }
