@@ -16,7 +16,11 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 export type ClassificacaoOlimpiada = "obrigatoria" | "facultativa";
 export type OlimpiadaQuestao = string; // campo livre desde migration 017
-export type TipoQuestao = "multipla_escolha" | "aberta";
+export type TipoQuestao = "multipla_escolha" | "aberta" | "verdadeiro_ou_falso";
+export type TipoDificuldade = "elementar" | "facil" | "medio" | "dificil" | "muito_dificil";
+export type TipoPublicoAlvo = "EFAI" | "EFAF" | "EM" | "Todos";
+export type TipoResolucaoStatus = "sim" | "nao" | "em_producao";
+export type TipoStatusCadastro = "publicado" | "aguardando_revisao";
 export type StatusInscricao = "pendente" | "confirmada" | "cancelada";
 export type TipoResultado =
   | "aprovado"
@@ -682,16 +686,22 @@ export type Database = {
           id: string;
           olimpiada: OlimpiadaQuestao;
           nivel: string | null;
-          fase: number;
+          fase: number | null;
           ano: number;
-          numero: number;
+          numero: number | null;
           enunciado: string;
           enunciado_blocos: Json | null;
           imagem_url: string | null;
           assunto: string | null;
           topico: string | null;
           subtopico: string | null;
+          categoria: string | null;
           tipo: TipoQuestao;
+          dificuldade: string | null;
+          publico_alvo: string | null;
+          tem_resolucao_video: string;
+          tem_resolucao_texto: string;
+          status_cadastro: string;
           ativo: boolean;
           video_url: string | null;
           criado_em: string;
@@ -700,16 +710,22 @@ export type Database = {
           id?: string;
           olimpiada: OlimpiadaQuestao;
           nivel?: string | null;
-          fase: number;
+          fase?: number | null;
           ano: number;
-          numero: number;
+          numero?: number | null;
           enunciado: string;
           enunciado_blocos?: Json | null;
           imagem_url?: string | null;
           assunto?: string | null;
           topico?: string | null;
           subtopico?: string | null;
+          categoria?: string | null;
           tipo?: TipoQuestao;
+          dificuldade?: string | null;
+          publico_alvo?: string | null;
+          tem_resolucao_video?: string;
+          tem_resolucao_texto?: string;
+          status_cadastro?: string;
           ativo?: boolean;
           video_url?: string | null;
           criado_em?: string;
@@ -718,16 +734,22 @@ export type Database = {
           id?: string;
           olimpiada?: OlimpiadaQuestao;
           nivel?: string | null;
-          fase?: number;
+          fase?: number | null;
           ano?: number;
-          numero?: number;
+          numero?: number | null;
           enunciado?: string;
           enunciado_blocos?: Json | null;
           imagem_url?: string | null;
           assunto?: string | null;
           topico?: string | null;
           subtopico?: string | null;
+          categoria?: string | null;
           tipo?: TipoQuestao;
+          dificuldade?: string | null;
+          publico_alvo?: string | null;
+          tem_resolucao_video?: string;
+          tem_resolucao_texto?: string;
+          status_cadastro?: string;
           ativo?: boolean;
           video_url?: string | null;
           criado_em?: string;

@@ -5,35 +5,76 @@ import { getServerSession } from "@/lib/auth/session";
 import { can } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/ui/page-header";
 import { ConfirmButton } from "@/components/ui/confirm-button";
-import { getQuestoes, excluirQuestao, toggleAtivo } from "./actions";
+import { getQuestoes, excluirQuestao, toggleAtivo, aprovarQuestao } from "./actions";
 
 const OLIMPIADA_LABEL: Record<string, string> = {
   obmep_mirim: "OBMEP Mirim",
   obmep: "OBMEP",
 };
 
+const DIFICULDADE_LABEL: Record<string, string> = {
+  elementar: "Elementar",
+  facil: "Fácil",
+  medio: "Médio",
+  dificil: "Difícil",
+  muito_dificil: "M. Difícil",
+};
+
+const RESOLUCAO_ICON: Record<string, string> = {
+  sim: "✓",
+  nao: "—",
+  em_producao: "⏳",
+};
+
+const TIPO_LABEL: Record<string, string> = {
+  multipla_escolha: "M.E.",
+  aberta: "Aberta",
+  verdadeiro_ou_falso: "V/F",
+};
+
 export default async function BancoQuestoesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ olimpiada?: string; fase?: string; ano?: string; status?: string }>;
+  searchParams: Promise<{
+    olimpiada?: string;
+    fase?: string;
+    ano?: string;
+    status?: string;
+    nivel?: string;
+    dificuldade?: string;
+    publico_alvo?: string;
+    status_cadastro?: string;
+    busca?: string;
+  }>;
 }) {
   const session = await getServerSession();
   if (!session || !can(session.user.role, "questao:read")) redirect("/dashboard");
 
   const sp = await searchParams;
   const ativoFiltro = sp.status === "ativa" ? true : sp.status === "inativa" ? false : undefined;
+
   const questoes = await getQuestoes({
-    olimpiada: sp.olimpiada as "obmep_mirim" | "obmep" | undefined,
+    olimpiada: sp.olimpiada || undefined,
     fase: sp.fase ? Number(sp.fase) : undefined,
     ano: sp.ano ? Number(sp.ano) : undefined,
     ativo: ativoFiltro,
+    nivel: sp.nivel || undefined,
+    dificuldade: sp.dificuldade || undefined,
+    publico_alvo: sp.publico_alvo || undefined,
+    status_cadastro: sp.status_cadastro || undefined,
+    busca: sp.busca || undefined,
   });
+
+  const pendentes = questoes.filter((q: any) => q.status_cadastro === "aguardando_revisao").length;
+
+  const seletorClass =
+    "rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground min-w-0";
 
   return (
     <div>
       <PageHeader
         title="Banco de Questões"
-        description={undefined}
+        description={pendentes > 0 ? `${pendentes} aguardando revisão` : undefined}
         action={
           can(session.user.role, "questao:create")
             ? { label: "Nova Questão", href: "/academico/banco-questoes/nova" }
@@ -42,30 +83,32 @@ export default async function BancoQuestoesPage({
       />
 
       {/* Filtros */}
-      <form method="GET" className="mb-6 flex flex-wrap gap-3">
-        <select
-          name="olimpiada"
-          defaultValue={sp.olimpiada ?? ""}
-          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
-        >
+      <form method="GET" className="mb-4 flex flex-wrap gap-2">
+        {/* Busca textual */}
+        <input
+          name="busca"
+          type="text"
+          defaultValue={sp.busca ?? ""}
+          placeholder="Buscar por enunciado, tópico…"
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground w-64"
+        />
+
+        <select name="olimpiada" defaultValue={sp.olimpiada ?? ""} className={seletorClass}>
           <option value="">Origem</option>
           <option value="obmep">OBMEP</option>
           <option value="obmep_mirim">OBMEP Mirim</option>
+          <option value="obm">OBM</option>
+          <option value="obf">OBF</option>
+          <option value="obi">OBI</option>
         </select>
-        <select
-          name="fase"
-          defaultValue={sp.fase ?? ""}
-          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
-        >
+
+        <select name="fase" defaultValue={sp.fase ?? ""} className={seletorClass}>
           <option value="">Fase</option>
           <option value="1">1ª Fase</option>
           <option value="2">2ª Fase</option>
         </select>
-        <select
-          name="ano"
-          defaultValue={sp.ano ?? ""}
-          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
-        >
+
+        <select name="ano" defaultValue={sp.ano ?? ""} className={seletorClass}>
           <option value="">Ano</option>
           {Array.from({ length: 11 }, (_, i) => 2015 + i).map((a) => (
             <option key={a} value={a}>
@@ -73,15 +116,40 @@ export default async function BancoQuestoesPage({
             </option>
           ))}
         </select>
+
+        <select name="dificuldade" defaultValue={sp.dificuldade ?? ""} className={seletorClass}>
+          <option value="">Dificuldade</option>
+          <option value="elementar">Elementar</option>
+          <option value="facil">Fácil</option>
+          <option value="medio">Médio</option>
+          <option value="dificil">Difícil</option>
+          <option value="muito_dificil">Muito Difícil</option>
+        </select>
+
+        <select name="publico_alvo" defaultValue={sp.publico_alvo ?? ""} className={seletorClass}>
+          <option value="">Público-alvo</option>
+          <option value="EFAI">EFAI</option>
+          <option value="EFAF">EFAF</option>
+          <option value="EM">EM</option>
+          <option value="Todos">Todos</option>
+        </select>
+
         <select
-          name="status"
-          defaultValue={sp.status ?? ""}
-          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
+          name="status_cadastro"
+          defaultValue={sp.status_cadastro ?? ""}
+          className={seletorClass}
         >
-          <option value="">Status</option>
+          <option value="">Revisão</option>
+          <option value="publicado">Publicado</option>
+          <option value="aguardando_revisao">Aguardando revisão</option>
+        </select>
+
+        <select name="status" defaultValue={sp.status ?? ""} className={seletorClass}>
+          <option value="">Ativo/Inativo</option>
           <option value="ativa">Ativa</option>
           <option value="inativa">Inativa</option>
         </select>
+
         <button
           type="submit"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
@@ -96,6 +164,10 @@ export default async function BancoQuestoesPage({
         </Link>
       </form>
 
+      <p className="mb-3 text-xs text-muted-foreground">
+        {questoes.length} questão{questoes.length !== 1 ? "ões" : ""}
+      </p>
+
       {questoes.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground">
           Nenhuma questão encontrada.{" "}
@@ -107,55 +179,107 @@ export default async function BancoQuestoesPage({
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-border text-xs text-muted-foreground">
-                <th className="px-4 py-3 text-left font-semibold">Olimpíada</th>
-                <th className="px-4 py-3 text-left font-semibold">Nível</th>
-                <th className="px-4 py-3 text-left font-semibold">Fase</th>
-                <th className="px-4 py-3 text-left font-semibold">Ano</th>
-                <th className="px-4 py-3 text-left font-semibold">Nº</th>
-                <th className="px-4 py-3 text-left font-semibold">Tópico</th>
-                <th className="px-4 py-3 text-left font-semibold">Subtópico</th>
-                <th className="px-4 py-3 text-left font-semibold">Status</th>
-                <th className="px-4 py-3"></th>
+                <th className="px-3 py-3 text-left font-semibold">Origem</th>
+                <th className="px-3 py-3 text-left font-semibold">Nível</th>
+                <th className="px-3 py-3 text-left font-semibold">Fase</th>
+                <th className="px-3 py-3 text-left font-semibold">Ano</th>
+                <th className="px-3 py-3 text-left font-semibold">Nº</th>
+                <th className="px-3 py-3 text-left font-semibold hidden md:table-cell">Tipo</th>
+                <th className="px-3 py-3 text-left font-semibold hidden lg:table-cell">Tópico</th>
+                <th className="px-3 py-3 text-left font-semibold hidden md:table-cell">Dific.</th>
+                <th className="px-3 py-3 text-left font-semibold hidden lg:table-cell">Público</th>
+                <th
+                  className="px-3 py-3 text-center font-semibold hidden lg:table-cell"
+                  title="Resolução vídeo / texto"
+                >
+                  Res.
+                </th>
+                <th className="px-3 py-3 text-left font-semibold">Status</th>
+                <th className="px-3 py-3"></th>
               </tr>
             </thead>
             <tbody>
               {questoes.map((q: any) => (
-                <tr key={q.id} className="border-b border-border/40 hover:bg-background/50">
-                  <td className="px-4 py-3 font-medium">
+                <tr
+                  key={q.id}
+                  className={`border-b border-border/40 hover:bg-background/50 ${
+                    q.status_cadastro === "aguardando_revisao" ? "bg-amber-500/5" : ""
+                  }`}
+                >
+                  <td className="px-3 py-2.5 font-medium text-xs">
                     {OLIMPIADA_LABEL[q.olimpiada] ?? q.olimpiada}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{q.nivel ?? "—"}</td>
-                  <td className="px-4 py-3">{q.fase}ª</td>
-                  <td className="px-4 py-3">{q.ano}</td>
-                  <td className="px-4 py-3">{q.numero}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-3 py-2.5 text-muted-foreground text-xs">{q.nivel ?? "—"}</td>
+                  <td className="px-3 py-2.5 text-xs">{q.fase != null ? `${q.fase}ª` : "—"}</td>
+                  <td className="px-3 py-2.5 text-xs">{q.ano}</td>
+                  <td className="px-3 py-2.5 text-xs">{q.numero ?? "—"}</td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground hidden md:table-cell">
+                    {TIPO_LABEL[q.tipo] ?? q.tipo}
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground hidden lg:table-cell max-w-[140px] truncate">
                     {q.topico ?? q.assunto ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{q.subtopico ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    {can(session.user.role, "questao:update") ? (
-                      <form action={toggleAtivo.bind(null, q.id, !q.ativo)}>
-                        <button
-                          type="submit"
-                          title={q.ativo ? "Clique para desativar" : "Clique para ativar"}
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold transition-opacity hover:opacity-70 ${q.ativo ? "bg-emerald-500/10 text-emerald-400" : "bg-zinc-500/10 text-zinc-400"}`}
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground hidden md:table-cell">
+                    {DIFICULDADE_LABEL[q.dificuldade] ?? "—"}
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground hidden lg:table-cell">
+                    {q.publico_alvo ?? "—"}
+                  </td>
+                  <td className="px-3 py-2.5 text-center hidden lg:table-cell">
+                    <span
+                      className="text-xs text-muted-foreground"
+                      title={`Vídeo: ${q.tem_resolucao_video} | Texto: ${q.tem_resolucao_texto}`}
+                    >
+                      {RESOLUCAO_ICON[q.tem_resolucao_video] ?? "—"}
+                      {" / "}
+                      {RESOLUCAO_ICON[q.tem_resolucao_texto] ?? "—"}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex flex-col gap-1">
+                      {/* Status ativo/inativo */}
+                      {can(session.user.role, "questao:update") ? (
+                        <form action={toggleAtivo.bind(null, q.id, !q.ativo)}>
+                          <button
+                            type="submit"
+                            title={q.ativo ? "Clique para desativar" : "Clique para ativar"}
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold transition-opacity hover:opacity-70 ${q.ativo ? "bg-emerald-500/10 text-emerald-400" : "bg-zinc-500/10 text-zinc-400"}`}
+                          >
+                            {q.ativo ? "Ativa" : "Inativa"}
+                          </button>
+                        </form>
+                      ) : (
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${q.ativo ? "bg-emerald-500/10 text-emerald-400" : "bg-zinc-500/10 text-zinc-400"}`}
                         >
                           {q.ativo ? "Ativa" : "Inativa"}
-                        </button>
-                      </form>
-                    ) : (
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${q.ativo ? "bg-emerald-500/10 text-emerald-400" : "bg-zinc-500/10 text-zinc-400"}`}
-                      >
-                        {q.ativo ? "Ativa" : "Inativa"}
-                      </span>
-                    )}
+                        </span>
+                      )}
+                      {/* Badge de revisão */}
+                      {q.status_cadastro === "aguardando_revisao" && (
+                        <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold bg-amber-500/10 text-amber-400">
+                          Revisão
+                        </span>
+                      )}
+                    </div>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-3">
+                  <td className="px-3 py-2.5 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {/* Botão aprovar — só raiz, só quando aguardando */}
+                      {session.user.role === "raiz" &&
+                        q.status_cadastro === "aguardando_revisao" && (
+                          <form action={aprovarQuestao.bind(null, q.id)}>
+                            <button
+                              type="submit"
+                              className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
+                            >
+                              Aprovar
+                            </button>
+                          </form>
+                        )}
                       <Link
                         href={`/academico/banco-questoes/${q.id}`}
                         className="text-primary hover:underline text-xs"
@@ -166,7 +290,7 @@ export default async function BancoQuestoesPage({
                         <form action={excluirQuestao}>
                           <input type="hidden" name="id" value={q.id} />
                           <ConfirmButton
-                            message={`Excluir questão ${q.numero} (${q.fase}ª fase · ${q.ano})? Esta ação não pode ser desfeita.`}
+                            message={`Excluir questão ${q.numero ?? "?"} (${q.fase != null ? `${q.fase}ª fase` : "sem fase"} · ${q.ano})? Esta ação não pode ser desfeita.`}
                             className="text-xs text-red-400 hover:text-red-300 transition-colors"
                           >
                             Excluir

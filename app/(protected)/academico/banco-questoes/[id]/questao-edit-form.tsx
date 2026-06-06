@@ -6,9 +6,75 @@ import { inputClass, selectClass } from "@/components/ui/form-field";
 import type { Questao } from "@/lib/types/database";
 import { EnunciadoBlocosEditor, type BlocoEnunciado } from "../enunciado-blocos-editor";
 
+const DIFICULDADE_OPTIONS = [
+  { value: "elementar", label: "Elementar" },
+  { value: "facil", label: "Fácil" },
+  { value: "medio", label: "Médio" },
+  { value: "dificil", label: "Difícil" },
+  { value: "muito_dificil", label: "Muito Difícil" },
+];
+
+const PUBLICO_OPTIONS = [
+  { value: "EFAI", label: "EFAI" },
+  { value: "EFAF", label: "EFAF" },
+  { value: "EM", label: "EM" },
+  { value: "Todos", label: "Todos" },
+];
+
+const RESOLUCAO_STATUS = [
+  { value: "nao", label: "Não" },
+  { value: "em_producao", label: "Em produção" },
+  { value: "sim", label: "Sim" },
+];
+
+function RadioGroup({
+  name,
+  label,
+  defaultValue = "nao",
+}: {
+  name: string;
+  label: string;
+  defaultValue?: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        {label}
+      </label>
+      <div className="flex gap-3">
+        {RESOLUCAO_STATUS.map((opt) => (
+          <label
+            key={opt.value}
+            className="flex items-center gap-1.5 cursor-pointer text-sm text-muted-foreground hover:text-foreground"
+          >
+            <input
+              type="radio"
+              name={name}
+              value={opt.value}
+              defaultChecked={opt.value === (defaultValue || "nao")}
+              className="accent-primary"
+            />
+            {opt.label}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const STATUS_LABELS: Record<string, { label: string; className: string }> = {
+  publicado: { label: "Publicado", className: "bg-emerald-500/10 text-emerald-400" },
+  aguardando_revisao: { label: "Aguardando revisão", className: "bg-amber-500/10 text-amber-400" },
+};
+
 export function QuestaoEditForm({ questao }: { questao: Questao }) {
   const action = atualizarQuestao.bind(null, questao.id);
   const [state, formAction, isPending] = useActionState(action, null);
+
+  const statusInfo = STATUS_LABELS[questao.status_cadastro] ?? {
+    label: "Publicado",
+    className: "bg-emerald-500/10 text-emerald-400",
+  };
 
   return (
     <form action={formAction} className="space-y-4">
@@ -22,6 +88,15 @@ export function QuestaoEditForm({ questao }: { questao: Questao }) {
           Salvo com sucesso.
         </div>
       )}
+
+      {/* Badge de status de cadastro */}
+      <div className="flex items-center gap-2">
+        <span
+          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusInfo.className}`}
+        >
+          {statusInfo.label}
+        </span>
+      </div>
 
       {/* datalists de sugestões */}
       <datalist id="dl-olimpiada-edit">
@@ -40,8 +115,11 @@ export function QuestaoEditForm({ questao }: { questao: Questao }) {
         <option value="nivel_2" />
         <option value="nivel_3" />
         <option value="mirim" />
+        <option value="junior" />
+        <option value="senior" />
       </datalist>
 
+      {/* Linha 1: Olimpíada + Nível/Categoria */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -57,7 +135,7 @@ export function QuestaoEditForm({ questao }: { questao: Questao }) {
         </div>
         <div className="space-y-1.5">
           <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Nível
+            Nível/Categoria
           </label>
           <input
             name="nivel"
@@ -70,7 +148,8 @@ export function QuestaoEditForm({ questao }: { questao: Questao }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-4">
+      {/* Linha 2: Fase · Ano · Nº · Tipo */}
+      <div className="grid grid-cols-4 gap-4">
         <div className="space-y-1.5">
           <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Fase
@@ -103,28 +182,17 @@ export function QuestaoEditForm({ questao }: { questao: Questao }) {
         </div>
         <div className="space-y-1.5">
           <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Categoria
-          </label>
-          <input
-            name="categoria"
-            type="text"
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            defaultValue={(questao as any).categoria ?? ""}
-            placeholder="opcional"
-            className={inputClass}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Tipo
           </label>
           <select name="tipo" defaultValue={questao.tipo} className={selectClass}>
             <option value="multipla_escolha">M. Escolha</option>
             <option value="aberta">Aberta</option>
+            <option value="verdadeiro_ou_falso">V ou F</option>
           </select>
         </div>
       </div>
 
+      {/* Linha 3: Tópico + Subtópico */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -133,8 +201,7 @@ export function QuestaoEditForm({ questao }: { questao: Questao }) {
           <input
             name="topico"
             type="text"
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            defaultValue={(questao as any).topico ?? questao.assunto ?? ""}
+            defaultValue={questao.topico ?? questao.assunto ?? ""}
             placeholder="ex: Geometria, Aritmética…"
             className={inputClass}
           />
@@ -146,14 +213,52 @@ export function QuestaoEditForm({ questao }: { questao: Questao }) {
           <input
             name="subtopico"
             type="text"
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            defaultValue={(questao as any).subtopico ?? ""}
+            defaultValue={questao.subtopico ?? ""}
             placeholder="ex: Triângulos, Frações…"
             className={inputClass}
           />
         </div>
       </div>
 
+      {/* Linha 4: Dificuldade + Público-alvo */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Dificuldade
+          </label>
+          <select
+            name="dificuldade"
+            defaultValue={questao.dificuldade ?? ""}
+            className={selectClass}
+          >
+            <option value="">Não definido</option>
+            {DIFICULDADE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Público-alvo
+          </label>
+          <select
+            name="publico_alvo"
+            defaultValue={questao.publico_alvo ?? ""}
+            className={selectClass}
+          >
+            <option value="">Não definido</option>
+            {PUBLICO_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Enunciado */}
       <div className="space-y-1.5">
         <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Enunciado
@@ -170,6 +275,23 @@ export function QuestaoEditForm({ questao }: { questao: Questao }) {
                 : null
           }
           initialEnunciado={questao.enunciado}
+        />
+      </div>
+
+      {/* Resolução — flags de status */}
+      <div className="rounded-lg border border-border/60 bg-background/40 p-4 space-y-3">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Resolução
+        </p>
+        <RadioGroup
+          name="tem_resolucao_video"
+          label="Tem resolução em vídeo?"
+          defaultValue={questao.tem_resolucao_video}
+        />
+        <RadioGroup
+          name="tem_resolucao_texto"
+          label="Tem resolução em texto/imagem?"
+          defaultValue={questao.tem_resolucao_texto}
         />
       </div>
 

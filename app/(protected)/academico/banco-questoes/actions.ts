@@ -27,6 +27,12 @@ export async function getQuestoes(filtros?: {
   ano?: number;
   assunto?: string;
   ativo?: boolean;
+  nivel?: string;
+  dificuldade?: string;
+  publico_alvo?: string;
+  topico?: string;
+  status_cadastro?: string;
+  busca?: string;
 }) {
   await requireAdmin();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,7 +41,8 @@ export async function getQuestoes(filtros?: {
   let query = supabase
     .from("questao")
     .select(
-      "id, olimpiada, nivel, fase, ano, numero, assunto, topico, subtopico, tipo, ativo, criado_em",
+      "id, olimpiada, nivel, fase, ano, numero, assunto, topico, subtopico, tipo, " +
+        "dificuldade, publico_alvo, tem_resolucao_video, tem_resolucao_texto, status_cadastro, ativo, criado_em",
     )
     .order("olimpiada")
     .order("fase")
@@ -47,6 +54,17 @@ export async function getQuestoes(filtros?: {
   if (filtros?.ano) query = query.eq("ano", filtros.ano);
   if (filtros?.assunto) query = query.ilike("assunto", `%${filtros.assunto}%`);
   if (filtros?.ativo !== undefined) query = query.eq("ativo", filtros.ativo);
+  if (filtros?.nivel) query = query.eq("nivel", filtros.nivel);
+  if (filtros?.dificuldade) query = query.eq("dificuldade", filtros.dificuldade);
+  if (filtros?.publico_alvo) query = query.eq("publico_alvo", filtros.publico_alvo);
+  if (filtros?.topico) query = query.ilike("topico", `%${filtros.topico}%`);
+  if (filtros?.status_cadastro) query = query.eq("status_cadastro", filtros.status_cadastro);
+  if (filtros?.busca) {
+    const termo = filtros.busca.replace(/[%_]/g, "\\$&");
+    query = query.or(
+      `enunciado.ilike.%${termo}%,topico.ilike.%${termo}%,subtopico.ilike.%${termo}%`,
+    );
+  }
 
   const { data, error } = await query;
   if (error) throw error;
@@ -64,7 +82,6 @@ export async function getQuestaoDetalhe(id: string) {
     supabase.from("solucao").select("*").eq("questao_id", id).maybeSingle(),
   ]);
 
-  // Estatísticas de respostas
   const { data: stats } = await supabase
     .from("resposta_aluno")
     .select("correta, alternativa_id")
@@ -73,13 +90,180 @@ export async function getQuestaoDetalhe(id: string) {
   return { questao, alternativas: alternativas ?? [], solucao, stats: stats ?? [] };
 }
 
+// ─── Busca por similaridade (pré-check de duplicatas) ────────────────────────
+
+export async function buscarQuestoesSimilares(enunciado: string): Promise<{
+  count: number;
+  similares: {
+    id: string;
+    enunciado: string;
+    olimpiada: string;
+    ano: number;
+    nivel: string | null;
+  }[];
+}> {
+  const session = await getServerSession();
+  if (!session || !can(session.user.role, "questao:read")) return { count: 0, similares: [] };
+
+  const snippet = enunciado.trim().replace(/\s+/g, " ").slice(0, 80);
+  if (snippet.length < 15) return { count: 0, similares: [] };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createAdminClient() as any;
+
+  // Busca pelo trecho inicial do enunciado — detecta duplicatas óbvias
+  const { data } = await supabase
+    .from("questao")
+    .select("id, enunciado, olimpiada, ano, nivel")
+    .ilike("enunciado", `%${snippet.slice(0, 40)}%`)
+    .limit(5);
+
+  return { count: data?.length ?? 0, similares: data ?? [] };
+}
+
 // ─── Questão CRUD ────────────────────────────────────────────────────────────
+
+function parseBlocos(raw: string): unknown | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export async function criarQuestao(_prev: QuestaoState, formData: FormData): Promise<QuestaoState> {
+  const session = await getServerSession();
+  if (!session || !can(session.user.role, "questao:create")) return { error: "Não autorizado" };
+
+  const olimpiada = (formData.get("olimpiada") as string) ?? "";
+  const nivel = (formData.get("nivel") as string) || null;
+  const faseRaw = (formData.get("fase") as string)?.trim();
+  const fase = faseRaw ? Number(faseRaw) : null;
+  const ano = Number(formData.get("ano"));
+  const numeroRaw = (formData.get("numero") as string)?.trim();
+  const numero = numeroRaw ? Number(numeroRaw) : null;
+  const enunciado = ((formData.get("enunciado") as string) ?? "").trim();
+  const enunciado_blocos = parseBlocos((formData.get("enunciado_blocos") as string) ?? "");
+  const topico = ((formData.get("topico") as string) ?? "").trim() || null;
+  const subtopico = ((formData.get("subtopico") as string) ?? "").trim() || null;
+  const tipo = (formData.get("tipo") as TipoQuestao) || "multipla_escolha";
+  const dificuldade = (formData.get("dificuldade") as string) || null;
+  const publico_alvo = (formData.get("publico_alvo") as string) || null;
+  const tem_resolucao_video = (formData.get("tem_resolucao_video") as string) || "nao";
+  const tem_resolucao_texto = (formData.get("tem_resolucao_texto") as string) || "nao";
+
+  // Questões criadas por não-raiz entram como aguardando revisão
+  const status_cadastro = session.user.role === "raiz" ? "publicado" : "aguardando_revisao";
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createAdminClient() as any;
+
+  // Validação de ID natural (olimpiada + ano + numero) — bloqueia duplicata exata
+  if (olimpiada && ano && numero) {
+    const { data: existente } = await supabase
+      .from("questao")
+      .select("id")
+      .eq("olimpiada", olimpiada)
+      .eq("ano", ano)
+      .eq("numero", numero)
+      .maybeSingle();
+    if (existente) {
+      return {
+        error: `Já existe uma questão cadastrada: ${olimpiada} · ${ano} · Q${numero}. Edite a questão existente.`,
+      };
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("questao")
+    .insert({
+      olimpiada,
+      nivel,
+      fase,
+      ano,
+      numero,
+      enunciado,
+      enunciado_blocos,
+      topico,
+      subtopico,
+      tipo,
+      dificuldade,
+      publico_alvo,
+      tem_resolucao_video,
+      tem_resolucao_texto,
+      status_cadastro,
+    })
+    .select("id")
+    .single();
+
+  if (error) return { error: error.message };
+  revalidatePath("/academico/banco-questoes");
+  redirect(`/academico/banco-questoes/${data.id}`);
+}
+
+export async function atualizarQuestao(
+  id: string,
+  _prev: QuestaoState,
+  formData: FormData,
+): Promise<QuestaoState> {
+  const session = await getServerSession();
+  if (!session || !can(session.user.role, "questao:update")) return { error: "Não autorizado" };
+
+  const enunciado_blocos = parseBlocos((formData.get("enunciado_blocos") as string) ?? "");
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createAdminClient() as any;
+  const { error } = await supabase
+    .from("questao")
+    .update({
+      olimpiada: formData.get("olimpiada"),
+      nivel: (formData.get("nivel") as string) || null,
+      fase: ((f) => (f ? Number(f) : null))((formData.get("fase") as string)?.trim()),
+      ano: Number(formData.get("ano")),
+      numero: ((n) => (n ? Number(n) : null))((formData.get("numero") as string)?.trim()),
+      enunciado: ((formData.get("enunciado") as string) ?? "").trim(),
+      enunciado_blocos,
+      imagem_url: null,
+      topico: ((formData.get("topico") as string) ?? "").trim() || null,
+      subtopico: ((formData.get("subtopico") as string) ?? "").trim() || null,
+      tipo: formData.get("tipo"),
+      dificuldade: (formData.get("dificuldade") as string) || null,
+      publico_alvo: (formData.get("publico_alvo") as string) || null,
+      tem_resolucao_video: (formData.get("tem_resolucao_video") as string) || "nao",
+      tem_resolucao_texto: (formData.get("tem_resolucao_texto") as string) || "nao",
+    })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/academico/banco-questoes");
+  revalidatePath(`/academico/banco-questoes/${id}`);
+  return { ok: true };
+}
+
+export async function toggleAtivo(id: string, ativo: boolean) {
+  const session = await getServerSession();
+  if (!session || !can(session.user.role, "questao:update")) return;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createAdminClient() as any;
+  await supabase.from("questao").update({ ativo }).eq("id", id);
+  revalidatePath("/academico/banco-questoes");
+}
+
+export async function aprovarQuestao(id: string) {
+  const session = await getServerSession();
+  if (!session || session.user.role !== "raiz") return;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createAdminClient() as any;
+  await supabase.from("questao").update({ status_cadastro: "publicado" }).eq("id", id);
+  revalidatePath("/academico/banco-questoes");
+}
 
 // ─── Validação de upload de imagem ───────────────────────────────────────────
 
 const ALLOWED_IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 function validateImageFile(file: File): string | null {
   if (!file || file.size === 0) return "Nenhum arquivo enviado.";
@@ -142,103 +326,6 @@ export async function uploadSolucaoImagem(
   return uploadToStorage("solucoes", file);
 }
 
-function parseBlocos(raw: string): unknown | null {
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-export async function criarQuestao(_prev: QuestaoState, formData: FormData): Promise<QuestaoState> {
-  const session = await getServerSession();
-  if (!session || !can(session.user.role, "questao:create")) return { error: "Não autorizado" };
-
-  const olimpiada = (formData.get("olimpiada") as string) ?? "";
-  const nivel = (formData.get("nivel") as string) || null;
-  const faseRaw = (formData.get("fase") as string)?.trim();
-  const fase = faseRaw ? Number(faseRaw) : null;
-  const ano = Number(formData.get("ano"));
-  const numeroRaw = (formData.get("numero") as string)?.trim();
-  const numero = numeroRaw ? Number(numeroRaw) : null;
-  const categoria = ((formData.get("categoria") as string) ?? "").trim() || null;
-  const enunciado = ((formData.get("enunciado") as string) ?? "").trim();
-  const enunciado_blocos = parseBlocos((formData.get("enunciado_blocos") as string) ?? "");
-  const topico = ((formData.get("topico") as string) ?? "").trim() || null;
-  const subtopico = ((formData.get("subtopico") as string) ?? "").trim() || null;
-  const tipo = (formData.get("tipo") as TipoQuestao) || "multipla_escolha";
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createAdminClient() as any;
-  const { data, error } = await supabase
-    .from("questao")
-    .insert({
-      olimpiada,
-      nivel,
-      fase,
-      ano,
-      numero,
-      categoria,
-      enunciado,
-      enunciado_blocos,
-      topico,
-      subtopico,
-      tipo,
-    })
-    .select("id")
-    .single();
-
-  if (error) return { error: error.message };
-  revalidatePath("/academico/banco-questoes");
-  redirect(`/academico/banco-questoes/${data.id}`);
-}
-
-export async function atualizarQuestao(
-  id: string,
-  _prev: QuestaoState,
-  formData: FormData,
-): Promise<QuestaoState> {
-  const session = await getServerSession();
-  if (!session || !can(session.user.role, "questao:update")) return { error: "Não autorizado" };
-
-  const enunciado_blocos = parseBlocos((formData.get("enunciado_blocos") as string) ?? "");
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createAdminClient() as any;
-  const { error } = await supabase
-    .from("questao")
-    .update({
-      olimpiada: formData.get("olimpiada"),
-      nivel: (formData.get("nivel") as string) || null,
-      fase: ((f) => (f ? Number(f) : null))((formData.get("fase") as string)?.trim()),
-      ano: Number(formData.get("ano")),
-      numero: ((n) => (n ? Number(n) : null))((formData.get("numero") as string)?.trim()),
-      categoria: ((formData.get("categoria") as string) ?? "").trim() || null,
-      enunciado: ((formData.get("enunciado") as string) ?? "").trim(),
-      enunciado_blocos,
-      imagem_url: null, // limpa campo legado ao salvar com editor de blocos
-      topico: ((formData.get("topico") as string) ?? "").trim() || null,
-      subtopico: ((formData.get("subtopico") as string) ?? "").trim() || null,
-      tipo: formData.get("tipo"),
-    })
-    .eq("id", id);
-
-  if (error) return { error: error.message };
-  revalidatePath("/academico/banco-questoes");
-  revalidatePath(`/academico/banco-questoes/${id}`);
-  return { ok: true };
-}
-
-export async function toggleAtivo(id: string, ativo: boolean) {
-  const session = await getServerSession();
-  if (!session || !can(session.user.role, "questao:update")) return;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createAdminClient() as any;
-  await supabase.from("questao").update({ ativo }).eq("id", id);
-  revalidatePath("/academico/banco-questoes");
-}
-
 // ─── Alternativas ────────────────────────────────────────────────────────────
 
 export async function salvarAlternativa(
@@ -258,7 +345,6 @@ export async function salvarAlternativa(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createAdminClient() as any;
 
-  // Se correta, remove flag das outras
   if (correta) {
     await supabase.from("alternativa").update({ correta: false }).eq("questao_id", questao_id);
   }
@@ -298,11 +384,16 @@ export async function salvarSolucao(
   const video_url = ((formData.get("video_url") as string) ?? "").trim() || null;
   const imagem_url = ((formData.get("imagem_url") as string) ?? "").trim() || null;
   const imagem_largura = ((formData.get("imagem_largura") as string) ?? "").trim() || null;
+  const tem_resolucao_video = (formData.get("tem_resolucao_video") as string) || "nao";
+  const tem_resolucao_texto = (formData.get("tem_resolucao_texto") as string) || "nao";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createAdminClient() as any;
 
-  await supabase.from("questao").update({ video_url }).eq("id", questao_id);
+  await supabase
+    .from("questao")
+    .update({ video_url, tem_resolucao_video, tem_resolucao_texto })
+    .eq("id", questao_id);
 
   const { error } = await supabase
     .from("solucao")

@@ -92,6 +92,8 @@ export default async function QuestaoDetalhePage({ params }: { params: Promise<{
           solucao={solucao}
           videoUrl={questao.video_url}
           imagemUrl={solucao?.imagem_url}
+          temResolucaoVideo={questao.tem_resolucao_video}
+          temResolucaoTexto={questao.tem_resolucao_texto}
         />
       </section>
     </div>
