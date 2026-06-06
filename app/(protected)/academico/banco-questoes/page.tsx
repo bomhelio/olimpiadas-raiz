@@ -84,15 +84,29 @@ export default async function BancoQuestoesPage({
 
       {/* Filtros */}
       <form method="GET" className="mb-4 space-y-2">
-        {/* Busca textual */}
-        <input
-          name="busca"
-          type="text"
-          defaultValue={sp.busca ?? ""}
-          placeholder="Buscar por enunciado, tópico…"
-          className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
-        />
-        {/* Dropdowns + ações na mesma linha */}
+        {/* Linha 1: busca + ações */}
+        <div className="flex items-center gap-2">
+          <input
+            name="busca"
+            type="text"
+            defaultValue={sp.busca ?? ""}
+            placeholder="Buscar por enunciado, tópico…"
+            className="w-72 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
+          />
+          <button
+            type="submit"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            Filtrar
+          </button>
+          <Link
+            href="/academico/banco-questoes"
+            className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            Limpar
+          </Link>
+        </div>
+        {/* Linha 2: dropdowns */}
         <div className="flex flex-wrap gap-2">
           <select name="olimpiada" defaultValue={sp.olimpiada ?? ""} className={seletorClass}>
             <option value="">Origem</option>
@@ -150,19 +164,6 @@ export default async function BancoQuestoesPage({
             <option value="ativa">Ativa</option>
             <option value="inativa">Inativa</option>
           </select>
-
-          <button
-            type="submit"
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-          >
-            Filtrar
-          </button>
-          <Link
-            href="/academico/banco-questoes"
-            className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
-          >
-            Limpar
-          </Link>
         </div>
       </form>
 
