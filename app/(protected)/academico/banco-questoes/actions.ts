@@ -153,7 +153,13 @@ export async function criarQuestao(_prev: QuestaoState, formData: FormData): Pro
   const tem_resolucao_video = (formData.get("tem_resolucao_video") as string) || "nao";
   const tem_resolucao_texto = (formData.get("tem_resolucao_texto") as string) || "nao";
   const video_url = ((formData.get("video_url") as string) ?? "").trim() || null;
-  const solucao_texto = ((formData.get("solucao_texto") as string) ?? "").trim() || null;
+  const solucao_blocos = parseBlocos((formData.get("solucao_blocos") as string) ?? "");
+  const solucao_texto = solucao_blocos
+    ? (solucao_blocos as { tipo: string; conteudo?: string }[])
+        .filter((b) => b.tipo === "texto")
+        .map((b) => b.conteudo ?? "")
+        .join("\n\n") || null
+    : null;
 
   // Questões criadas por não-raiz entram como aguardando revisão
   const status_cadastro = session.user.role === "raiz" ? "publicado" : "aguardando_revisao";
@@ -202,8 +208,10 @@ export async function criarQuestao(_prev: QuestaoState, formData: FormData): Pro
 
   if (error) return { error: error.message };
 
-  if (solucao_texto) {
-    await supabase.from("solucao").insert({ questao_id: data.id, texto: solucao_texto });
+  if (solucao_blocos || solucao_texto) {
+    await supabase
+      .from("solucao")
+      .insert({ questao_id: data.id, blocos: solucao_blocos, texto: solucao_texto });
   }
 
   revalidatePath("/academico/banco-questoes");
@@ -388,12 +396,16 @@ export async function salvarSolucao(
   if (!session || !can(session.user.role, "questao:update")) return { error: "Não autorizado" };
 
   const questao_id = formData.get("questao_id") as string;
-  const texto = ((formData.get("texto") as string) ?? "").trim() || null;
   const video_url = ((formData.get("video_url") as string) ?? "").trim() || null;
-  const imagem_url = ((formData.get("imagem_url") as string) ?? "").trim() || null;
-  const imagem_largura = ((formData.get("imagem_largura") as string) ?? "").trim() || null;
   const tem_resolucao_video = (formData.get("tem_resolucao_video") as string) || "nao";
   const tem_resolucao_texto = (formData.get("tem_resolucao_texto") as string) || "nao";
+  const blocos = parseBlocos((formData.get("solucao_blocos") as string) ?? "");
+  const texto = blocos
+    ? (blocos as { tipo: string; conteudo?: string }[])
+        .filter((b) => b.tipo === "texto")
+        .map((b) => b.conteudo ?? "")
+        .join("\n\n") || null
+    : ((formData.get("solucao_texto") as string) ?? "").trim() || null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createAdminClient() as any;
@@ -405,7 +417,7 @@ export async function salvarSolucao(
 
   const { error } = await supabase
     .from("solucao")
-    .upsert({ questao_id, texto, imagem_url, imagem_largura }, { onConflict: "questao_id" });
+    .upsert({ questao_id, blocos, texto }, { onConflict: "questao_id" });
 
   if (error) return { error: error.message };
   revalidatePath(`/academico/banco-questoes/${questao_id}`);

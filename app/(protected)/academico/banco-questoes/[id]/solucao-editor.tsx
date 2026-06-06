@@ -1,16 +1,14 @@
 "use client";
 
-import { useActionState, useState, useTransition, useRef } from "react";
+import { useActionState } from "react";
 import { salvarSolucao, uploadSolucaoImagem } from "../actions";
 import { inputClass } from "@/components/ui/form-field";
 import type { Solucao } from "@/lib/types/database";
-
-const LARGURA_MAP: Record<string, string> = {
-  pequena: "180px",
-  media: "360px",
-  grande: "560px",
-  completa: "100%",
-};
+import {
+  EnunciadoBlocosEditor,
+  type BlocoEnunciado,
+  type BlocoLargura,
+} from "../enunciado-blocos-editor";
 
 const RESOLUCAO_STATUS = [
   { value: "nao", label: "Não" },
@@ -53,11 +51,30 @@ function RadioStatus({
   );
 }
 
+function solucaoParaBlocos(
+  solucao?: Solucao | null,
+  imagemUrl?: string | null,
+): BlocoEnunciado[] | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const blocos = (solucao as any)?.blocos;
+  if (blocos && Array.isArray(blocos) && blocos.length > 0) return blocos as BlocoEnunciado[];
+  const result: BlocoEnunciado[] = [];
+  if (solucao?.texto) result.push({ tipo: "texto", conteudo: solucao.texto });
+  if (imagemUrl)
+    result.push({
+      tipo: "imagem",
+      url: imagemUrl,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      largura: ((solucao as any)?.imagem_largura as BlocoLargura) ?? undefined,
+    });
+  return result.length > 0 ? result : null;
+}
+
 export function SolucaoEditor({
   questaoId,
   solucao,
   videoUrl,
-  imagemUrl: initialImagemUrl,
+  imagemUrl,
   temResolucaoVideo,
   temResolucaoTexto,
 }: {
@@ -69,35 +86,12 @@ export function SolucaoEditor({
   temResolucaoTexto?: string;
 }) {
   const [state, action, isPending] = useActionState(salvarSolucao, null);
-  const [imagemUrl, setImagemUrl] = useState<string | null>(initialImagemUrl ?? null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [largura, setLargura] = useState<string>((solucao as any)?.imagem_largura ?? "completa");
-  const [isUploading, startUploadTransition] = useTransition();
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadError(null);
-    const fd = new FormData();
-    fd.append("file", file);
-    startUploadTransition(async () => {
-      const result = await uploadSolucaoImagem(fd);
-      if ("url" in result) {
-        setImagemUrl(result.url);
-      } else {
-        setUploadError(result.error);
-      }
-    });
-    e.target.value = "";
-  };
+  const initialBlocos = solucaoParaBlocos(solucao, imagemUrl);
 
   return (
     <form action={action} className="space-y-5">
       <input type="hidden" name="questao_id" value={questaoId} />
-      <input type="hidden" name="imagem_url" value={imagemUrl ?? ""} />
-      <input type="hidden" name="imagem_largura" value={largura} />
 
       {state && "error" in state && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
@@ -142,88 +136,21 @@ export function SolucaoEditor({
         <p className="text-xs text-muted-foreground">YouTube, Vimeo ou link direto. Opcional.</p>
       </div>
 
-      {/* Resolução em texto */}
+      {/* Resolução em blocos (texto + imagem) */}
       <div className="space-y-1.5">
         <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Resolução em texto
+          Resolução em texto/imagem
         </label>
-        <textarea
-          name="texto"
-          rows={6}
-          defaultValue={solucao?.texto ?? ""}
-          placeholder="Digite a resolução completa da questão…"
-          className={inputClass}
+        <p className="text-xs text-muted-foreground mb-2">
+          Use blocos de texto e imagem — arranje na ordem que quiser.
+        </p>
+        <EnunciadoBlocosEditor
+          initialBlocos={initialBlocos}
+          fieldNameBlocos="solucao_blocos"
+          fieldNameTexto="solucao_texto"
+          placeholder="Digite o texto da resolução…"
+          uploadFn={uploadSolucaoImagem}
         />
-      </div>
-
-      {/* Imagem da resolução */}
-      <div className="space-y-2">
-        <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Imagem da resolução
-        </label>
-
-        {imagemUrl && (
-          <div className="space-y-2">
-            <div className="relative inline-block">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imagemUrl}
-                alt="Resolução"
-                className="rounded-lg border border-border object-contain"
-                style={{ width: LARGURA_MAP[largura] ?? "100%", maxWidth: "100%" }}
-              />
-              <button
-                type="button"
-                onClick={() => setImagemUrl(null)}
-                className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border border-red-500/50 bg-card text-[10px] text-red-400 hover:text-red-300"
-                title="Remover imagem"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-muted-foreground">Largura:</span>
-              {(["pequena", "media", "grande", "completa"] as const).map((op) => (
-                <button
-                  key={op}
-                  type="button"
-                  onClick={() => setLargura(op)}
-                  className={`rounded px-2 py-0.5 text-[11px] capitalize transition-colors ${
-                    largura === op
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {op === "media"
-                    ? "Média"
-                    : op === "pequena"
-                      ? "Pequena"
-                      : op === "grande"
-                        ? "Grande"
-                        : "Completa"}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {isUploading && <p className="text-xs text-muted-foreground">Enviando imagem…</p>}
-        {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
-
-        <label
-          className={`inline-flex cursor-pointer rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors ${
-            isUploading ? "pointer-events-none opacity-50" : "hover:text-foreground"
-          }`}
-        >
-          {imagemUrl ? "Trocar imagem" : "+ Imagem"}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleImageSelect}
-          />
-        </label>
       </div>
 
       <button

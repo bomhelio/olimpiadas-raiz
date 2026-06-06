@@ -4,6 +4,8 @@ import { useState, useRef, useTransition } from "react";
 import { uploadQuestaoImagem } from "./actions";
 import { inputClass } from "@/components/ui/form-field";
 
+type UploadFn = (fd: FormData) => Promise<{ url: string } | { error: string }>;
+
 export type BlocoLargura = "pequena" | "media" | "grande" | "completa";
 export type BlocoEnunciado =
   | { tipo: "texto"; conteudo: string }
@@ -17,9 +19,17 @@ export function imgStyle(largura?: BlocoLargura): React.CSSProperties {
 export function EnunciadoBlocosEditor({
   initialBlocos,
   initialEnunciado,
+  fieldNameBlocos = "enunciado_blocos",
+  fieldNameTexto = "enunciado",
+  placeholder = "Digite o texto do enunciado…",
+  uploadFn,
 }: {
   initialBlocos?: BlocoEnunciado[] | null;
   initialEnunciado?: string;
+  fieldNameBlocos?: string;
+  fieldNameTexto?: string;
+  placeholder?: string;
+  uploadFn?: UploadFn;
 }) {
   const initial: BlocoEnunciado[] = initialBlocos?.length
     ? initialBlocos
@@ -54,8 +64,9 @@ export function EnunciadoBlocosEditor({
     setUploadError(null);
     const fd = new FormData();
     fd.append("file", file);
+    const doUpload = uploadFn ?? uploadQuestaoImagem;
     startTransition(async () => {
-      const result = await uploadQuestaoImagem(fd);
+      const result = await doUpload(fd);
       if ("url" in result) {
         setBlocos((prev) => [...prev, { tipo: "imagem", url: result.url }]);
       } else {
@@ -114,7 +125,7 @@ export function EnunciadoBlocosEditor({
                   value={bloco.conteudo}
                   onChange={(e) => update(i, { tipo: "texto", conteudo: e.target.value })}
                   rows={4}
-                  placeholder="Digite o texto do enunciado…"
+                  placeholder={placeholder}
                   className={inputClass + " pr-16"}
                 />
               </>
@@ -179,8 +190,8 @@ export function EnunciadoBlocosEditor({
       </div>
 
       {/* Hidden inputs para submissão do form */}
-      <input type="hidden" name="enunciado_blocos" value={JSON.stringify(blocos)} />
-      <input type="hidden" name="enunciado" value={textoPlano} />
+      <input type="hidden" name={fieldNameBlocos} value={JSON.stringify(blocos)} />
+      <input type="hidden" name={fieldNameTexto} value={textoPlano} />
     </div>
   );
 }

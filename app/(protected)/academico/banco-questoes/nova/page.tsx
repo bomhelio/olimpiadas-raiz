@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { criarQuestao, buscarQuestoesSimilares } from "../actions";
+import { criarQuestao, buscarQuestoesSimilares, uploadSolucaoImagem } from "../actions";
 import { inputClass, selectClass } from "@/components/ui/form-field";
 import { EnunciadoBlocosEditor } from "../enunciado-blocos-editor";
 
@@ -320,11 +320,11 @@ export default function NovaBancoQuestaoPage() {
 
           <div className="space-y-2">
             <RadioGroup name="tem_resolucao_texto" label="Tem resolução em texto/imagem?" />
-            <textarea
-              name="solucao_texto"
-              placeholder="Texto da resolução… (opcional)"
-              rows={4}
-              className={`${inputClass} resize-y`}
+            <EnunciadoBlocosEditor
+              fieldNameBlocos="solucao_blocos"
+              fieldNameTexto="solucao_texto"
+              placeholder="Digite o texto da resolução…"
+              uploadFn={uploadSolucaoImagem}
             />
           </div>
         </div>
