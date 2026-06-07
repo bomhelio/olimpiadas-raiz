@@ -1371,6 +1371,11 @@ function BuscarQuestaoAulaForm({
                     {q.topico && (
                       <span className="text-[10px] font-semibold text-amber-400">{q.topico}</span>
                     )}
+                    {q.usos > 0 && (
+                      <span className="rounded-full bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 text-[10px] text-amber-400">
+                        Usada em {q.usos} {q.usos === 1 ? "avaliação" : "avaliações"}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-foreground line-clamp-2">{q.enunciado}</p>
                 </div>

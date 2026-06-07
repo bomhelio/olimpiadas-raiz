@@ -31,6 +31,7 @@ type Questao = {
   enunciado: string;
   topico: string | null;
   subtopico: string | null;
+  usos?: number;
 };
 
 function fmtSegundos(s: number | null) {
@@ -305,11 +306,18 @@ export default function EditarSimuladoPage({ params }: { params: Promise<{ id: s
                         className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2"
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-muted-foreground">
-                            {q.olimpiada?.toUpperCase()} {q.fase != null ? `· ${q.fase}ª Fase` : ""}{" "}
-                            · {q.ano}
-                            {q.numero != null ? ` · Q${q.numero}` : ""}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                            <p className="text-xs text-muted-foreground">
+                              {q.olimpiada?.toUpperCase()}{" "}
+                              {q.fase != null ? `· ${q.fase}ª Fase` : ""} · {q.ano}
+                              {q.numero != null ? ` · Q${q.numero}` : ""}
+                            </p>
+                            {(q.usos ?? 0) > 0 && (
+                              <span className="rounded-full bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 text-[10px] text-amber-400">
+                                Usada em {q.usos} {q.usos === 1 ? "avaliação" : "avaliações"}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-foreground truncate">{q.enunciado}</p>
                         </div>
                         <button

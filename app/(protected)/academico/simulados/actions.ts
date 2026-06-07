@@ -339,5 +339,19 @@ export async function buscarQuestoes(busca: string, origem?: string) {
   }
 
   const { data } = await query.limit(20);
-  return data ?? [];
+  if (!data?.length) return [];
+
+  const ids = data.map((q: any) => q.id);
+  const { data: usos } = await supabase
+    .from("preparacao_aula_questao")
+    .select("questao_id, aula_id")
+    .in("questao_id", ids);
+
+  const usoCount: Record<string, Set<string>> = {};
+  for (const u of usos ?? []) {
+    if (!usoCount[u.questao_id]) usoCount[u.questao_id] = new Set();
+    usoCount[u.questao_id]!.add(u.aula_id);
+  }
+
+  return data.map((q: any) => ({ ...q, usos: usoCount[q.id]?.size ?? 0 }));
 }

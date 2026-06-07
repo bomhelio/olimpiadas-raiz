@@ -138,12 +138,14 @@ export async function criarAula(
   const polos = (formData.get("polos") as string)?.trim() || null;
   const descricao = (formData.get("descricao") as string)?.trim() || null;
 
-  const modalidade_online = tipoRaw === "online"
-    ? ((formData.get("modalidade_online") as string) || "gravada") as "ao_vivo" | "gravada"
-    : null;
+  const modalidade_online =
+    tipoRaw === "online"
+      ? (((formData.get("modalidade_online") as string) || "gravada") as "ao_vivo" | "gravada")
+      : null;
 
   if (!titulo) return { error: "Título é obrigatório" };
-  if (!["online", "presencial", "simulado", "modulo"].includes(tipoRaw)) return { error: "Tipo inválido" };
+  if (!["online", "presencial", "simulado", "modulo"].includes(tipoRaw))
+    return { error: "Tipo inválido" };
   const tipo = tipoRaw as "online" | "presencial" | "simulado" | "modulo";
 
   const supabase = createAdminClient();
@@ -188,12 +190,14 @@ export async function atualizarAula(
   const polos = (formData.get("polos") as string)?.trim() || null;
   const descricao = (formData.get("descricao") as string)?.trim() || null;
 
-  const modalidade_online_upd = tipoRaw === "online"
-    ? ((formData.get("modalidade_online") as string) || "gravada") as "ao_vivo" | "gravada"
-    : null;
+  const modalidade_online_upd =
+    tipoRaw === "online"
+      ? (((formData.get("modalidade_online") as string) || "gravada") as "ao_vivo" | "gravada")
+      : null;
 
   if (!titulo) return { error: "Título é obrigatório" };
-  if (!["online", "presencial", "simulado", "modulo"].includes(tipoRaw)) return { error: "Tipo inválido" };
+  if (!["online", "presencial", "simulado", "modulo"].includes(tipoRaw))
+    return { error: "Tipo inválido" };
   const tipo = tipoRaw as "online" | "presencial" | "simulado" | "modulo";
 
   const supabase = createAdminClient();
@@ -341,7 +345,9 @@ export async function getProjetos(): Promise<Projeto[]> {
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("preparacao_projeto")
-    .select(`*, aulas:preparacao_aula(*, materiais:preparacao_material(*), questoes:preparacao_aula_questao(*, questao:questao_id(id, olimpiada, nivel, fase, ano, numero, enunciado, topico, subtopico)))`)
+    .select(
+      `*, aulas:preparacao_aula(*, materiais:preparacao_material(*), questoes:preparacao_aula_questao(*, questao:questao_id(id, olimpiada, nivel, fase, ano, numero, enunciado, topico, subtopico)))`,
+    )
     .eq("ativo", true)
     .order("criado_em", { ascending: false });
 
@@ -386,7 +392,11 @@ export async function despublicarAula(id: string): Promise<void> {
 
 function parseBlocosPrep(raw: string | null): unknown | null {
   if (!raw) return null;
-  try { return JSON.parse(raw); } catch { return null; }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
 
 export async function criarQuestaoParaAula(
@@ -412,7 +422,18 @@ export async function criarQuestaoParaAula(
 
   const { data: questao, error: qErr } = await supabase
     .from("questao")
-    .insert({ olimpiada, nivel, fase, ano, numero, enunciado, enunciado_blocos, topico, subtopico, tipo } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+    .insert({
+      olimpiada,
+      nivel,
+      fase,
+      ano,
+      numero,
+      enunciado,
+      enunciado_blocos,
+      topico,
+      subtopico,
+      tipo,
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     .select("id")
     .single();
 
@@ -451,6 +472,7 @@ export type QuestaoResumo = {
   topico: string | null;
   subtopico: string | null;
   tipo: string;
+  usos: number;
 };
 
 export async function buscarQuestoesBanco(
@@ -478,7 +500,28 @@ export async function buscarQuestoesBanco(
   if (busca) query = query.ilike("enunciado", `%${busca}%`);
 
   const { data } = await query;
-  return (data ?? []) as QuestaoResumo[];
+  if (!data?.length) return [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ids = (data as any[]).map((q) => q.id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: usos } = await (supabase as any)
+    .from("preparacao_aula_questao")
+    .select("questao_id, aula_id")
+    .in("questao_id", ids);
+
+  const usoCount: Record<string, Set<string>> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const u of (usos ?? []) as any[]) {
+    if (!usoCount[u.questao_id]) usoCount[u.questao_id] = new Set();
+    usoCount[u.questao_id]!.add(u.aula_id);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data ?? []) as any[]).map((q) => ({
+    ...q,
+    usos: usoCount[q.id]?.size ?? 0,
+  })) as QuestaoResumo[];
 }
 
 export async function vincularQuestaoExistente(
