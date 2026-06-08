@@ -87,15 +87,16 @@ export default async function RevisaoQuestaoPage({
                 key={i}
                 src={b.url}
                 alt={`Figura ${i + 1}`}
-                className="rounded-lg border border-border"
+                className="max-w-full rounded-lg border border-border"
                 style={
                   b.largura && b.largura !== "completa"
                     ? {
                         maxWidth: (
-                          { pequena: "200px", media: "320px", grande: "480px" } as Record<
-                            string,
-                            string
-                          >
+                          {
+                            pequena: "min(200px, 100%)",
+                            media: "min(320px, 100%)",
+                            grande: "min(480px, 100%)",
+                          } as Record<string, string>
                         )[b.largura],
                       }
                     : { maxWidth: "100%" }

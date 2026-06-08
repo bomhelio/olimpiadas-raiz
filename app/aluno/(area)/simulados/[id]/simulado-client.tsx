@@ -361,12 +361,16 @@ export function SimuladoClient({
                     key={i}
                     src={b.url}
                     alt={`Figura ${i + 1}`}
-                    className="rounded-lg border border-border mb-3"
+                    className="max-w-full rounded-lg border border-border mb-3"
                     style={
                       b.largura && b.largura !== "completa"
                         ? {
                             maxWidth: (
-                              { pequena: "200px", media: "320px", grande: "480px" } as any
+                              {
+                                pequena: "min(200px, 100%)",
+                                media: "min(320px, 100%)",
+                                grande: "min(480px, 100%)",
+                              } as any
                             )[b.largura],
                           }
                         : { maxWidth: "100%" }
