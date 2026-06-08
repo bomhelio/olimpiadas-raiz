@@ -43,6 +43,34 @@ export async function getTopicosDisponiveis() {
   return { olimpiadas, topicosMap, subtopicosMap };
 }
 
+// Sessão de treino: tamanho fixo + distribuição por grau de dificuldade.
+// A seleção dentro de cada faixa é aleatória — assim, novas sessões com os
+// mesmos filtros tendem a trazer questões diferentes do banco disponível.
+const TAMANHO_SESSAO = 10;
+const DISTRIBUICAO_DIFICULDADE: { chave: string; qtd: number }[] = [
+  { chave: "elementar", qtd: 2 },
+  { chave: "facil", qtd: 2 },
+  { chave: "medio", qtd: 3 },
+  { chave: "dificil", qtd: 2 },
+  { chave: "muito_dificil", qtd: 1 },
+];
+
+function embaralhar<T>(lista: T[]): T[] {
+  const copia = [...lista];
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = copia[i] as T;
+    copia[i] = copia[j] as T;
+    copia[j] = tmp;
+  }
+  return copia;
+}
+
+export type SessaoTreino = {
+  questoes: any[];
+  totalDisponivel: number;
+};
+
 export async function getQuestoesTreino(filtros: {
   olimpiada?: string;
   nivel?: string;
@@ -52,17 +80,16 @@ export async function getQuestoesTreino(filtros: {
   subtopico?: string;
   assunto?: string;
   modo?: "sequencial" | "aleatorio";
-  limit?: number;
-}) {
+}): Promise<SessaoTreino> {
   const session = await getStudentSession();
-  if (!session) return [];
+  if (!session) return { questoes: [], totalDisponivel: 0 };
 
   const supabase = createAdminClient() as any;
 
   let query = supabase
     .from("questao")
     .select(
-      "id, olimpiada, nivel, fase, ano, numero, enunciado, enunciado_blocos, imagem_url, assunto, topico, subtopico, tipo, video_url",
+      "id, olimpiada, nivel, fase, ano, numero, enunciado, enunciado_blocos, imagem_url, assunto, topico, subtopico, tipo, video_url, dificuldade",
     )
     .eq("ativo", true);
 
@@ -74,20 +101,48 @@ export async function getQuestoesTreino(filtros: {
   if (filtros.subtopico) query = query.eq("subtopico", filtros.subtopico);
   if (filtros.assunto) query = query.ilike("assunto", `%${filtros.assunto}%`);
 
-  if (filtros.modo === "aleatorio") {
-    // Supabase não suporta RANDOM() nativamente — busca tudo e embaralha no servidor
-    const { data } = await query.limit(200);
-    const lista = data ?? [];
-    for (let i = lista.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [lista[i], lista[j]] = [lista[j], lista[i]];
-    }
-    return lista.slice(0, filtros.limit ?? 20);
+  const { data } = await query.limit(500);
+  const pool: any[] = data ?? [];
+  if (pool.length === 0) return { questoes: [], totalDisponivel: 0 };
+
+  // Embaralha o pool uma vez — a ordem aqui decide quais questões "ganham"
+  // dentro de cada faixa de dificuldade quando há mais disponíveis que a cota.
+  const embaralhado = embaralhar(pool);
+  const porDificuldade: Record<string, any[]> = {};
+  for (const q of embaralhado) {
+    const chave = (q as any).dificuldade ?? "sem_dificuldade";
+    (porDificuldade[chave] ??= []).push(q);
   }
 
-  query = query.order("olimpiada").order("fase").order("ano").order("numero");
-  const { data } = await query.limit(filtros.limit ?? 20);
-  return data ?? [];
+  const selecionadas: any[] = [];
+  const usadas = new Set<string>();
+  for (const { chave, qtd } of DISTRIBUICAO_DIFICULDADE) {
+    const pegas = (porDificuldade[chave] ?? []).slice(0, qtd);
+    for (const q of pegas) usadas.add(q.id);
+    selecionadas.push(...pegas);
+  }
+
+  // Faixas sub-representadas no filtro atual: completa a sessão com quaisquer
+  // questões restantes do pool (ainda embaralhado), até atingir o tamanho alvo.
+  if (selecionadas.length < TAMANHO_SESSAO) {
+    const restantes = embaralhado.filter((q) => !usadas.has(q.id));
+    const faltam = TAMANHO_SESSAO - selecionadas.length;
+    selecionadas.push(...restantes.slice(0, faltam));
+  }
+
+  // Ordena a APRESENTAÇÃO conforme o modo escolhido (a seleção em si já é aleatória)
+  const final =
+    filtros.modo === "aleatorio"
+      ? embaralhar(selecionadas)
+      : [...selecionadas].sort(
+          (a, b) =>
+            a.olimpiada.localeCompare(b.olimpiada) ||
+            (a.fase ?? 0) - (b.fase ?? 0) ||
+            a.ano - b.ano ||
+            a.numero - b.numero,
+        );
+
+  return { questoes: final, totalDisponivel: pool.length };
 }
 
 export async function getAlternativasQuestao(questaoId: string) {

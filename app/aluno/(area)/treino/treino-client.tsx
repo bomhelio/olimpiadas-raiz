@@ -34,6 +34,7 @@ export function TreinoClient({
   completionLabel: _completionLabel,
   contexto = "banco",
   aulaId,
+  totalDisponivel,
 }: {
   questoes: Questao[];
   primeiraAlt: Alternativa[];
@@ -42,6 +43,7 @@ export function TreinoClient({
   completionLabel?: string;
   contexto?: "banco" | "aula" | "simulado";
   aulaId?: string;
+  totalDisponivel?: number;
 }) {
   const [idx, setIdx] = useState(0);
   const total = questoes.length;
@@ -235,9 +237,18 @@ export function TreinoClient({
     return (
       <div className="rounded-xl border border-border bg-card p-12 text-center">
         <p className="text-xl font-bold text-foreground mb-2">Sessão concluída!</p>
-        <p className="text-muted-foreground mb-6">
-          Você respondeu {respondidas} de {total} questões nesta sessão.
-        </p>
+        <div className="mb-6">
+          <p className="text-muted-foreground">
+            Você respondeu {respondidas} de {total} questões nesta sessão.
+          </p>
+          {!completionUrl && typeof totalDisponivel === "number" && totalDisponivel > total && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Esses filtros têm {totalDisponivel} questões disponíveis ao todo — cada nova sessão
+              sorteia uma seleção diferente. Clique em &quot;Nova sessão&quot; para continuar
+              treinando com outras questões.
+            </p>
+          )}
+        </div>
         <div className="flex justify-center gap-3">
           {completionUrl ? (
             // Contexto de aula: Ver desempenho + Concluir

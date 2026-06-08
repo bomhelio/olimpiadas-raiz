@@ -21,19 +21,19 @@ export default async function TreinoPage({
   if (!session) redirect("/aluno/login");
 
   const sp = await searchParams;
-  const [questoes, { olimpiadas, topicosMap, subtopicosMap }] = await Promise.all([
-    getQuestoesTreino({
-      olimpiada: sp.olimpiada,
-      nivel: sp.nivel,
-      fase: sp.fase ? Number(sp.fase) : undefined,
-      ano: sp.ano ? Number(sp.ano) : undefined,
-      topico: sp.topico,
-      subtopico: sp.subtopico,
-      modo: (sp.modo ?? "sequencial") as "sequencial" | "aleatorio",
-      limit: 30,
-    }),
-    getTopicosDisponiveis(),
-  ]);
+  const [{ questoes, totalDisponivel }, { olimpiadas, topicosMap, subtopicosMap }] =
+    await Promise.all([
+      getQuestoesTreino({
+        olimpiada: sp.olimpiada,
+        nivel: sp.nivel,
+        fase: sp.fase ? Number(sp.fase) : undefined,
+        ano: sp.ano ? Number(sp.ano) : undefined,
+        topico: sp.topico,
+        subtopico: sp.subtopico,
+        modo: (sp.modo ?? "sequencial") as "sequencial" | "aleatorio",
+      }),
+      getTopicosDisponiveis(),
+    ]);
 
   const primeiraAlt = questoes.length > 0 ? await getAlternativasQuestao(questoes[0].id) : [];
 
@@ -51,7 +51,11 @@ export default async function TreinoPage({
           Nenhuma questão encontrada com esses filtros.
         </div>
       ) : (
-        <TreinoClient questoes={questoes} primeiraAlt={primeiraAlt} />
+        <TreinoClient
+          questoes={questoes}
+          primeiraAlt={primeiraAlt}
+          totalDisponivel={totalDisponivel}
+        />
       )}
     </div>
   );
