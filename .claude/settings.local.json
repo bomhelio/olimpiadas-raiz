@@ -1,1 +1,16 @@
-{}
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/pdf-read-guard.sh\"",
+            "statusMessage": "PDF markitdown guard — verificando se o PDF ja foi convertido para Markdown..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "claude-pdf-tools",
+  "private": true,
+  "description": "Conversor PDF->Markdown isolado para o harness Claude Code (nao faz parte do app)",
+  "dependencies": {
+    "@opendocsg/pdf2md": "0.2.7"
+  }
+}

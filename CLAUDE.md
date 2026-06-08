@@ -1,5 +1,12 @@
 @AGENTS.md
 
+## PDFs — sempre via conversão para Markdown
+
+Nunca ler `.pdf`/`.PDF` diretamente (custa ~1.5-2k tokens/página como imagem).
+Converter primeiro: `bash .claude/scripts/pdf2md.sh "<arquivo.pdf>"` → `Read "<arquivo.md>"`.
+Hook `pdf-read-guard.sh` bloqueia leitura direta não convertida. Análise visual
+deliberada (layout/slides/PDF escaneado): `PDF_VISUAL=1`. Detalhes: `.claude/rules/pdf-markitdown.md`.
+
 # Contexto do projeto — olimpiadas-raiz
 
 Sistema de gestão de olimpíadas do conhecimento para a rede Raiz Educação.
@@ -103,3 +110,14 @@ Toda página de criação/edição tem:
 - `cancelarInscricao` é uma Server Action de argumento simples `(formData: FormData)` — não usar como 2-arg action state
 - `parseDateLocal(iso)` para datas — não usar `new Date(iso)` que interpreta como UTC
 - Analytics usa `NonNullable<typeof inscricoes>[number]` como tipo base + cast para acesso por índice string
+
+## Economia de Tokens
+
+1. Filtrar output de comandos: testes → só failures (`| grep -B2 -A8 -iE "fail|error" | head -60`); build/install → `| tail -20`. Nunca log bruto no contexto.
+2. Grep/Glob ANTES de Read; Read com `offset`/`limit` em arquivo > 500 linhas.
+3. Batch de tool calls independentes na mesma mensagem (menos turnos = menos cache-writes).
+4. Cache: MCP set fixo no início da sessão (mudar mid-session invalida tudo); nunca trocar modelo mid-session; evitar gaps > 5min em trabalho ativo (TTL do cache).
+5. Browser: snapshot de acessibilidade (texto) > screenshot — screenshot só quando pixel importa (ver `browser-localhost.md`).
+6. Subagents: passar PATHS (nunca conteúdo inline); exigir síntese de volta, nunca dump.
+7. Formato denso: PDF → `.claude/scripts/pdf2md.sh` (ver seção PDFs acima); HTML → markdown via WebFetch.
+8. `/context` periodicamente para medir; `/clear` entre tarefas não relacionadas.

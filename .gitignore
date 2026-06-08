@@ -53,3 +53,4 @@ next-env.d.ts
 process-q14-q18.mjs
 public/preview-questao-*.html
 /scripts/
+.claude/scripts/node_modules/
