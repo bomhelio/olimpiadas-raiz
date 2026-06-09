@@ -35,6 +35,21 @@ const STATUS_CONFIG: Record<
   },
 };
 
+const SIMBOLOS_MATH = [
+  { label: "²", value: "²" },
+  { label: "³", value: "³" },
+  { label: "√", value: "√" },
+  { label: "×", value: "×" },
+  { label: "÷", value: "÷" },
+  { label: "≤", value: "≤" },
+  { label: "≥", value: "≥" },
+  { label: "≠", value: "≠" },
+  { label: "π", value: "π" },
+  { label: "½", value: "½" },
+  { label: "⅓", value: "⅓" },
+  { label: "¼", value: "¼" },
+];
+
 interface InputProps {
   questaoId: string;
   contexto: string;
@@ -54,6 +69,7 @@ export function RespostaAbertaInput({
   const [texto, setTexto] = useState("");
   const [ocrStatus, setOcrStatus] = useState<"idle" | "processing" | "done" | "error">("idle");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   async function processarFoto(file: File) {
     setOcrStatus("processing");
@@ -68,6 +84,27 @@ export function RespostaAbertaInput({
     } catch {
       setOcrStatus("error");
     }
+  }
+
+  function tentarNovamente() {
+    setOcrStatus("idle");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function inserirSimbolo(simbolo: string) {
+    const el = textareaRef.current;
+    if (!el) {
+      setTexto((prev) => prev + simbolo);
+      return;
+    }
+    const start = el.selectionStart ?? texto.length;
+    const end = el.selectionEnd ?? texto.length;
+    const novoTexto = texto.slice(0, start) + simbolo + texto.slice(end);
+    setTexto(novoTexto);
+    setTimeout(() => {
+      el.selectionStart = el.selectionEnd = start + simbolo.length;
+      el.focus();
+    }, 0);
   }
 
   return (
@@ -112,14 +149,32 @@ export function RespostaAbertaInput({
             <p className="text-sm text-muted-foreground animate-pulse">Lendo sua resposta…</p>
           )}
           {ocrStatus === "done" && (
-            <p className="text-sm text-emerald-400">
-              ✓ Leitura concluída. Revise o texto na aba Digitar.
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-emerald-400">
+                ✓ Leitura concluída. Revise o texto na aba Digitar.
+              </p>
+              <button
+                type="button"
+                onClick={tentarNovamente}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Tentar outra imagem
+              </button>
+            </div>
           )}
           {ocrStatus === "error" && (
-            <p className="text-sm text-amber-400">
-              Não foi possível ler a imagem. Digite sua resposta manualmente.
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-amber-400">
+                Não foi possível ler a imagem. Tente outra foto ou digite sua resposta.
+              </p>
+              <button
+                type="button"
+                onClick={tentarNovamente}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Tentar outra imagem
+              </button>
+            </div>
           )}
           <input
             ref={fileInputRef}
@@ -137,7 +192,7 @@ export function RespostaAbertaInput({
         </div>
       )}
 
-      {/* Textarea + form */}
+      {/* Textarea + toolbar + form */}
       {tab === "texto" && (
         <form action={action}>
           <input type="hidden" name="questao_id" value={questaoId} />
@@ -145,7 +200,23 @@ export function RespostaAbertaInput({
           {aulaId && <input type="hidden" name="aula_id" value={aulaId} />}
           <input type="hidden" name="resposta_texto" value={texto} />
 
+          {/* Toolbar de símbolos matemáticos */}
+          <div className="flex flex-wrap gap-1 mb-2">
+            {SIMBOLOS_MATH.map((s) => (
+              <button
+                key={s.value}
+                type="button"
+                onClick={() => inserirSimbolo(s.value)}
+                className="rounded px-2 py-1 text-sm font-mono border border-border text-muted-foreground hover:text-foreground hover:border-[rgb(91,184,193)] transition-colors"
+                title={s.value}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
           <textarea
+            ref={textareaRef}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             placeholder={
