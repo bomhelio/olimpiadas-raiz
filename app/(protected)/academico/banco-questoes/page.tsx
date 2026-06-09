@@ -41,6 +41,7 @@ export default async function BancoQuestoesPage({
     ano?: string;
     status?: string;
     nivel?: string;
+    tipo?: string;
     dificuldade?: string;
     publico_alvo?: string;
     status_cadastro?: string;
