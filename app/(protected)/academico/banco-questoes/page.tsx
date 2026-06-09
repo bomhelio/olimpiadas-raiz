@@ -59,6 +59,7 @@ export default async function BancoQuestoesPage({
     ano: sp.ano ? Number(sp.ano) : undefined,
     ativo: ativoFiltro,
     nivel: sp.nivel || undefined,
+    tipo: sp.tipo || undefined,
     dificuldade: sp.dificuldade || undefined,
     publico_alvo: sp.publico_alvo || undefined,
     status_cadastro: sp.status_cadastro || undefined,
@@ -161,6 +162,20 @@ export default async function BancoQuestoesPage({
             <option value="">Revisão</option>
             <option value="publicado">Publicado</option>
             <option value="aguardando_revisao">Aguardando revisão</option>
+          </select>
+
+          <select name="nivel" defaultValue={sp.nivel ?? ""} className={seletorClass}>
+            <option value="">Nível</option>
+            <option value="nivel_1">Nível 1</option>
+            <option value="nivel_2">Nível 2</option>
+            <option value="nivel_3">Nível 3</option>
+          </select>
+
+          <select name="tipo" defaultValue={sp.tipo ?? ""} className={seletorClass}>
+            <option value="">Tipo</option>
+            <option value="multipla_escolha">M. Escolha</option>
+            <option value="aberta">Aberta</option>
+            <option value="verdadeiro_ou_falso">V. ou Falso</option>
           </select>
 
           <select name="status" defaultValue={sp.status ?? ""} className={seletorClass}>

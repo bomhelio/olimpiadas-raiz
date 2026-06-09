@@ -28,6 +28,7 @@ export async function getQuestoes(filtros?: {
   assunto?: string;
   ativo?: boolean;
   nivel?: string;
+  tipo?: string;
   dificuldade?: string;
   publico_alvo?: string;
   topico?: string;
@@ -55,6 +56,7 @@ export async function getQuestoes(filtros?: {
   if (filtros?.assunto) query = query.ilike("assunto", `%${filtros.assunto}%`);
   if (filtros?.ativo !== undefined) query = query.eq("ativo", filtros.ativo);
   if (filtros?.nivel) query = query.eq("nivel", filtros.nivel);
+  if (filtros?.tipo) query = query.eq("tipo", filtros.tipo as TipoQuestao);
   if (filtros?.dificuldade) query = query.eq("dificuldade", filtros.dificuldade);
   if (filtros?.publico_alvo) query = query.eq("publico_alvo", filtros.publico_alvo);
   if (filtros?.topico) query = query.ilike("topico", `%${filtros.topico}%`);
