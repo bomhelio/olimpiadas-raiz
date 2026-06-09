@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { RoleUsuario } from "@/lib/types/database";
-import { isAllowedDomain, getEmailDomain, DOMAIN_TO_ROLE } from "@/lib/auth/domains";
+import { isAllowedDomain, getRoleForEmail } from "@/lib/auth/domains";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
@@ -58,8 +58,7 @@ export async function GET(request: NextRequest) {
     .maybeSingle();
 
   if (!usuario) {
-    const domain = getEmailDomain(user.email);
-    const role = (DOMAIN_TO_ROLE[domain] ?? "professor") as RoleUsuario;
+    const role = getRoleForEmail(user.email) as RoleUsuario;
     const nome: string =
       (user.user_metadata?.full_name as string | undefined) ??
       (user.user_metadata?.name as string | undefined) ??

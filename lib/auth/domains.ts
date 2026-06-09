@@ -5,10 +5,16 @@ export const ALLOWED_DOMAINS = [
   "colegiouniao.com.br",
   "americanobilingue.com.br",
   "unificado.com.br",
-  "raiz.com.br",
+  "raizeducacao.com.br",
 ] as const;
 
 export type AllowedDomain = (typeof ALLOWED_DOMAINS)[number];
+
+// Únicos emails com papel admin_rede — todos os demais recebem professor por padrão
+export const ADMIN_EMAILS = new Set([
+  "helio.barbosa@matrizeducacao.com.br",
+  "hugo.carvalho@raizeducacao.com.br",
+]);
 
 export const DOMAIN_TO_MARCA_SLUG: Record<string, string | null> = {
   "apogeu.com.br": "apogeu",
@@ -17,17 +23,7 @@ export const DOMAIN_TO_MARCA_SLUG: Record<string, string | null> = {
   "colegiouniao.com.br": "uniao",
   "americanobilingue.com.br": "americano",
   "unificado.com.br": "unificado",
-  "raiz.com.br": null,
-};
-
-export const DOMAIN_TO_ROLE: Record<string, "admin_rede" | "professor"> = {
-  "raiz.com.br": "admin_rede",
-  "apogeu.com.br": "professor",
-  "matrizeducacao.com.br": "professor",
-  "colegioqi.com.br": "professor",
-  "colegiouniao.com.br": "professor",
-  "americanobilingue.com.br": "professor",
-  "unificado.com.br": "professor",
+  "raizeducacao.com.br": null,
 };
 
 export function getEmailDomain(email: string): string {
@@ -37,4 +33,8 @@ export function getEmailDomain(email: string): string {
 export function isAllowedDomain(email: string): boolean {
   const domain = getEmailDomain(email);
   return (ALLOWED_DOMAINS as readonly string[]).includes(domain);
+}
+
+export function getRoleForEmail(email: string): "admin_rede" | "professor" {
+  return ADMIN_EMAILS.has(email.toLowerCase()) ? "admin_rede" : "professor";
 }
