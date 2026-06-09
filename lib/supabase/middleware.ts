@@ -29,15 +29,18 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAuthPage = request.nextUrl.pathname.startsWith("/login");
-  const isAlunoAuth = request.nextUrl.pathname.startsWith("/aluno/login");
-  const isAcceptInvite = request.nextUrl.pathname.startsWith("/aceitar-convite");
+  const { pathname } = request.nextUrl;
+  const isAuthPage = pathname.startsWith("/login");
+  const isAlunoAuth = pathname.startsWith("/aluno/login");
+  const isAlunoCallback = pathname.startsWith("/aluno/auth/callback");
+  const isAcceptInvite = pathname.startsWith("/aceitar-convite");
   const isPublicPath =
-    request.nextUrl.pathname === "/" || isAuthPage || isAlunoAuth || isAcceptInvite;
+    pathname === "/" || isAuthPage || isAlunoAuth || isAlunoCallback || isAcceptInvite;
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    // Rotas do aluno redirecionam para o login do aluno, não o login do staff
+    url.pathname = pathname.startsWith("/aluno/") ? "/aluno/login" : "/login";
     return NextResponse.redirect(url);
   }
 

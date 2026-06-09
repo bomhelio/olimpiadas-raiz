@@ -1,15 +1,39 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { loginAluno } from "@/app/aluno/login/actions";
+import { createClient } from "@/lib/supabase/client";
 
 const TEAL = "rgb(91,184,193)";
+
+const ERROS_OAUTH: Record<string, string> = {
+  "nao-cadastrado":
+    "Este e-mail não está cadastrado na plataforma. Fale com a coordenação da sua escola.",
+  oauth: "Não foi possível autenticar com o Google. Tente novamente.",
+};
 
 export function LoginAlunoForm() {
   const [state, formAction, isPending] = useActionState(loginAluno, null);
   const needsConsent = state !== null && "needsConsent" in state;
   const errorMsg = state !== null && "error" in state ? state.error : null;
   const formRef = useRef<HTMLFormElement>(null);
+  const [googlePending, setGooglePending] = useState(false);
+  const searchParams = useSearchParams();
+  const erroOAuth = searchParams.get("erro") ? ERROS_OAUTH[searchParams.get("erro")!] : null;
+
+  async function handleGoogle() {
+    setGooglePending(true);
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/aluno/auth/callback`,
+        queryParams: { prompt: "select_account" },
+      },
+    });
+    // Não precisa de setGooglePending(false) — a página vai redirecionar
+  }
 
   useEffect(() => {
     const email = sessionStorage.getItem("_test_email");
@@ -32,119 +56,174 @@ export function LoginAlunoForm() {
   }, []);
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-4">
-      {/* ── Passo 1: credenciais ─────────────────────────────── */}
+    <div className="space-y-4">
+      {/* Botão Google SSO */}
       {!needsConsent && (
-        <>
-          <div>
-            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
-              E-mail
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
-              placeholder="seu@email.com"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
-              Senha
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
-              placeholder="••••••••"
-            />
-          </div>
-        </>
+        <button
+          type="button"
+          onClick={handleGoogle}
+          disabled={googlePending || isPending}
+          className="flex w-full items-center justify-center gap-3 rounded-lg border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+        >
+          {googlePending ? (
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-foreground" />
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+              <path
+                d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"
+                fill="#4285F4"
+              />
+              <path
+                d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"
+                fill="#34A853"
+              />
+              <path
+                d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 6.294C4.672 4.169 6.656 3.58 9 3.58z"
+                fill="#EA4335"
+              />
+            </svg>
+          )}
+          {googlePending ? "Redirecionando…" : "Entrar com Google"}
+        </button>
       )}
 
-      {/* ── Passo 2: consentimento (primeiro acesso) ─────────── */}
-      {needsConsent && (
-        <div className="space-y-4">
-          <div className="rounded-xl border border-border bg-muted/20 p-4">
-            <p className="text-sm font-semibold text-foreground">Autorização do responsável</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Necessária uma única vez para liberar o acesso ao portal.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="responsavel_nome"
-              className="mb-1.5 block text-sm font-medium text-foreground"
-            >
-              Nome completo do responsável
-            </label>
-            <input
-              id="responsavel_nome"
-              name="responsavel_nome"
-              type="text"
-              autoComplete="off"
-              autoFocus
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
-              placeholder="Nome do responsável"
-            />
-          </div>
-
-          <div>
-            <p className="mb-1.5 text-sm font-medium text-foreground">Tipo de responsável</p>
-            <div className="flex gap-5">
-              {[
-                { value: "pedagogico", label: "Pedagógico" },
-                { value: "financeiro", label: "Financeiro" },
-              ].map((opt) => (
-                <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="responsavel_tipo"
-                    value={opt.value}
-                    className="h-4 w-4 accent-teal-500"
-                  />
-                  <span className="text-sm text-foreground">{opt.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <label className="flex items-start gap-2.5 cursor-pointer">
-            <input
-              type="checkbox"
-              name="consentimento_aceito"
-              className="mt-0.5 h-4 w-4 shrink-0 accent-teal-500"
-            />
-            <span className="text-xs text-muted-foreground leading-relaxed">
-              Autorizo o acesso do(a) aluno(a) à Plataforma Olímpica e concordo com o tratamento dos
-              dados pessoais conforme a{" "}
-              <span className="font-medium text-foreground">LGPD (Lei 13.709/2018)</span>.
-            </span>
-          </label>
-        </div>
-      )}
-
-      {errorMsg && (
+      {/* Erro de OAuth (vindo por query param) */}
+      {erroOAuth && !needsConsent && (
         <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {errorMsg}
+          {erroOAuth}
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-full rounded-lg py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-        style={{ backgroundColor: TEAL }}
-      >
-        {isPending ? "Aguarde…" : needsConsent ? "Autorizar e Entrar" : "Entrar"}
-      </button>
-    </form>
+      {/* Divisor */}
+      {!needsConsent && (
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted-foreground">ou entre com e-mail</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+      )}
+
+      <form ref={formRef} action={formAction} className="space-y-4">
+        {/* ── Passo 1: credenciais ─────────────────────────────── */}
+        {!needsConsent && (
+          <>
+            <div>
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
+                E-mail
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
+                placeholder="seu@email.com"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="password"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Senha
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
+                placeholder="••••••••"
+              />
+            </div>
+          </>
+        )}
+
+        {/* ── Passo 2: consentimento (primeiro acesso) ─────────── */}
+        {needsConsent && (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border bg-muted/20 p-4">
+              <p className="text-sm font-semibold text-foreground">Autorização do responsável</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Necessária uma única vez para liberar o acesso ao portal.
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="responsavel_nome"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Nome completo do responsável
+              </label>
+              <input
+                id="responsavel_nome"
+                name="responsavel_nome"
+                type="text"
+                autoComplete="off"
+                autoFocus
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
+                placeholder="Nome do responsável"
+              />
+            </div>
+
+            <div>
+              <p className="mb-1.5 text-sm font-medium text-foreground">Tipo de responsável</p>
+              <div className="flex gap-5">
+                {[
+                  { value: "pedagogico", label: "Pedagógico" },
+                  { value: "financeiro", label: "Financeiro" },
+                ].map((opt) => (
+                  <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="responsavel_tipo"
+                      value={opt.value}
+                      className="h-4 w-4 accent-teal-500"
+                    />
+                    <span className="text-sm text-foreground">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                name="consentimento_aceito"
+                className="mt-0.5 h-4 w-4 shrink-0 accent-teal-500"
+              />
+              <span className="text-xs text-muted-foreground leading-relaxed">
+                Autorizo o acesso do(a) aluno(a) à Plataforma Olímpica e concordo com o tratamento
+                dos dados pessoais conforme a{" "}
+                <span className="font-medium text-foreground">LGPD (Lei 13.709/2018)</span>.
+              </span>
+            </label>
+          </div>
+        )}
+
+        {errorMsg && (
+          <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {errorMsg}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={isPending}
+          className="w-full rounded-lg py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
+          style={{ backgroundColor: TEAL }}
+        >
+          {isPending ? "Aguarde…" : needsConsent ? "Autorizar e Entrar" : "Entrar"}
+        </button>
+      </form>
+    </div>
   );
 }
