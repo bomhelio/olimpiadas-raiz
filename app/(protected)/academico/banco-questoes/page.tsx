@@ -123,6 +123,13 @@ export default async function BancoQuestoesPage({
             <option value="obi">OBI</option>
           </select>
 
+          <select name="nivel" defaultValue={sp.nivel ?? ""} className={seletorClass}>
+            <option value="">Nível</option>
+            <option value="nivel_1">Nível 1</option>
+            <option value="nivel_2">Nível 2</option>
+            <option value="nivel_3">Nível 3</option>
+          </select>
+
           <select name="fase" defaultValue={sp.fase ?? ""} className={seletorClass}>
             <option value="">Fase</option>
             <option value="1">1ª Fase</option>
@@ -136,6 +143,13 @@ export default async function BancoQuestoesPage({
                 {a}
               </option>
             ))}
+          </select>
+
+          <select name="tipo" defaultValue={sp.tipo ?? ""} className={seletorClass}>
+            <option value="">Tipo</option>
+            <option value="multipla_escolha">M. Escolha</option>
+            <option value="aberta">Aberta</option>
+            <option value="verdadeiro_ou_falso">V. ou Falso</option>
           </select>
 
           <select name="dificuldade" defaultValue={sp.dificuldade ?? ""} className={seletorClass}>
@@ -163,20 +177,6 @@ export default async function BancoQuestoesPage({
             <option value="">Revisão</option>
             <option value="publicado">Publicado</option>
             <option value="aguardando_revisao">Aguardando revisão</option>
-          </select>
-
-          <select name="nivel" defaultValue={sp.nivel ?? ""} className={seletorClass}>
-            <option value="">Nível</option>
-            <option value="nivel_1">Nível 1</option>
-            <option value="nivel_2">Nível 2</option>
-            <option value="nivel_3">Nível 3</option>
-          </select>
-
-          <select name="tipo" defaultValue={sp.tipo ?? ""} className={seletorClass}>
-            <option value="">Tipo</option>
-            <option value="multipla_escolha">M. Escolha</option>
-            <option value="aberta">Aberta</option>
-            <option value="verdadeiro_ou_falso">V. ou Falso</option>
           </select>
 
           <select name="status" defaultValue={sp.status ?? ""} className={seletorClass}>
