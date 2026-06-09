@@ -46,6 +46,14 @@ export async function getStudentSession(): Promise<StudentSession> {
       const marcaObj = Array.isArray(unidade) ? unidade[0]?.marca : unidade?.marca;
       marcaSlug = (Array.isArray(marcaObj) ? marcaObj[0]?.slug : marcaObj?.slug) ?? null;
     }
+  } else if (aluno.marca_id) {
+    // Aluno auto-provisionado via SSO (sem turma ainda) — busca marca diretamente
+    const { data: marca } = await admin
+      .from("marca")
+      .select("slug")
+      .eq("id", aluno.marca_id)
+      .single();
+    marcaSlug = marca?.slug ?? null;
   }
 
   return { aluno, marcaSlug };

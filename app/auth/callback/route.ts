@@ -4,7 +4,12 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { RoleUsuario } from "@/lib/types/database";
-import { isAllowedDomain, getRoleForEmail } from "@/lib/auth/domains";
+import {
+  isAllowedDomain,
+  getRoleForEmail,
+  getEmailDomain,
+  DOMAIN_TO_MARCA_SLUG,
+} from "@/lib/auth/domains";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
@@ -68,6 +73,20 @@ export async function GET(request: NextRequest) {
     await admin
       .from("usuario")
       .insert({ id: user.id, email: user.email as string, nome, role, ativo: true });
+
+    // Vincula a marca automaticamente pelo domínio do email
+    const domain = getEmailDomain(user.email);
+    const marcaSlug = DOMAIN_TO_MARCA_SLUG[domain];
+    if (marcaSlug) {
+      const { data: marca } = await admin
+        .from("marca")
+        .select("id")
+        .eq("slug", marcaSlug)
+        .maybeSingle();
+      if (marca) {
+        await admin.from("usuario_marca").insert({ usuario_id: user.id, marca_id: marca.id });
+      }
+    }
   } else if (!usuario.ativo) {
     await supabase.auth.signOut();
     return NextResponse.redirect(`${origin}/login?erro=inativo`);
