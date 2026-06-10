@@ -3,7 +3,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStudentSession } from "@/lib/auth/student-session";
-import { avaliarRespostaAberta } from "@/lib/ai/groq";
+import { avaliarRespostaAberta, avaliarRespostaAbertaComImagem } from "@/lib/ai/groq";
 import type { FeedbackIA } from "@/lib/ai/types";
 
 // ─── Questões para treino ────────────────────────────────────────────────────
@@ -435,16 +435,21 @@ export async function responderQuestaoAberta(
     admin.from("solucao").select("texto, blocos").eq("questao_id", questao_id).maybeSingle(),
   ]);
 
+  const blocos =
+    (solucao?.blocos as Array<{ tipo: string; conteudo?: string; url?: string }> | null) ?? [];
+
   const textoSolucao =
     solucao?.texto ||
-    (solucao?.blocos as Array<{ tipo: string; conteudo?: string }> | null)
-      ?.filter((b) => b.tipo === "texto")
+    blocos
+      .filter((b) => b.tipo === "texto")
       .map((b) => b.conteudo ?? "")
       .join("\n")
       .trim() ||
     "";
 
-  if (!textoSolucao) {
+  const imagemSolucao = blocos.find((b) => b.tipo === "imagem" && b.url)?.url ?? null;
+
+  if (!textoSolucao && !imagemSolucao) {
     await admin.from("resposta_aluno").insert({
       aluno_id: session.aluno.id,
       questao_id,
@@ -458,7 +463,13 @@ export async function responderQuestaoAberta(
 
   let feedback: FeedbackIA;
   try {
-    feedback = await avaliarRespostaAberta(questao?.enunciado ?? "", solucao.texto, resposta_texto);
+    feedback = textoSolucao
+      ? await avaliarRespostaAberta(questao?.enunciado ?? "", textoSolucao, resposta_texto)
+      : await avaliarRespostaAbertaComImagem(
+          questao?.enunciado ?? "",
+          imagemSolucao!,
+          resposta_texto,
+        );
   } catch {
     await admin.from("resposta_aluno").insert({
       aluno_id: session.aluno.id,
