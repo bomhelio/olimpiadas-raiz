@@ -153,6 +153,8 @@ export type Database = {
           ra_totvs: string | null;
           codcoligada_totvs: number | null;
           codfilial_totvs: number | null;
+          last_login_at: string | null;
+          login_count: number;
         };
         Insert: {
           id?: string;
@@ -177,6 +179,8 @@ export type Database = {
           ra_totvs?: string | null;
           codcoligada_totvs?: number | null;
           codfilial_totvs?: number | null;
+          last_login_at?: string | null;
+          login_count?: number;
         };
         Update: {
           id?: string;
@@ -201,6 +205,8 @@ export type Database = {
           ra_totvs?: string | null;
           codcoligada_totvs?: number | null;
           codfilial_totvs?: number | null;
+          last_login_at?: string | null;
+          login_count?: number;
         };
         Relationships: [];
       };
@@ -897,6 +903,10 @@ export type Database = {
       current_aluno_id: {
         Args: Record<never, never>;
         Returns: string | null;
+      };
+      registrar_login_aluno: {
+        Args: { p_aluno_id: string };
+        Returns: undefined;
       };
       get_olimpiadas_stats: {
         Args: {
