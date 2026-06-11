@@ -71,6 +71,7 @@ export default async function AnalyticsPage() {
     { data: aulasPrep },
     { data: marcasData },
     { data: metasData },
+    { data: alunosAtividade },
   ] = await Promise.all([
     supabase.from("v_dashboard_inscricoes").select("*").eq("ano_letivo", ano),
     supabase
@@ -87,6 +88,11 @@ export default async function AnalyticsPage() {
     supabase.from("marca").select("id, nome").order("nome"),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any).from("meta_marca").select("*").eq("ano_letivo", ano),
+    supabase
+      .from("aluno")
+      .select("id, nome, marca_id, last_login_at, login_count")
+      .eq("ativo", true)
+      .not("last_login_at", "is", null),
   ]);
 
   const total = inscricoes?.length ?? 0;
@@ -364,6 +370,55 @@ export default async function AnalyticsPage() {
         horas: Math.round((prepAno.minutos / 60) * 10) / 10,
       }
     : { projetos: 0, aulas: 0, simulados: 0, horas: 0 };
+
+  // ─── Sprint 5 — Atividade na Plataforma do Aluno ─────────────────────────
+
+  const ONLINE_WINDOW_MS = 30 * 60 * 1000; // 30 minutos
+  const agora = new Date().getTime();
+  const marcaNomeMap = new Map((marcasData ?? []).map((m) => [m.id, m.nome]));
+
+  type AtividadeMarca = {
+    marca: string;
+    onlineAgora: number;
+    totalComAcesso: number;
+    totalAcessos: number;
+  };
+
+  const atividadeMarcaMap: Record<string, AtividadeMarca> = {};
+  let totalOnlineAgora = 0;
+
+  for (const a of alunosAtividade ?? []) {
+    const marca = marcaNomeMap.get(a.marca_id ?? "") ?? "—";
+    if (!atividadeMarcaMap[marca]) {
+      atividadeMarcaMap[marca] = { marca, onlineAgora: 0, totalComAcesso: 0, totalAcessos: 0 };
+    }
+    const m = atividadeMarcaMap[marca]!;
+    m.totalComAcesso++;
+    m.totalAcessos += a.login_count;
+    const ultimoAcesso = a.last_login_at ? new Date(a.last_login_at).getTime() : 0;
+    if (agora - ultimoAcesso < ONLINE_WINDOW_MS) {
+      m.onlineAgora++;
+      totalOnlineAgora++;
+    }
+  }
+
+  const atividadeMarcaList = Object.values(atividadeMarcaMap).sort(
+    (a, b) => b.totalAcessos - a.totalAcessos,
+  );
+
+  const totalComAcesso = (alunosAtividade ?? []).length;
+
+  const maisFrequentes = (alunosAtividade ?? [])
+    .slice()
+    .sort((a, b) => b.login_count - a.login_count)
+    .slice(0, 10)
+    .map((a) => ({
+      id: a.id,
+      nome: a.nome,
+      marca: marcaNomeMap.get(a.marca_id ?? "") ?? "—",
+      acessos: a.login_count,
+      ultimoAcesso: a.last_login_at,
+    }));
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -893,6 +948,113 @@ export default async function AnalyticsPage() {
           Horas calculadas com base na duração cadastrada em cada aula/simulado. Aulas sem duração
           não são contabilizadas.
         </p>
+      </SectionCard>
+
+      {/* ── SPRINT 5 ──────────────────────────────────────────────────────── */}
+      <Divider label="Plataforma do Aluno" />
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-xl border border-border bg-card p-4 text-center">
+          <p className="text-2xl font-bold text-emerald-400">{fmt(totalOnlineAgora)}</p>
+          <p className="mt-0.5 text-xs font-medium text-foreground">Online agora</p>
+          <p className="mt-0.5 text-[10px] text-muted-foreground">últimos 30 min</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4 text-center">
+          <p className="text-2xl font-bold text-foreground">{fmt(totalComAcesso)}</p>
+          <p className="mt-0.5 text-xs font-medium text-foreground">Alunos com acesso</p>
+          <p className="mt-0.5 text-[10px] text-muted-foreground">já entraram na plataforma</p>
+        </div>
+      </div>
+
+      {/* Atividade por marca */}
+      <SectionCard title="Atividade por marca">
+        {atividadeMarcaList.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum acesso registrado ainda.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-background">
+                  <th className="px-3 py-2 text-left text-[11px] font-medium text-muted-foreground">
+                    Marca
+                  </th>
+                  <th className="px-3 py-2 text-center text-[11px] font-medium text-emerald-400">
+                    Online agora
+                  </th>
+                  <th className="px-3 py-2 text-center text-[11px] font-medium text-muted-foreground">
+                    Alunos com acesso
+                  </th>
+                  <th className="px-3 py-2 text-right text-[11px] font-medium text-foreground">
+                    Total de acessos
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {atividadeMarcaList.map((m) => (
+                  <tr key={m.marca} className="bg-card hover:bg-background/50">
+                    <td className="px-3 py-2 font-semibold text-foreground">{m.marca}</td>
+                    <td className="px-3 py-2 text-center text-emerald-400">
+                      {m.onlineAgora || "—"}
+                    </td>
+                    <td className="px-3 py-2 text-center text-foreground">
+                      {fmt(m.totalComAcesso)}
+                    </td>
+                    <td className="px-3 py-2 text-right font-bold text-foreground">
+                      {fmt(m.totalAcessos)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SectionCard>
+
+      {/* Alunos mais frequentes */}
+      <SectionCard title="Alunos mais frequentes">
+        {maisFrequentes.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum acesso registrado ainda.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-background">
+                  <th className="px-3 py-2 text-left text-[11px] font-medium text-muted-foreground">
+                    Aluno
+                  </th>
+                  <th className="px-3 py-2 text-left text-[11px] font-medium text-muted-foreground">
+                    Marca
+                  </th>
+                  <th className="px-3 py-2 text-center text-[11px] font-medium text-foreground">
+                    Acessos
+                  </th>
+                  <th className="px-3 py-2 text-right text-[11px] font-medium text-muted-foreground">
+                    Último acesso
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {maisFrequentes.map((a) => (
+                  <tr key={a.id} className="bg-card hover:bg-background/50">
+                    <td className="px-3 py-2 font-medium text-foreground">{a.nome}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{a.marca}</td>
+                    <td className="px-3 py-2 text-center font-bold text-foreground">
+                      {fmt(a.acessos)}
+                    </td>
+                    <td className="px-3 py-2 text-right text-[11px] text-muted-foreground">
+                      {a.ultimoAcesso
+                        ? new Date(a.ultimoAcesso).toLocaleString("pt-BR", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </SectionCard>
     </div>
   );

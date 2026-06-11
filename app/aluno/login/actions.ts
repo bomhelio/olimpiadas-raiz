@@ -77,6 +77,7 @@ export async function loginAluno(
 
     cookieStore.delete(ALUNO_PENDING_COOKIE);
     cookieStore.set(ALUNO_SESSION_COOKIE, signStudentCookie(pendingAlunoId), cookieSessionOpts());
+    await adminClient.rpc("registrar_login_aluno", { p_aluno_id: pendingAlunoId });
     redirect("/aluno/dashboard");
   }
 
@@ -130,6 +131,7 @@ export async function loginAluno(
 
   // Define o cookie de sessão próprio do aluno (7 dias, independente do admin)
   cookieStore.set(ALUNO_SESSION_COOKIE, signStudentCookie(aluno.id), cookieSessionOpts());
+  await adminClient.rpc("registrar_login_aluno", { p_aluno_id: aluno.id });
   redirect("/aluno/dashboard");
 }
 
