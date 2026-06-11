@@ -66,31 +66,63 @@ export function RespostaAbertaInput({
   isPending,
 }: InputProps) {
   const [texto, setTexto] = useState("");
-  const [ocrStatus, setOcrStatus] = useState<"idle" | "processing" | "done" | "error">("idle");
+  const [foto, setFoto] = useState<string | null>(null);
+  const [fotoStatus, setFotoStatus] = useState<"idle" | "processing" | "ready" | "error">("idle");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const temConteudo = !!texto.trim();
+  const temConteudo = !!texto.trim() || !!foto;
   const respostaFinal = texto.trim();
 
+  function redimensionarImagem(file: File, maxDim = 1024, qualidade = 0.7): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        URL.revokeObjectURL(url);
+        if (!ctx) {
+          reject(new Error("canvas indisponível"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", qualidade));
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("não foi possível carregar a imagem"));
+      };
+      img.src = url;
+    });
+  }
+
   async function processarFoto(file: File) {
-    setOcrStatus("processing");
+    setFotoStatus("processing");
     try {
-      const { createWorker } = await import("tesseract.js");
-      const worker = await createWorker(["por", "eng"]);
-      const { data } = await worker.recognize(file);
-      await worker.terminate();
-      setTexto((prev) =>
-        prev.trim() ? `${prev.trim()}\n\n${data.text.trim()}` : data.text.trim(),
-      );
-      setOcrStatus("done");
+      const dataUrl = await redimensionarImagem(file);
+      setFoto(dataUrl);
+      setFotoStatus("ready");
     } catch {
-      setOcrStatus("error");
+      setFotoStatus("error");
     }
   }
 
-  function tentarNovamente() {
-    setOcrStatus("idle");
+  function removerFoto() {
+    setFoto(null);
+    setFotoStatus("idle");
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -117,6 +149,7 @@ export function RespostaAbertaInput({
         <input type="hidden" name="contexto" value={contexto} />
         {aulaId && <input type="hidden" name="aula_id" value={aulaId} />}
         <input type="hidden" name="resposta_texto" value={respostaFinal} />
+        <input type="hidden" name="imagem_base64" value={foto ?? ""} />
 
         {/* Resolução completa — todos os itens (a, b, c…) em um único campo */}
         <textarea
@@ -144,7 +177,7 @@ export function RespostaAbertaInput({
 
         {/* Botão foto inline */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          {ocrStatus === "idle" && (
+          {fotoStatus === "idle" && (
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -153,27 +186,33 @@ export function RespostaAbertaInput({
               📷 Foto da resolução
             </button>
           )}
-          {ocrStatus === "processing" && (
-            <span className="text-xs text-muted-foreground animate-pulse">Lendo imagem…</span>
+          {fotoStatus === "processing" && (
+            <span className="text-xs text-muted-foreground animate-pulse">Preparando imagem…</span>
           )}
-          {ocrStatus === "done" && (
+          {fotoStatus === "ready" && foto && (
             <>
-              <span className="text-xs text-amber-400/80">Revise o texto extraído.</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={foto}
+                alt="Pré-visualização da foto da resolução"
+                className="h-14 w-14 rounded-lg border border-border object-cover"
+              />
+              <span className="text-xs text-emerald-400/80">Foto anexada.</span>
               <button
                 type="button"
-                onClick={tentarNovamente}
+                onClick={removerFoto}
                 className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                Tentar outra imagem
+                Remover foto
               </button>
             </>
           )}
-          {ocrStatus === "error" && (
+          {fotoStatus === "error" && (
             <>
               <span className="text-xs text-amber-400">Não foi possível ler a imagem.</span>
               <button
                 type="button"
-                onClick={tentarNovamente}
+                onClick={removerFoto}
                 className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Tentar outra imagem
@@ -191,7 +230,7 @@ export function RespostaAbertaInput({
             }}
           />
           <span className="text-xs text-muted-foreground/30">
-            A imagem é processada localmente.
+            A foto é usada apenas para a avaliação e não é armazenada.
           </span>
         </div>
 

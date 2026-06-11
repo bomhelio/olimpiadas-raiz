@@ -56,6 +56,53 @@ ${INSTRUCOES_FORMATO}`,
   return parseFeedback(completion.choices[0]?.message?.content ?? "{}");
 }
 
+// Avalia a partir de uma foto da resolução manuscrita do aluno — lê e avalia em uma única chamada.
+export async function avaliarFotoAberta(
+  enunciado: string,
+  textoSolucao: string,
+  imagemSolucaoUrl: string | null,
+  fotoAlunoBase64: string,
+): Promise<FeedbackIA> {
+  const groq = getClient();
+
+  const partesSolucao = textoSolucao ? `\nSOLUÇÃO OFICIAL:\n${textoSolucao}\n` : "";
+  const refImagemSolucao = imagemSolucaoUrl
+    ? "\nA primeira imagem anexada contém a solução oficial. A última imagem é a resolução manuscrita do aluno."
+    : "\nA imagem anexada contém a resolução manuscrita do aluno.";
+
+  const content: Array<
+    { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }
+  > = [
+    {
+      type: "text",
+      text: `Avalie a resposta do aluno para esta questão da OBMEP.
+
+ENUNCIADO:
+${enunciado}
+${partesSolucao}
+${refImagemSolucao}
+Leia o conteúdo manuscrito da imagem do aluno (pode conter vários itens a, b, c…) e avalie cada item.
+
+${INSTRUCOES_FORMATO}`,
+    },
+  ];
+
+  if (imagemSolucaoUrl) content.push({ type: "image_url", image_url: { url: imagemSolucaoUrl } });
+  content.push({ type: "image_url", image_url: { url: fotoAlunoBase64 } });
+
+  const completion = await groq.chat.completions.create({
+    model: "meta-llama/llama-4-scout-17b-16e-instruct",
+    temperature: 0.1,
+    max_tokens: 800,
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content },
+    ],
+  });
+
+  return parseFeedback(completion.choices[0]?.message?.content ?? "{}");
+}
+
 // Avalia quando a solução oficial está disponível apenas como imagem (sem texto extraído).
 export async function avaliarRespostaAbertaComImagem(
   enunciado: string,
