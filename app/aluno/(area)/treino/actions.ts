@@ -3,7 +3,11 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStudentSession } from "@/lib/auth/student-session";
-import { avaliarRespostaAberta, avaliarRespostaAbertaComImagem } from "@/lib/ai/groq";
+import {
+  avaliarRespostaAberta,
+  avaliarRespostaAbertaComImagem,
+  avaliarFotoAberta,
+} from "@/lib/ai/groq";
 import type { FeedbackIA } from "@/lib/ai/types";
 
 // ─── Questões para treino ────────────────────────────────────────────────────
@@ -423,10 +427,15 @@ export async function responderQuestaoAberta(
 
   const questao_id = formData.get("questao_id") as string;
   const resposta_texto = ((formData.get("resposta_texto") as string) ?? "").trim();
+  const imagem_base64 = ((formData.get("imagem_base64") as string) ?? "").trim();
   const contexto = (formData.get("contexto") as string) || "banco";
   const aula_id = (formData.get("aula_id") as string) || null;
 
-  if (!questao_id || !resposta_texto) return { error: "Escreva sua resposta antes de enviar." };
+  if (!questao_id || (!resposta_texto && !imagem_base64)) {
+    return { error: "Escreva sua resposta ou anexe uma foto antes de enviar." };
+  }
+
+  const respostaRegistrada = resposta_texto || "[Resposta enviada por foto]";
 
   const admin = createAdminClient() as any;
 
@@ -453,7 +462,7 @@ export async function responderQuestaoAberta(
     await admin.from("resposta_aluno").insert({
       aluno_id: session.aluno.id,
       questao_id,
-      resposta_texto,
+      resposta_texto: respostaRegistrada,
       correta: false,
       contexto,
       aula_id,
@@ -463,18 +472,25 @@ export async function responderQuestaoAberta(
 
   let feedback: FeedbackIA;
   try {
-    feedback = textoSolucao
-      ? await avaliarRespostaAberta(questao?.enunciado ?? "", textoSolucao, resposta_texto)
-      : await avaliarRespostaAbertaComImagem(
+    feedback = imagem_base64
+      ? await avaliarFotoAberta(
           questao?.enunciado ?? "",
-          imagemSolucao!,
-          resposta_texto,
-        );
+          textoSolucao,
+          imagemSolucao,
+          imagem_base64,
+        )
+      : textoSolucao
+        ? await avaliarRespostaAberta(questao?.enunciado ?? "", textoSolucao, resposta_texto)
+        : await avaliarRespostaAbertaComImagem(
+            questao?.enunciado ?? "",
+            imagemSolucao!,
+            resposta_texto,
+          );
   } catch {
     await admin.from("resposta_aluno").insert({
       aluno_id: session.aluno.id,
       questao_id,
-      resposta_texto,
+      resposta_texto: respostaRegistrada,
       correta: false,
       contexto,
       aula_id,
@@ -487,7 +503,7 @@ export async function responderQuestaoAberta(
   await admin.from("resposta_aluno").insert({
     aluno_id: session.aluno.id,
     questao_id,
-    resposta_texto,
+    resposta_texto: respostaRegistrada,
     correta,
     feedback_ia: feedback,
     contexto,
