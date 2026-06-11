@@ -85,7 +85,7 @@ export default async function AlunoDashboard() {
   const lista = (projetos ?? []) as unknown as ProjetoComAulas[];
 
   const aulasBrute = lista.flatMap((p) =>
-    p.aulas.filter((a) => a.tipo === "online" && a.data_hora),
+    p.aulas.filter((a) => a.tipo === "online" && a.publicada && a.data_hora),
   );
   const proximasAoVivo = aulasBrute
     .filter((a) => isLiveNow(a.data_hora) || isUpcoming(a.data_hora))
@@ -166,7 +166,9 @@ export default async function AlunoDashboard() {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {lista.map((projeto) => {
-              const totalAulas = projeto.aulas.length;
+              const totalAulas = projeto.aulas.filter(
+                (a) => a.tipo !== "simulado" && a.publicada,
+              ).length;
               const aulaViva = projeto.aulas.find(
                 (a) => a.tipo === "online" && isLiveNow(a.data_hora),
               );
