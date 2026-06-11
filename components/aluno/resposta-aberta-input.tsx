@@ -5,9 +5,6 @@ import type { FeedbackIA, ItemAvaliacao } from "@/lib/ai/types";
 
 const TEAL = "rgb(91,184,193)";
 
-const ITENS = ["a", "b", "c"] as const;
-type Item = (typeof ITENS)[number];
-
 const STATUS_CONFIG: Record<
   ItemAvaliacao["status"],
   { border: string; bg: string; text: string; label: string }
@@ -68,26 +65,13 @@ export function RespostaAbertaInput({
   action,
   isPending,
 }: InputProps) {
-  const [itemAtivo, setItemAtivo] = useState<Item>("a");
-  const [textos, setTextos] = useState<Record<Item, string>>({ a: "", b: "", c: "" });
+  const [texto, setTexto] = useState("");
   const [ocrStatus, setOcrStatus] = useState<"idle" | "processing" | "done" | "error">("idle");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const temConteudo = ITENS.some((i) => textos[i].trim());
-  const respostaFinal = ITENS.filter((i) => textos[i].trim())
-    .map((i) => `${i}) ${textos[i].trim()}`)
-    .join("\n\n");
-
-  function setTextoItem(item: Item, value: string) {
-    setTextos((prev) => ({ ...prev, [item]: value }));
-  }
-
-  function trocarItem(item: Item) {
-    setItemAtivo(item);
-    setOcrStatus("idle");
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }
+  const temConteudo = !!texto.trim();
+  const respostaFinal = texto.trim();
 
   async function processarFoto(file: File) {
     setOcrStatus("processing");
@@ -96,7 +80,9 @@ export function RespostaAbertaInput({
       const worker = await createWorker(["por", "eng"]);
       const { data } = await worker.recognize(file);
       await worker.terminate();
-      setTextoItem(itemAtivo, data.text.trim());
+      setTexto((prev) =>
+        prev.trim() ? `${prev.trim()}\n\n${data.text.trim()}` : data.text.trim(),
+      );
       setOcrStatus("done");
     } catch {
       setOcrStatus("error");
@@ -110,14 +96,13 @@ export function RespostaAbertaInput({
 
   function inserirSimbolo(simbolo: string) {
     const el = textareaRef.current;
-    const texto = textos[itemAtivo];
     if (!el) {
-      setTextoItem(itemAtivo, texto + simbolo);
+      setTexto((prev) => prev + simbolo);
       return;
     }
     const start = el.selectionStart ?? texto.length;
     const end = el.selectionEnd ?? texto.length;
-    setTextoItem(itemAtivo, texto.slice(0, start) + simbolo + texto.slice(end));
+    setTexto(texto.slice(0, start) + simbolo + texto.slice(end));
     setTimeout(() => {
       el.selectionStart = el.selectionEnd = start + simbolo.length;
       el.focus();
@@ -126,32 +111,6 @@ export function RespostaAbertaInput({
 
   return (
     <div className="space-y-3 mb-5">
-      {/* Abas por item */}
-      <div className="flex gap-2">
-        {ITENS.map((i) => {
-          const ativo = i === itemAtivo;
-          const temTexto = !!textos[i].trim();
-          return (
-            <button
-              key={i}
-              type="button"
-              onClick={() => trocarItem(i)}
-              className={`relative rounded-lg px-4 py-1.5 text-sm font-bold transition-colors ${
-                ativo
-                  ? "text-[#0f172a]"
-                  : "border border-border text-muted-foreground hover:text-foreground"
-              }`}
-              style={ativo ? { background: TEAL } : {}}
-            >
-              {i})
-              {temTexto && !ativo && (
-                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-emerald-400" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
       {/* Form */}
       <form action={action}>
         <input type="hidden" name="questao_id" value={questaoId} />
@@ -159,14 +118,13 @@ export function RespostaAbertaInput({
         {aulaId && <input type="hidden" name="aula_id" value={aulaId} />}
         <input type="hidden" name="resposta_texto" value={respostaFinal} />
 
-        {/* Textarea do item ativo */}
+        {/* Resolução completa — todos os itens (a, b, c…) em um único campo */}
         <textarea
           ref={textareaRef}
-          key={itemAtivo}
-          value={textos[itemAtivo]}
-          onChange={(e) => setTextoItem(itemAtivo, e.target.value)}
-          placeholder={`Resolução do item ${itemAtivo})…`}
-          rows={4}
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder="Escreva aqui a resolução completa da questão (todos os itens)…"
+          rows={6}
           className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-[rgb(91,184,193)] resize-none mb-2"
         />
 
@@ -192,7 +150,7 @@ export function RespostaAbertaInput({
               onClick={() => fileInputRef.current?.click()}
               className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              📷 Foto para item {itemAtivo})
+              📷 Foto da resolução
             </button>
           )}
           {ocrStatus === "processing" && (
