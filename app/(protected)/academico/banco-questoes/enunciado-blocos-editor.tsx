@@ -80,9 +80,9 @@ export function EnunciadoBlocosEditor({
   const [blocos, setBlocos] = useState<BlocoEnunciado[]>(initial);
   const [isPending, startTransition] = useTransition();
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [mathOpen, setMathOpen] = useState<Record<number, boolean>>({});
   const fileRef = useRef<HTMLInputElement>(null);
   const textareaRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
-  const focoAtualRef = useRef(0);
 
   const update = (i: number, bloco: BlocoEnunciado) =>
     setBlocos((prev) => prev.map((b, j) => (j === i ? bloco : b)));
@@ -123,21 +123,13 @@ export function EnunciadoBlocosEditor({
     .map((b) => b.conteudo)
     .join("\n\n");
 
-  function inserirSimboloMath(simbolo: string) {
-    let i = focoAtualRef.current;
-    if (blocos[i]?.tipo !== "texto") {
-      i = blocos.findIndex((b) => b.tipo === "texto");
-    }
-    if (i < 0) return;
-    const bloco = blocos[i] as { tipo: "texto"; conteudo: string };
+  function inserirSimbolo(i: number, conteudo: string, simbolo: string) {
     const el = textareaRefs.current[i];
     if (!el) {
-      update(i, { tipo: "texto", conteudo: bloco.conteudo + simbolo });
+      update(i, { tipo: "texto", conteudo: conteudo + simbolo });
       return;
     }
-    insertAtCursor(el, simbolo, bloco.conteudo, (next) =>
-      update(i, { tipo: "texto", conteudo: next }),
-    );
+    insertAtCursor(el, simbolo, conteudo, (next) => update(i, { tipo: "texto", conteudo: next }));
   }
 
   return (
@@ -185,9 +177,6 @@ export function EnunciadoBlocosEditor({
                     textareaRefs.current[i] = el;
                   }}
                   value={bloco.conteudo}
-                  onFocus={() => {
-                    focoAtualRef.current = i;
-                  }}
                   onChange={(e) => update(i, { tipo: "texto", conteudo: e.target.value })}
                   onKeyDown={(e) => {
                     const mod = e.ctrlKey || e.metaKey;
@@ -238,11 +227,32 @@ export function EnunciadoBlocosEditor({
                   >
                     I
                   </button>
+                  <button
+                    type="button"
+                    title="Símbolos matemáticos"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setMathOpen((prev) => ({ ...prev, [i]: !prev[i] }))}
+                    aria-pressed={!!mathOpen[i]}
+                    className={`rounded border px-2 py-0.5 text-xs transition-colors ${
+                      mathOpen[i]
+                        ? "border-primary text-primary"
+                        : "border-border text-muted-foreground hover:text-foreground hover:bg-background"
+                    }`}
+                  >
+                    ∑
+                  </button>
                   <p className="text-[10px] text-muted-foreground">
                     Selecione um trecho e use <span className="font-bold">Ctrl+B</span> (negrito) ou{" "}
                     <span className="italic">Ctrl+I</span> (itálico) — ou os botões.
                   </p>
                 </div>
+                {mathOpen[i] && (
+                  <div className="mt-1.5 rounded-lg border border-border bg-muted/30 p-2">
+                    <MathToolbar
+                      onInsert={(simbolo) => inserirSimbolo(i, bloco.conteudo, simbolo)}
+                    />
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -275,14 +285,6 @@ export function EnunciadoBlocosEditor({
             )}
           </div>
         ))}
-      </div>
-
-      {/* Toolbar de notação matemática — insere no bloco de texto em foco */}
-      <div className="rounded-lg border border-border bg-background p-2.5 space-y-1.5">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-          Notação matemática
-        </p>
-        <MathToolbar onInsert={inserirSimboloMath} />
       </div>
 
       {isPending && <p className="text-xs text-muted-foreground">Enviando imagem…</p>}
