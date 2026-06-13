@@ -99,7 +99,7 @@ export default async function AlunoDashboard() {
           Olá, {session.aluno.nome.split(" ")[0]}!
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Bem-vindo à sua plataforma de preparação olímpica.
+          Esta é a sua plataforma de preparação olímpica.
         </p>
       </div>
 
