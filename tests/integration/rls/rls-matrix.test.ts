@@ -30,8 +30,24 @@ type Entity =
 
 type PermMatrix = Record<RoleUsuario, Record<Entity, Action[]>>;
 
+// Modelo atual (lib/auth/roles.ts + lib/types/database.ts):
+//   raiz                — acesso total (todas as ações em todas as entidades)
+//   direcao_marca       — somente leitura (READ_ONLY) + audit_log:read
+//   direcao_unidade     — somente leitura (READ_ONLY) + audit_log:read
+//   coordenacao_unidade — somente leitura (READ_ONLY) + audit_log:read
+const READ_ONLY_ENTITIES: Record<Entity, Action[]> = {
+  marca: ["select"],
+  unidade: ["select"],
+  turma: ["select"],
+  aluno: ["select"],
+  olimpiada: ["select"],
+  inscricao: ["select"],
+  resultado: ["select"],
+  audit_log: ["select"],
+};
+
 const EXPECTED_PERMISSIONS: PermMatrix = {
-  admin_rede: {
+  raiz: {
     marca: ["select", "insert", "update", "delete"],
     unidade: ["select", "insert", "update", "delete"],
     turma: ["select", "insert", "update", "delete"],
@@ -41,37 +57,12 @@ const EXPECTED_PERMISSIONS: PermMatrix = {
     resultado: ["select", "insert", "update", "delete"],
     audit_log: ["select"],
   },
-  coord_marca: {
-    marca: ["select"],
-    unidade: ["select", "insert", "update", "delete"],
-    turma: ["select", "insert", "update", "delete"],
-    aluno: ["select", "insert", "update", "delete"],
-    olimpiada: ["select", "insert", "update"],
-    inscricao: ["select", "insert", "update", "delete"],
-    resultado: ["select", "insert", "update"],
-    audit_log: [],
-  },
-  coord_unidade: {
-    marca: ["select"],
-    unidade: ["select"],
-    turma: ["select", "insert", "update", "delete"],
-    aluno: ["select", "insert", "update", "delete"],
-    olimpiada: ["select"],
-    inscricao: ["select", "insert", "update"],
-    resultado: ["select", "insert", "update"],
-    audit_log: [],
-  },
-  professor: {
-    marca: ["select"],
-    unidade: ["select"],
-    turma: ["select"],
-    aluno: ["select", "insert", "update"],
-    olimpiada: ["select"],
-    inscricao: ["select", "insert"],
-    resultado: ["select"],
-    audit_log: [],
-  },
+  direcao_marca: READ_ONLY_ENTITIES,
+  direcao_unidade: READ_ONLY_ENTITIES,
+  coordenacao_unidade: READ_ONLY_ENTITIES,
 };
+
+const READ_ONLY_ROLES: RoleUsuario[] = ["direcao_marca", "direcao_unidade", "coordenacao_unidade"];
 
 // ---------------------------------------------------------------------------
 // Testes unitários da matriz
@@ -89,10 +80,10 @@ describe("RLS Permission Matrix", () => {
     "audit_log",
   ];
 
-  describe("admin_rede", () => {
+  describe("raiz", () => {
     it("tem acesso total a todas as entidades", () => {
       for (const entity of entities.filter((e) => e !== "audit_log")) {
-        const perms = EXPECTED_PERMISSIONS.admin_rede[entity];
+        const perms = EXPECTED_PERMISSIONS.raiz[entity];
         expect(perms).toContain("select");
         expect(perms).toContain("insert");
         expect(perms).toContain("update");
@@ -101,100 +92,68 @@ describe("RLS Permission Matrix", () => {
     });
 
     it("pode ler audit_log", () => {
-      expect(EXPECTED_PERMISSIONS.admin_rede.audit_log).toContain("select");
+      expect(EXPECTED_PERMISSIONS.raiz.audit_log).toContain("select");
     });
   });
 
-  describe("coord_marca", () => {
-    it("pode ler marca mas não inserir/editar/deletar", () => {
-      const perms = EXPECTED_PERMISSIONS.coord_marca.marca;
-      expect(perms).toContain("select");
-      expect(perms).not.toContain("insert");
-      expect(perms).not.toContain("update");
-      expect(perms).not.toContain("delete");
+  describe("roles de leitura (direcao_marca, direcao_unidade, coordenacao_unidade)", () => {
+    it("têm apenas select em todas as entidades", () => {
+      for (const role of READ_ONLY_ROLES) {
+        for (const entity of entities) {
+          const perms = EXPECTED_PERMISSIONS[role][entity];
+          expect(perms).toContain("select");
+          expect(perms).not.toContain("insert");
+          expect(perms).not.toContain("update");
+          expect(perms).not.toContain("delete");
+        }
+      }
     });
 
-    it("pode criar/editar olimpíadas mas não deletar", () => {
-      const perms = EXPECTED_PERMISSIONS.coord_marca.olimpiada;
-      expect(perms).toContain("select");
-      expect(perms).toContain("insert");
-      expect(perms).toContain("update");
-      expect(perms).not.toContain("delete");
+    it("não podem criar nem deletar olimpíadas", () => {
+      for (const role of READ_ONLY_ROLES) {
+        const perms = EXPECTED_PERMISSIONS[role].olimpiada;
+        expect(perms).not.toContain("insert");
+        expect(perms).not.toContain("delete");
+      }
     });
 
-    it("não acessa audit_log", () => {
-      expect(EXPECTED_PERMISSIONS.coord_marca.audit_log).toHaveLength(0);
-    });
-  });
-
-  describe("coord_unidade", () => {
-    it("só acessa turmas da própria unidade", () => {
-      const perms = EXPECTED_PERMISSIONS.coord_unidade.turma;
-      expect(perms).toContain("select");
-      expect(perms).toContain("insert");
+    it("não podem deletar inscrições", () => {
+      for (const role of READ_ONLY_ROLES) {
+        expect(EXPECTED_PERMISSIONS[role].inscricao).not.toContain("delete");
+      }
     });
 
-    it("não pode criar olimpíadas", () => {
-      const perms = EXPECTED_PERMISSIONS.coord_unidade.olimpiada;
-      expect(perms).toContain("select");
-      expect(perms).not.toContain("insert");
-      expect(perms).not.toContain("update");
-      expect(perms).not.toContain("delete");
+    it("podem ler audit_log (READ_ONLY inclui audit_log:read)", () => {
+      for (const role of READ_ONLY_ROLES) {
+        expect(EXPECTED_PERMISSIONS[role].audit_log).toContain("select");
+      }
     });
 
-    it("não pode deletar inscrições", () => {
-      const perms = EXPECTED_PERMISSIONS.coord_unidade.inscricao;
-      expect(perms).not.toContain("delete");
+    it("compartilham o mesmo conjunto de permissões", () => {
+      const serialized = READ_ONLY_ROLES.map((r) => JSON.stringify(EXPECTED_PERMISSIONS[r]));
+      expect(new Set(serialized).size).toBe(1);
     });
   });
 
-  describe("professor", () => {
-    it("pode apenas consultar turma, não editar", () => {
-      const perms = EXPECTED_PERMISSIONS.professor.turma;
-      expect(perms).toContain("select");
-      expect(perms).not.toContain("insert");
-      expect(perms).not.toContain("update");
-      expect(perms).not.toContain("delete");
-    });
-
-    it("pode inscrever alunos mas não cancelar inscrições", () => {
-      const perms = EXPECTED_PERMISSIONS.professor.inscricao;
-      expect(perms).toContain("select");
-      expect(perms).toContain("insert");
-      expect(perms).not.toContain("update");
-      expect(perms).not.toContain("delete");
-    });
-
-    it("pode ler resultados mas não registrar", () => {
-      const perms = EXPECTED_PERMISSIONS.professor.resultado;
-      expect(perms).toContain("select");
-      expect(perms).not.toContain("insert");
-    });
-
-    it("não acessa audit_log", () => {
-      expect(EXPECTED_PERMISSIONS.professor.audit_log).toHaveLength(0);
-    });
-  });
-
-  describe("Isolamento entre marcas", () => {
-    it("coord_marca não tem select em entidades de outras marcas (regra documentada)", () => {
+  describe("Isolamento entre marcas/unidades", () => {
+    it("roles de marca só veem entidades onde marca_id = ANY(user_marca_ids()) (regra documentada)", () => {
       // Esta regra é aplicada via SQL (user_marca_ids()).
       // O teste documenta o invariante esperado para integração.
       const invariant = {
-        rule: "coord_marca only sees entities where marca_id = ANY(user_marca_ids())",
+        rule: "direcao_marca only sees entities where marca_id = ANY(user_marca_ids())",
         sql_function: "user_marca_ids()",
         verified_by: "migration 002, policy unidade_select",
       };
       expect(invariant.sql_function).toBe("user_marca_ids()");
     });
 
-    it("professor não acessa turmas de outras unidades (regra documentada)", () => {
+    it("roles de unidade só veem turmas onde turma_id/unidade casam (regra documentada)", () => {
       const invariant = {
-        rule: "professor only sees turmas where turma_id = ANY(user_turma_ids())",
-        sql_function: "user_turma_ids()",
+        rule: "coordenacao_unidade only sees turmas where unidade_id = ANY(user_unidade_ids())",
+        sql_function: "user_unidade_ids()",
         verified_by: "migration 002, policy turma_select",
       };
-      expect(invariant.sql_function).toBe("user_turma_ids()");
+      expect(invariant.sql_function).toBe("user_unidade_ids()");
     });
   });
 });
@@ -281,18 +240,18 @@ describe("Business Rule Invariants", () => {
 // ---------------------------------------------------------------------------
 
 describe("Integration Test Scenarios (requires supabase start)", () => {
-  it.todo("admin_rede SELECT marca retorna todas as 6 marcas");
-  it.todo("coord_marca SELECT marca retorna somente marca vinculada");
-  it.todo("coord_marca SELECT unidade de outra marca retorna 0 rows");
-  it.todo("coord_unidade SELECT turma retorna somente turmas da sua unidade");
-  it.todo("professor SELECT aluno retorna somente alunos das suas turmas");
-  it.todo("professor INSERT inscricao para aluno de turma de outro professor → erro RLS");
+  it.todo("raiz SELECT marca retorna todas as 6 marcas");
+  it.todo("direcao_marca SELECT marca retorna somente marca vinculada");
+  it.todo("direcao_marca SELECT unidade de outra marca retorna 0 rows");
+  it.todo("coordenacao_unidade SELECT turma retorna somente turmas da sua unidade");
+  it.todo("direcao_unidade SELECT aluno retorna somente alunos da sua unidade");
+  it.todo("direcao_marca INSERT inscricao (sem admin_marca) → erro RLS (READ_ONLY)");
   it.todo("inscrever_com_lock com limite_vagas_total=1 e 2 threads simultâneas → apenas 1 sucede");
   it.todo("INSERT inscricao com consentimento_responsavel=false → CONSENTIMENTO_LGPD_AUSENTE");
   it.todo("INSERT resultado com inscricao cancelada → INSCRICAO_CANCELADA");
   it.todo("audit_log registra INSERT em olimpiada com dados_depois corretos");
   it.todo("audit_log mascara cpf e email_responsavel do aluno");
-  it.todo("coord_marca DELETE olimpiada de outra marca → erro RLS");
+  it.todo("direcao_marca DELETE olimpiada → erro RLS (READ_ONLY)");
   it.todo("handle_new_user cria usuario e usuario_marca a partir de convite");
   it.todo("convite expirado não cria usuario em handle_new_user");
 });
