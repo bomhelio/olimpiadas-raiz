@@ -749,7 +749,7 @@ export function TreinoClient({
                 }`}
                 style={altPendente[questao.id] ? { background: TEAL } : {}}
               >
-                {isPending ? "Confirmando…" : "Confirmar ✓"}
+                {isPending ? "Confirmando…" : "Confirmar"}
               </button>
             </form>
           )}
