@@ -2,13 +2,14 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useState, useActionState, useEffect, useRef } from "react";
+import { useState, useActionState, useEffect, useRef, useTransition } from "react";
 import Link from "next/link";
 import {
   responderQuestao,
   getSolucaoQuestao,
   getAlternativasQuestao,
   responderQuestaoAberta,
+  toggleFavorito,
 } from "./actions";
 import type { RespostaAbertaState } from "./actions";
 import { FormattedText } from "@/components/ui/formatted-text";
@@ -48,6 +49,7 @@ export function TreinoClient({
   contexto = "banco",
   aulaId,
   totalDisponivel,
+  favoritoIdsIniciais = [],
 }: {
   questoes: Questao[];
   primeiraAlt: Alternativa[];
@@ -57,6 +59,7 @@ export function TreinoClient({
   contexto?: "banco" | "aula" | "simulado";
   aulaId?: string;
   totalDisponivel?: number;
+  favoritoIdsIniciais?: string[];
 }) {
   const [idx, setIdx] = useState(0);
   const total = questoes.length;
@@ -74,6 +77,22 @@ export function TreinoClient({
 
   /* ── Seleção pendente (antes de confirmar) ───────────────────────────────── */
   const [altPendente, setAltPendente] = useState<Record<string, string>>({});
+
+  /* ── Favoritos ───────────────────────────────────────────────────────────── */
+  const [favoritos, setFavoritos] = useState<Set<string>>(new Set(favoritoIdsIniciais));
+  const [, startFavTransition] = useTransition();
+
+  function handleFavorito(questaoId: string) {
+    const novoEstado = !favoritos.has(questaoId);
+    setFavoritos((prev) => {
+      const next = new Set(prev);
+      novoEstado ? next.add(questaoId) : next.delete(questaoId);
+      return next;
+    });
+    startFavTransition(async () => {
+      await toggleFavorito(questaoId);
+    });
+  }
 
   /* ── Gabarito por questão (cache) ────────────────────────────────────────── */
   const [gabaritoMap, setGabaritoMap] = useState<Record<string, GabaritoLocal>>({});
@@ -367,9 +386,31 @@ export function TreinoClient({
       </div>
 
       {/* Card da questão */}
-      <div className="rounded-xl border border-border bg-card p-6 mb-4">
+      <div className="relative rounded-xl border border-border bg-card p-6 mb-4">
+        {/* Favoritar */}
+        <button
+          type="button"
+          onClick={() => handleFavorito(questao.id)}
+          aria-label={favoritos.has(questao.id) ? "Remover dos favoritos" : "Favoritar questão"}
+          className="absolute top-3 right-3 p-1 text-muted-foreground transition-colors hover:text-amber-400"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill={favoritos.has(questao.id) ? "#fbbf24" : "none"}
+            stroke={favoritos.has(questao.id) ? "#fbbf24" : "currentColor"}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+        </button>
+
         {/* Meta */}
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="flex flex-wrap gap-2 mb-3 pr-8">
           <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-400">
             {OLIMPIADA_LABEL[questao.olimpiada] ?? questao.olimpiada}
           </span>

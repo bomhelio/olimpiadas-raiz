@@ -86,11 +86,24 @@ export async function getQuestoesTreino(filtros: {
   subtopico?: string;
   assunto?: string;
   modo?: "sequencial" | "aleatorio";
+  favoritas?: boolean;
 }): Promise<SessaoTreino> {
   const session = await getStudentSession();
   if (!session) return { questoes: [], totalDisponivel: 0 };
 
   const supabase = createAdminClient() as any;
+
+  // Quando "favoritas" está ativo, limita o pool às questões favoritadas pelo aluno
+  let favoritoIds: string[] | null = null;
+  if (filtros.favoritas) {
+    const { data: favs } = await supabase
+      .from("questao_favorita")
+      .select("questao_id")
+      .eq("aluno_id", session.aluno.id);
+    const ids = (favs ?? []).map((r: any) => r.questao_id as string);
+    if (ids.length === 0) return { questoes: [], totalDisponivel: 0 };
+    favoritoIds = ids;
+  }
 
   let query = supabase
     .from("questao")
@@ -99,6 +112,7 @@ export async function getQuestoesTreino(filtros: {
     )
     .eq("ativo", true);
 
+  if (favoritoIds !== null) query = query.in("id", favoritoIds);
   if (filtros.olimpiada) query = query.eq("olimpiada", filtros.olimpiada);
   if (filtros.nivel) query = query.eq("nivel", filtros.nivel);
   if (filtros.fase) query = query.eq("fase", filtros.fase);
@@ -110,6 +124,21 @@ export async function getQuestoesTreino(filtros: {
   const { data } = await query.limit(500);
   const pool: any[] = data ?? [];
   if (pool.length === 0) return { questoes: [], totalDisponivel: 0 };
+
+  // Modo favoritas: retorna todas sem limitação de sessão
+  if (filtros.favoritas) {
+    const final =
+      filtros.modo === "aleatorio"
+        ? embaralhar(pool)
+        : [...pool].sort(
+            (a, b) =>
+              a.olimpiada.localeCompare(b.olimpiada) ||
+              (a.fase ?? 0) - (b.fase ?? 0) ||
+              a.ano - b.ano ||
+              a.numero - b.numero,
+          );
+    return { questoes: final, totalDisponivel: pool.length };
+  }
 
   // Embaralha o pool uma vez — a ordem aqui decide quais questões "ganham"
   // dentro de cada faixa de dificuldade quando há mais disponíveis que a cota.
@@ -513,6 +542,51 @@ export async function responderQuestaoAberta(
   });
 
   return { feedback, questao_id };
+}
+
+// ─── Dashboard ───────────────────────────────────────────────────────────────
+
+// ─── Favoritos ───────────────────────────────────────────────────────────────
+
+export async function getFavoritos(): Promise<string[]> {
+  const session = await getStudentSession();
+  if (!session) return [];
+
+  const admin = createAdminClient() as any;
+  const { data } = await admin
+    .from("questao_favorita")
+    .select("questao_id")
+    .eq("aluno_id", session.aluno.id);
+
+  return (data ?? []).map((r: any) => r.questao_id as string);
+}
+
+export async function toggleFavorito(questaoId: string): Promise<boolean> {
+  const session = await getStudentSession();
+  if (!session) return false;
+
+  const admin = createAdminClient() as any;
+  const { data: existing } = await admin
+    .from("questao_favorita")
+    .select("questao_id")
+    .eq("aluno_id", session.aluno.id)
+    .eq("questao_id", questaoId)
+    .maybeSingle();
+
+  if (existing) {
+    await admin
+      .from("questao_favorita")
+      .delete()
+      .eq("aluno_id", session.aluno.id)
+      .eq("questao_id", questaoId);
+    return false;
+  } else {
+    await admin.from("questao_favorita").insert({
+      aluno_id: session.aluno.id,
+      questao_id: questaoId,
+    });
+    return true;
+  }
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────

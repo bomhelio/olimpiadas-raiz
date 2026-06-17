@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 import { getStudentSession } from "@/lib/auth/student-session";
-import { getQuestoesTreino, getAlternativasQuestao, getTopicosDisponiveis } from "./actions";
+import {
+  getQuestoesTreino,
+  getAlternativasQuestao,
+  getTopicosDisponiveis,
+  getFavoritos,
+} from "./actions";
 import { TreinoClient } from "./treino-client";
 import { TreinoFiltros } from "./treino-filtros";
 
@@ -15,13 +20,16 @@ export default async function TreinoPage({
     topico?: string;
     subtopico?: string;
     modo?: string;
+    favoritas?: string;
   }>;
 }) {
   const session = await getStudentSession();
   if (!session) redirect("/aluno/login");
 
   const sp = await searchParams;
-  const [{ questoes, totalDisponivel }, { olimpiadas, topicosMap, subtopicosMap }] =
+  const favoritasAtivo = sp.favoritas === "1";
+
+  const [{ questoes, totalDisponivel }, { olimpiadas, topicosMap, subtopicosMap }, favoritoIds] =
     await Promise.all([
       getQuestoesTreino({
         olimpiada: sp.olimpiada,
@@ -31,8 +39,10 @@ export default async function TreinoPage({
         topico: sp.topico,
         subtopico: sp.subtopico,
         modo: (sp.modo ?? "sequencial") as "sequencial" | "aleatorio",
+        favoritas: favoritasAtivo,
       }),
       getTopicosDisponiveis(),
+      getFavoritos(),
     ]);
 
   const primeiraAlt = questoes.length > 0 ? await getAlternativasQuestao(questoes[0].id) : [];
@@ -44,17 +54,21 @@ export default async function TreinoPage({
         topicosMap={topicosMap}
         subtopicosMap={subtopicosMap}
         defaults={sp}
+        favoritasAtivo={favoritasAtivo}
       />
 
       {questoes.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground">
-          Nenhuma questão encontrada com esses filtros.
+          {favoritasAtivo
+            ? "Você ainda não favoritou nenhuma questão."
+            : "Nenhuma questão encontrada com esses filtros."}
         </div>
       ) : (
         <TreinoClient
           questoes={questoes}
           primeiraAlt={primeiraAlt}
           totalDisponivel={totalDisponivel}
+          favoritoIdsIniciais={favoritoIds}
         />
       )}
     </div>

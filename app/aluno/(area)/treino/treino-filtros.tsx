@@ -9,6 +9,7 @@ interface TreinoFiltrosProps {
   olimpiadas: string[];
   topicosMap: Record<string, string[]>;
   subtopicosMap: Record<string, string[]>;
+  favoritasAtivo: boolean;
   defaults: {
     olimpiada?: string;
     nivel?: string;
@@ -17,6 +18,7 @@ interface TreinoFiltrosProps {
     topico?: string;
     subtopico?: string;
     modo?: string;
+    favoritas?: string;
   };
 }
 
@@ -25,6 +27,7 @@ export function TreinoFiltros({
   topicosMap,
   subtopicosMap,
   defaults,
+  favoritasAtivo,
 }: TreinoFiltrosProps) {
   const [olimpiadaSel, setOlimpiadaSel] = useState(defaults.olimpiada ?? "");
   const [topicoSel, setTopicoSel] = useState(defaults.topico ?? "");
@@ -167,6 +170,33 @@ export function TreinoFiltros({
           className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           Limpar
+        </Link>
+      </div>
+
+      {/* Toggle Favoritas — fora do fluxo de grid, largura total */}
+      <div className="col-span-2 flex items-center sm:col-span-full">
+        <Link
+          href={favoritasAtivo ? "/aluno/treino" : "/aluno/treino?favoritas=1"}
+          className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
+            favoritasAtivo
+              ? "border-amber-400 bg-amber-400/10 text-amber-400"
+              : "border-border text-muted-foreground hover:border-amber-400/50 hover:text-amber-400"
+          }`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill={favoritasAtivo ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+          {favoritasAtivo ? "Mostrando favoritas" : "Ver favoritas"}
         </Link>
       </div>
     </form>
