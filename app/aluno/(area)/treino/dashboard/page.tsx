@@ -473,15 +473,6 @@ export default async function TreinoDashboardPage() {
               </h2>
               <div className="grid gap-4 sm:grid-cols-2">
                 <RankingCard
-                  titulo="Pontos a Revisar"
-                  subtitulo="Questões com mais erros acumulados"
-                  itens={ranking.maisErradas}
-                  campo="erros"
-                  topicos={ranking.topicosMaisErrados}
-                  tipo="revisar"
-                  vazio="Nenhuma questão errada ainda — bom sinal!"
-                />
-                <RankingCard
                   titulo="Pontos Fortes"
                   subtitulo="Questões mais acertadas"
                   itens={ranking.maisAcertadas}
@@ -489,6 +480,15 @@ export default async function TreinoDashboardPage() {
                   topicos={ranking.topicosMaisAcertados}
                   tipo="forte"
                   vazio="Responda questões para ver seus pontos fortes."
+                />
+                <RankingCard
+                  titulo="Pontos a Revisar"
+                  subtitulo="Questões com mais erros acumulados"
+                  itens={ranking.maisErradas}
+                  campo="erros"
+                  topicos={ranking.topicosMaisErrados}
+                  tipo="revisar"
+                  vazio="Nenhuma questão errada ainda — bom sinal!"
                 />
               </div>
             </section>
@@ -509,7 +509,7 @@ export default async function TreinoDashboardPage() {
                   className="shrink-0 rounded-lg px-4 py-2 text-sm font-semibold text-[#0f172a] whitespace-nowrap"
                   style={{ background: TEAL }}
                 >
-                  Revisar agora →
+                  Revisar agora
                 </Link>
               </div>
             </section>
