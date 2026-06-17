@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getServerSession } from "@/lib/auth/session";
+import { can } from "@/lib/auth/roles";
 
 const BUCKET = "preparacao-materiais";
 const PATH = "/academico/preparacao";
@@ -17,7 +18,7 @@ export type MaterialState = { error: string } | { ok: true } | null;
 
 export async function criarProjeto(_prev: ProjetoState, formData: FormData): Promise<ProjetoState> {
   const session = await getServerSession();
-  if (!session) return { error: "Não autorizado" };
+  if (!session || !can(session.user.role, "projeto:create")) return { error: "Não autorizado" };
 
   const sigla = (formData.get("olimpiada_sigla") as string)?.trim();
   const nome = (formData.get("nome") as string)?.trim();
@@ -50,7 +51,7 @@ export async function atualizarProjeto(
   formData: FormData,
 ): Promise<ProjetoState> {
   const session = await getServerSession();
-  if (!session) return { error: "Não autorizado" };
+  if (!session || !can(session.user.role, "projeto:update")) return { error: "Não autorizado" };
 
   const sigla = (formData.get("olimpiada_sigla") as string)?.trim();
   const nome = (formData.get("nome") as string)?.trim();
@@ -81,7 +82,7 @@ export async function atualizarProjeto(
 
 export async function excluirProjeto(id: string): Promise<void> {
   const session = await getServerSession();
-  if (!session) return;
+  if (!session || !can(session.user.role, "projeto:delete")) return;
   const supabase = createAdminClient();
   await supabase.from("preparacao_projeto").delete().eq("id", id);
   revalidatePath(PATH);
@@ -128,7 +129,7 @@ export async function criarAula(
   formData: FormData,
 ): Promise<AulaState> {
   const session = await getServerSession();
-  if (!session) return { error: "Não autorizado" };
+  if (!session || !can(session.user.role, "projeto:create")) return { error: "Não autorizado" };
 
   const titulo = (formData.get("titulo") as string)?.trim();
   const tipoRaw = formData.get("tipo") as string;
@@ -180,7 +181,7 @@ export async function atualizarAula(
   formData: FormData,
 ): Promise<AulaState> {
   const session = await getServerSession();
-  if (!session) return { error: "Não autorizado" };
+  if (!session || !can(session.user.role, "projeto:update")) return { error: "Não autorizado" };
 
   const titulo = (formData.get("titulo") as string)?.trim();
   const tipoRaw = formData.get("tipo") as string;
@@ -222,7 +223,7 @@ export async function atualizarAula(
 
 export async function excluirAula(id: string): Promise<void> {
   const session = await getServerSession();
-  if (!session) return;
+  if (!session || !can(session.user.role, "projeto:delete")) return;
   const supabase = createAdminClient();
   await supabase.from("preparacao_aula").delete().eq("id", id);
   revalidatePath(PATH);
@@ -241,7 +242,7 @@ export async function uploadMaterial(
   formData: FormData,
 ): Promise<MaterialState> {
   const session = await getServerSession();
-  if (!session) return { error: "Não autorizado" };
+  if (!session || !can(session.user.role, "projeto:update")) return { error: "Não autorizado" };
 
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "Selecione um arquivo" };
@@ -277,7 +278,7 @@ export async function uploadMaterial(
 
 export async function excluirMaterial(id: string, path: string): Promise<void> {
   const session = await getServerSession();
-  if (!session) return;
+  if (!session || !can(session.user.role, "projeto:delete")) return;
   const supabase = createAdminClient();
   await supabase.storage.from(BUCKET).remove([path]);
   await supabase.from("preparacao_material").delete().eq("id", id);
@@ -358,7 +359,7 @@ export async function getProjetos(): Promise<Projeto[]> {
 
 export async function publicarProjeto(id: string): Promise<void> {
   const session = await getServerSession();
-  if (!session) return;
+  if (!session || !can(session.user.role, "projeto:update")) return;
   const supabase = createAdminClient();
   await supabase.from("preparacao_projeto").update({ publicado: true }).eq("id", id);
   revalidatePath(PATH);
@@ -366,7 +367,7 @@ export async function publicarProjeto(id: string): Promise<void> {
 
 export async function despublicarProjeto(id: string): Promise<void> {
   const session = await getServerSession();
-  if (!session) return;
+  if (!session || !can(session.user.role, "projeto:update")) return;
   const supabase = createAdminClient();
   await supabase.from("preparacao_projeto").update({ publicado: false }).eq("id", id);
   revalidatePath(PATH);
@@ -374,7 +375,7 @@ export async function despublicarProjeto(id: string): Promise<void> {
 
 export async function publicarAula(id: string): Promise<void> {
   const session = await getServerSession();
-  if (!session) return;
+  if (!session || !can(session.user.role, "projeto:update")) return;
   const supabase = createAdminClient();
   await supabase.from("preparacao_aula").update({ publicada: true }).eq("id", id);
   revalidatePath(PATH);
@@ -382,7 +383,7 @@ export async function publicarAula(id: string): Promise<void> {
 
 export async function despublicarAula(id: string): Promise<void> {
   const session = await getServerSession();
-  if (!session) return;
+  if (!session || !can(session.user.role, "projeto:update")) return;
   const supabase = createAdminClient();
   await supabase.from("preparacao_aula").update({ publicada: false }).eq("id", id);
   revalidatePath(PATH);
@@ -405,7 +406,7 @@ export async function criarQuestaoParaAula(
   formData: FormData,
 ): Promise<AulaState> {
   const session = await getServerSession();
-  if (!session) return { error: "Não autorizado" };
+  if (!session || !can(session.user.role, "questao:create")) return { error: "Não autorizado" };
 
   const olimpiada = (formData.get("olimpiada") as string) ?? "";
   const nivel = (formData.get("nivel") as string) || null;
@@ -451,7 +452,7 @@ export async function criarQuestaoParaAula(
 
 export async function removerQuestaoAula(aulaId: string, questaoId: string): Promise<void> {
   const session = await getServerSession();
-  if (!session) return;
+  if (!session || !can(session.user.role, "projeto:update")) return;
   const supabase = createAdminClient();
   await supabase
     .from("preparacao_aula_questao")
@@ -529,7 +530,7 @@ export async function vincularQuestaoExistente(
   questaoId: string,
 ): Promise<{ ok: true } | { error: string }> {
   const session = await getServerSession();
-  if (!session) return { error: "Não autorizado" };
+  if (!session || !can(session.user.role, "projeto:update")) return { error: "Não autorizado" };
 
   const supabase = createAdminClient();
   const { error } = await supabase

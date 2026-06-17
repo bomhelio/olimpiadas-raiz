@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getServerSession } from "@/lib/auth/session";
+import { can } from "@/lib/auth/roles";
+import type { Permission } from "@/lib/auth/roles";
 
 const PATH = "/academico/simulados";
 
@@ -25,9 +27,10 @@ function withBRT(dt: string | null): string | null {
   return dt.includes("T") && !dt.includes("+") && !dt.endsWith("Z") ? dt + ":00-03:00" : dt;
 }
 
-async function requireSession() {
+async function requireSession(permission?: Permission) {
   const session = await getServerSession();
   if (!session) throw new Error("Não autorizado");
+  if (permission && !can(session.user.role, permission)) throw new Error("Não autorizado");
   return session;
 }
 
@@ -106,7 +109,7 @@ export async function criarSimulado(
   _prev: SimuladoAdminState,
   formData: FormData,
 ): Promise<SimuladoAdminState> {
-  await requireSession();
+  await requireSession("simulado:create");
 
   const titulo = (formData.get("titulo") as string)?.trim();
   if (!titulo) return { error: "Título é obrigatório" };
@@ -151,7 +154,7 @@ export async function atualizarSimulado(
   _prev: SimuladoAdminState,
   formData: FormData,
 ): Promise<SimuladoAdminState> {
-  await requireSession();
+  await requireSession("simulado:update");
 
   const titulo = (formData.get("titulo") as string)?.trim();
   if (!titulo) return { error: "Título é obrigatório" };
@@ -191,7 +194,7 @@ export async function atualizarSimulado(
 }
 
 export async function excluirSimulado(id: string): Promise<void> {
-  await requireSession();
+  await requireSession("simulado:delete");
   const supabase = createAdminClient() as any;
   await supabase.from("preparacao_aula").delete().eq("id", id).eq("tipo", "simulado");
   revalidatePath(PATH);
@@ -199,7 +202,7 @@ export async function excluirSimulado(id: string): Promise<void> {
 }
 
 export async function publicarSimulado(id: string): Promise<void> {
-  await requireSession();
+  await requireSession("simulado:update");
   const supabase = createAdminClient() as any;
   await supabase.from("preparacao_aula").update({ publicada: true }).eq("id", id);
   revalidatePath(PATH);
@@ -207,7 +210,7 @@ export async function publicarSimulado(id: string): Promise<void> {
 }
 
 export async function despublicarSimulado(id: string): Promise<void> {
-  await requireSession();
+  await requireSession("simulado:update");
   const supabase = createAdminClient() as any;
   await supabase.from("preparacao_aula").update({ publicada: false }).eq("id", id);
   revalidatePath(PATH);
@@ -220,7 +223,7 @@ export async function vincularQuestao(
   simuladoId: string,
   questaoId: string,
 ): Promise<SimuladoAdminState> {
-  await requireSession();
+  await requireSession("simulado:update");
   const supabase = createAdminClient() as any;
 
   // Próxima ordem
@@ -243,7 +246,7 @@ export async function toggleVisivelAluno(
   aulaQuestaoId: string,
   visivel: boolean,
 ): Promise<void> {
-  await requireSession();
+  await requireSession("simulado:update");
   const supabase = createAdminClient() as any;
   await supabase
     .from("preparacao_aula_questao")
@@ -254,7 +257,7 @@ export async function toggleVisivelAluno(
 }
 
 export async function desvincularQuestao(simuladoId: string, questaoId: string): Promise<void> {
-  await requireSession();
+  await requireSession("simulado:update");
   const supabase = createAdminClient() as any;
   await supabase
     .from("preparacao_aula_questao")
@@ -269,7 +272,7 @@ export async function criarQuestaoParaSimulado(
   _prev: SimuladoAdminState,
   formData: FormData,
 ): Promise<SimuladoAdminState> {
-  await requireSession();
+  await requireSession("questao:create");
 
   const olimpiada = (formData.get("olimpiada") as string) ?? "";
   const nivel = (formData.get("nivel") as string) || null;
