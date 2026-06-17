@@ -72,6 +72,9 @@ export function TreinoClient({
   // Ref que captura qual alternativa o aluno clicou antes da resposta do servidor
   const altSelecionadaRef = useRef<Record<string, string>>({});
 
+  /* ── Seleção pendente (antes de confirmar) ───────────────────────────────── */
+  const [altPendente, setAltPendente] = useState<Record<string, string>>({});
+
   /* ── Gabarito por questão (cache) ────────────────────────────────────────── */
   const [gabaritoMap, setGabaritoMap] = useState<Record<string, GabaritoLocal>>({});
   const [mostrarGabarito, setMostrarGabarito] = useState(false);
@@ -479,57 +482,72 @@ export function TreinoClient({
               <p className="text-sm text-muted-foreground italic">Carregando alternativas…</p>
             ) : (
               alts.map((alt) => {
+                const isPendente = !respondido && altPendente[questao.id] === alt.id;
                 const isCorreta = respondido && alt.id === altCorretaId;
                 const isErrada = respondido && alt.id === altRespondidaId && !correta;
-                const isNeutra = !respondido;
+                const isNeutra = !respondido && !isPendente;
                 return (
                   <div
                     key={alt.id}
-                    className={`rounded-lg border-2 transition-all ${isNeutra ? "border-border cursor-pointer hover:border-sky-400 hover:bg-sky-400/5" : isCorreta ? "border-emerald-500 bg-emerald-500/8" : isErrada ? "border-red-500 bg-red-500/8" : "border-border opacity-60"}`}
+                    className={`rounded-lg border-2 transition-all ${
+                      isNeutra
+                        ? "border-border cursor-pointer hover:border-sky-400 hover:bg-sky-400/5"
+                        : isPendente
+                          ? "border-sky-400 bg-sky-400/8 cursor-pointer"
+                          : isCorreta
+                            ? "border-emerald-500 bg-emerald-500/8"
+                            : isErrada
+                              ? "border-red-500 bg-red-500/8"
+                              : "border-border opacity-60"
+                    }`}
                   >
-                    <form action={action}>
-                      <input type="hidden" name="questao_id" value={questao.id} />
-                      <input type="hidden" name="alternativa_id" value={alt.id} />
-                      <input type="hidden" name="contexto" value={contexto} />
-                      {aulaId && <input type="hidden" name="aula_id" value={aulaId} />}
-                      <button
-                        type="submit"
-                        disabled={respondido || isPending}
-                        onClick={() => {
-                          altSelecionadaRef.current[questao.id] = alt.id;
-                        }}
-                        className="flex items-start gap-3 w-full p-3 text-left"
+                    <button
+                      type="button"
+                      disabled={respondido || isPending}
+                      onClick={() => {
+                        if (!respondido) {
+                          setAltPendente((prev) => ({ ...prev, [questao.id]: alt.id }));
+                        }
+                      }}
+                      className="flex items-start gap-3 w-full p-3 text-left"
+                    >
+                      <span
+                        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold ${
+                          isCorreta
+                            ? "border-emerald-500 text-emerald-400"
+                            : isErrada
+                              ? "border-red-500 text-red-400"
+                              : isPendente
+                                ? "border-sky-400 text-sky-400"
+                                : "border-muted-foreground text-muted-foreground"
+                        }`}
                       >
-                        <span
-                          className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold ${isCorreta ? "border-emerald-500 text-emerald-400" : isErrada ? "border-red-500 text-red-400" : "border-muted-foreground text-muted-foreground"}`}
-                        >
-                          {alt.letra}
-                        </span>
-                        <div className="flex-1">
-                          {alt.texto && <p className="text-sm text-foreground">{alt.texto}</p>}
-                          {alt.imagem_url && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={alt.imagem_url}
-                              alt={`Alternativa ${alt.letra}`}
-                              className="mt-2 rounded border border-border"
-                              style={{
-                                width:
-                                  (
-                                    {
-                                      pequena: "120px",
-                                      media: "220px",
-                                      grande: "360px",
-                                      completa: "100%",
-                                    } as Record<string, string>
-                                  )[(alt as any).imagem_largura ?? "media"] ?? "220px",
-                                maxWidth: "100%",
-                              }}
-                            />
-                          )}
-                        </div>
-                      </button>
-                    </form>
+                        {alt.letra}
+                      </span>
+                      <div className="flex-1">
+                        {alt.texto && <p className="text-sm text-foreground">{alt.texto}</p>}
+                        {alt.imagem_url && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={alt.imagem_url}
+                            alt={`Alternativa ${alt.letra}`}
+                            className="mt-2 rounded border border-border"
+                            style={{
+                              width:
+                                (
+                                  {
+                                    pequena: "120px",
+                                    media: "220px",
+                                    grande: "360px",
+                                    completa: "100%",
+                                  } as Record<string, string>
+                                )[(alt as any).imagem_largura ?? "media"] ?? "220px",
+                              maxWidth: "100%",
+                            }}
+                          />
+                        )}
+                      </div>
+                    </button>
                   </div>
                 );
               })
@@ -684,14 +702,6 @@ export function TreinoClient({
 
         {/* Ações */}
         <div className="flex flex-wrap gap-3">
-          <button
-            onClick={handleGabarito}
-            disabled={!respondidoQuestao}
-            className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-35 disabled:cursor-not-allowed ${mostrarGabarito ? "border-sky-400 text-sky-400 bg-sky-400/8" : "border-border text-muted-foreground hover:border-sky-400 hover:text-sky-400"}`}
-          >
-            {mostrarGabarito ? "Fechar resolução" : "Resolução"}
-          </button>
-
           {/* Voltar — sempre visível */}
           <button
             onClick={() => setIdx((i) => Math.max(0, i - 1))}
@@ -716,6 +726,40 @@ export function TreinoClient({
                 ? "Próxima questão →"
                 : "Concluir sessão →"
               : "Avançar →"}
+          </button>
+
+          {/* Confirmar — só para múltipla escolha, antes de responder */}
+          {questao.tipo === "multipla_escolha" && !respondido && (
+            <form action={action}>
+              <input type="hidden" name="questao_id" value={questao.id} />
+              <input type="hidden" name="alternativa_id" value={altPendente[questao.id] ?? ""} />
+              <input type="hidden" name="contexto" value={contexto} />
+              {aulaId && <input type="hidden" name="aula_id" value={aulaId} />}
+              <button
+                type="submit"
+                disabled={!altPendente[questao.id] || isPending}
+                onClick={() => {
+                  const aid = altPendente[questao.id];
+                  if (aid) altSelecionadaRef.current[questao.id] = aid;
+                }}
+                className={`rounded-lg px-5 py-2 text-sm font-bold transition-all disabled:opacity-35 disabled:cursor-not-allowed ${
+                  altPendente[questao.id]
+                    ? "text-[#0f172a]"
+                    : "border border-border text-muted-foreground"
+                }`}
+                style={altPendente[questao.id] ? { background: TEAL } : {}}
+              >
+                {isPending ? "Confirmando…" : "Confirmar ✓"}
+              </button>
+            </form>
+          )}
+
+          <button
+            onClick={handleGabarito}
+            disabled={!respondidoQuestao}
+            className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-35 disabled:cursor-not-allowed ${mostrarGabarito ? "border-sky-400 text-sky-400 bg-sky-400/8" : "border-border text-muted-foreground hover:border-sky-400 hover:text-sky-400"}`}
+          >
+            {mostrarGabarito ? "Fechar resolução" : "Resolução"}
           </button>
         </div>
       </div>
