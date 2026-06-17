@@ -29,7 +29,17 @@ export type TipoResultado =
   | "prata"
   | "bronze"
   | "mencao_honrosa";
-export type RoleUsuario = "raiz" | "direcao_marca" | "direcao_unidade" | "coordenacao_unidade";
+export type RoleUsuario =
+  | "raiz"
+  | "diretor_marca"
+  | "gestor_conteudo"
+  | "professor"
+  | "coordenador"
+  | "diretor"
+  // Legado — permanecem no enum do banco mas sem permissões no código
+  | "direcao_marca"
+  | "direcao_unidade"
+  | "coordenacao_unidade";
 export type TipoFase = "inscricao" | "prova_1" | "prova_2" | "final" | "divulgacao";
 
 // ---------------------------------------------------------------------------

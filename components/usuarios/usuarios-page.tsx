@@ -56,9 +56,15 @@ type Props = {
 function RoleBadge({ role }: { role: RoleUsuario }) {
   const colors: Record<RoleUsuario, string> = {
     raiz: "bg-[rgb(91,184,193)]/10 text-[rgb(91,184,193)]",
-    direcao_marca: "bg-blue-400/10 text-blue-400",
-    direcao_unidade: "bg-indigo-400/10 text-indigo-400",
-    coordenacao_unidade: "bg-violet-400/10 text-violet-400",
+    diretor_marca: "bg-blue-400/10 text-blue-400",
+    gestor_conteudo: "bg-amber-400/10 text-amber-400",
+    professor: "bg-indigo-400/10 text-indigo-400",
+    coordenador: "bg-violet-400/10 text-violet-400",
+    diretor: "bg-purple-400/10 text-purple-400",
+    // Legado
+    direcao_marca: "bg-zinc-400/10 text-zinc-400",
+    direcao_unidade: "bg-zinc-400/10 text-zinc-400",
+    coordenacao_unidade: "bg-zinc-400/10 text-zinc-400",
   };
   return (
     <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${colors[role]}`}>

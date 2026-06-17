@@ -31,10 +31,11 @@ type Entity =
 type PermMatrix = Record<RoleUsuario, Record<Entity, Action[]>>;
 
 // Modelo atual (lib/auth/roles.ts + lib/types/database.ts):
-//   raiz                — acesso total (todas as ações em todas as entidades)
-//   direcao_marca       — somente leitura (READ_ONLY) + audit_log:read
-//   direcao_unidade     — somente leitura (READ_ONLY) + audit_log:read
-//   coordenacao_unidade — somente leitura (READ_ONLY) + audit_log:read
+//   raiz              — acesso total
+//   diretor_marca     — leitura geral + audit_log + gerenciar usuários
+//   gestor_conteudo   — criar/editar questão/simulado/projeto + leitura geral
+//   professor/coordenador/diretor — leitura geral sem Gestão/Usuários
+//   legados           — sem permissões
 const READ_ONLY_ENTITIES: Record<Entity, Action[]> = {
   marca: ["select"],
   unidade: ["select"],
@@ -43,7 +44,7 @@ const READ_ONLY_ENTITIES: Record<Entity, Action[]> = {
   olimpiada: ["select"],
   inscricao: ["select"],
   resultado: ["select"],
-  audit_log: ["select"],
+  audit_log: [],
 };
 
 const EXPECTED_PERMISSIONS: PermMatrix = {
@@ -57,12 +58,44 @@ const EXPECTED_PERMISSIONS: PermMatrix = {
     resultado: ["select", "insert", "update", "delete"],
     audit_log: ["select"],
   },
-  direcao_marca: READ_ONLY_ENTITIES,
-  direcao_unidade: READ_ONLY_ENTITIES,
-  coordenacao_unidade: READ_ONLY_ENTITIES,
+  diretor_marca: { ...READ_ONLY_ENTITIES, audit_log: ["select"] },
+  gestor_conteudo: READ_ONLY_ENTITIES,
+  professor: READ_ONLY_ENTITIES,
+  coordenador: READ_ONLY_ENTITIES,
+  diretor: READ_ONLY_ENTITIES,
+  direcao_marca: {
+    marca: [],
+    unidade: [],
+    turma: [],
+    aluno: [],
+    olimpiada: [],
+    inscricao: [],
+    resultado: [],
+    audit_log: [],
+  },
+  direcao_unidade: {
+    marca: [],
+    unidade: [],
+    turma: [],
+    aluno: [],
+    olimpiada: [],
+    inscricao: [],
+    resultado: [],
+    audit_log: [],
+  },
+  coordenacao_unidade: {
+    marca: [],
+    unidade: [],
+    turma: [],
+    aluno: [],
+    olimpiada: [],
+    inscricao: [],
+    resultado: [],
+    audit_log: [],
+  },
 };
 
-const READ_ONLY_ROLES: RoleUsuario[] = ["direcao_marca", "direcao_unidade", "coordenacao_unidade"];
+const READ_ONLY_ROLES: RoleUsuario[] = ["professor", "coordenador", "diretor"];
 
 // ---------------------------------------------------------------------------
 // Testes unitários da matriz
@@ -96,16 +129,22 @@ describe("RLS Permission Matrix", () => {
     });
   });
 
-  describe("roles de leitura (direcao_marca, direcao_unidade, coordenacao_unidade)", () => {
-    it("têm apenas select em todas as entidades", () => {
+  describe("roles de leitura (professor, coordenador, diretor)", () => {
+    it("têm apenas select nas entidades gerais (sem audit_log)", () => {
       for (const role of READ_ONLY_ROLES) {
-        for (const entity of entities) {
+        for (const entity of entities.filter((e) => e !== "audit_log")) {
           const perms = EXPECTED_PERMISSIONS[role][entity];
           expect(perms).toContain("select");
           expect(perms).not.toContain("insert");
           expect(perms).not.toContain("update");
           expect(perms).not.toContain("delete");
         }
+      }
+    });
+
+    it("NÃO podem ver audit_log (Gestão oculta)", () => {
+      for (const role of READ_ONLY_ROLES) {
+        expect(EXPECTED_PERMISSIONS[role].audit_log).not.toContain("select");
       }
     });
 
@@ -117,21 +156,21 @@ describe("RLS Permission Matrix", () => {
       }
     });
 
-    it("não podem deletar inscrições", () => {
-      for (const role of READ_ONLY_ROLES) {
-        expect(EXPECTED_PERMISSIONS[role].inscricao).not.toContain("delete");
-      }
-    });
-
-    it("podem ler audit_log (READ_ONLY inclui audit_log:read)", () => {
-      for (const role of READ_ONLY_ROLES) {
-        expect(EXPECTED_PERMISSIONS[role].audit_log).toContain("select");
-      }
-    });
-
     it("compartilham o mesmo conjunto de permissões", () => {
       const serialized = READ_ONLY_ROLES.map((r) => JSON.stringify(EXPECTED_PERMISSIONS[r]));
       expect(new Set(serialized).size).toBe(1);
+    });
+  });
+
+  describe("diretor_marca", () => {
+    it("tem acesso a audit_log (Gestão visível)", () => {
+      expect(EXPECTED_PERMISSIONS.diretor_marca.audit_log).toContain("select");
+    });
+
+    it("NÃO pode criar/deletar entidades administrativas", () => {
+      const perms = EXPECTED_PERMISSIONS.diretor_marca.olimpiada;
+      expect(perms).not.toContain("insert");
+      expect(perms).not.toContain("delete");
     });
   });
 
