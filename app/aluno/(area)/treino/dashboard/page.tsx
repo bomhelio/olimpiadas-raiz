@@ -366,13 +366,34 @@ export default async function TreinoDashboardPage() {
       {/* Cabeçalho */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-xl font-bold text-foreground">Meu Desempenho</h1>
-        <Link
-          href="/aluno/treino"
-          className="rounded-lg px-4 py-2 text-sm font-semibold text-[#0f172a]"
-          style={{ background: TEAL }}
-        >
-          Continuar treinando
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/aluno/treino?favoritas=1"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-sm font-semibold text-amber-400 transition-colors hover:bg-amber-400/20"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            Favoritas
+          </Link>
+          <Link
+            href="/aluno/treino"
+            className="rounded-lg px-4 py-2 text-sm font-semibold text-[#0f172a]"
+            style={{ background: TEAL }}
+          >
+            Continuar treinando
+          </Link>
+        </div>
       </div>
 
       {total_geral === 0 ? (
