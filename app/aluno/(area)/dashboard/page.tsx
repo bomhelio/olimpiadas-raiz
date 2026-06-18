@@ -102,20 +102,9 @@ export default async function AlunoDashboard() {
   return (
     <div className="space-y-8">
       {/* Saudação + ação rápida */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Olá, {firstName}!</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Sua plataforma de preparação olímpica.
-          </p>
-        </div>
-        <Link
-          href="/aluno/treino"
-          className="shrink-0 rounded-lg px-5 py-2.5 text-sm font-bold text-[#0f172a]"
-          style={{ background: TEAL }}
-        >
-          Continuar treinando →
-        </Link>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Olá, {firstName}!</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Sua plataforma de preparação olímpica.</p>
       </div>
 
       {/* Snapshot de desempenho */}
@@ -242,14 +231,91 @@ export default async function AlunoDashboard() {
         </section>
       )}
 
-      {/* Atalhos rápidos */}
-      {total === 0 && !proximoSimulado && proximasAoVivo.length === 0 && (
-        <section>
-          <p className="text-sm text-muted-foreground text-center py-6">
-            Comece respondendo questões no treino para ver seu desempenho aqui.
-          </p>
-        </section>
-      )}
+      {/* Card de ação contextual */}
+      <section>
+        {erros > 0 ? (
+          /* Aluno tem erros: destaque para sessão de revisão */
+          <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-5">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  className="h-5 w-5 text-red-400"
+                  aria-hidden="true"
+                >
+                  <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground">Sessão de Revisão</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Você errou {erros.toLocaleString("pt-BR")} questão{erros !== 1 ? "ões" : ""} —
+                  pratique as mais difíceis para melhorar seu desempenho.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href="/aluno/treino?erradas=1"
+                    className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-bold text-[#0f172a]"
+                    style={{ background: TEAL }}
+                  >
+                    Revisar agora
+                  </Link>
+                  <Link
+                    href="/aluno/treino"
+                    className="inline-flex items-center rounded-lg border border-border px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Treinar livremente →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Aluno sem erros ou sem histórico: CTA simples de treino */
+          <div className="rounded-xl border border-border bg-card p-5">
+            <div className="flex items-start gap-4">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+                style={{ background: `${TEAL}20` }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  className="h-5 w-5"
+                  style={{ color: TEAL }}
+                  aria-hidden="true"
+                >
+                  <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground">Treinar questões</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {total === 0
+                    ? "Comece respondendo questões para ver seu desempenho aqui."
+                    : "Continue praticando para melhorar seu desempenho."}
+                </p>
+                <div className="mt-3">
+                  <Link
+                    href="/aluno/treino"
+                    className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-bold text-[#0f172a]"
+                    style={{ background: TEAL }}
+                  >
+                    Continuar treinando →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
