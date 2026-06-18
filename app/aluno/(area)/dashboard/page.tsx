@@ -235,72 +235,44 @@ export default async function AlunoDashboard() {
         </section>
       )}
 
-      {/* Card de ação contextual */}
+      {/* Ação contextual */}
       <section>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {erros > 0 ? "Sessão de Revisão" : "Treinar questões"}
+        </h2>
         {erros > 0 ? (
-          /* Aluno tem erros: destaque para sessão de revisão */
+          /* Aluno tem erros */
           <div className="rounded-xl border border-border bg-card p-5">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-foreground">Sessão de Revisão</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Você errou {erros.toLocaleString("pt-BR")} {erros !== 1 ? "questões" : "questão"} —
-                pratique as mais difíceis para melhorar seu desempenho.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link
-                  href="/aluno/treino?erradas=1"
-                  className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-bold text-[#0f172a]"
-                  style={{ background: TEAL }}
-                >
-                  Revisar agora
-                </Link>
-                <Link
-                  href="/aluno/treino"
-                  className="inline-flex items-center rounded-lg border border-border px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Treinar livremente →
-                </Link>
-              </div>
+            <p className="text-xs text-muted-foreground">
+              Você errou {erros.toLocaleString("pt-BR")} {erros !== 1 ? "questões" : "questão"} —
+              pratique as mais difíceis para melhorar seu desempenho.
+            </p>
+            <div className="mt-3">
+              <Link
+                href="/aluno/treino?erradas=1"
+                className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-bold text-[#0f172a]"
+                style={{ background: TEAL }}
+              >
+                Revisar agora
+              </Link>
             </div>
           </div>
         ) : (
-          /* Aluno sem erros ou sem histórico: CTA simples de treino */
+          /* Aluno sem erros ou sem histórico */
           <div className="rounded-xl border border-border bg-card p-5">
-            <div className="flex items-start gap-4">
-              <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-                style={{ background: `${TEAL}20` }}
+            <p className="text-xs text-muted-foreground">
+              {total === 0
+                ? "Comece respondendo questões para ver seu desempenho aqui."
+                : "Continue praticando para melhorar seu desempenho."}
+            </p>
+            <div className="mt-3">
+              <Link
+                href="/aluno/treino"
+                className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-bold text-[#0f172a]"
+                style={{ background: TEAL }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  className="h-5 w-5"
-                  style={{ color: TEAL }}
-                  aria-hidden="true"
-                >
-                  <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground">Treinar questões</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {total === 0
-                    ? "Comece respondendo questões para ver seu desempenho aqui."
-                    : "Continue praticando para melhorar seu desempenho."}
-                </p>
-                <div className="mt-3">
-                  <Link
-                    href="/aluno/treino"
-                    className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-bold text-[#0f172a]"
-                    style={{ background: TEAL }}
-                  >
-                    Continuar treinando →
-                  </Link>
-                </div>
-              </div>
+                Continuar treinando →
+              </Link>
             </div>
           </div>
         )}
