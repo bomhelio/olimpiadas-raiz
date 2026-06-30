@@ -21,7 +21,12 @@ export default async function RevisaoQuestaoPage({
 
   const admin = createAdminClient() as any;
   const [{ data: questao }, alternativas, solucao, resposta] = await Promise.all([
-    admin.from("questao").select("*").eq("id", questaoId).single(),
+    admin
+      .from("questao")
+      .select("*")
+      .eq("id", questaoId)
+      .eq("status_cadastro", "publicado")
+      .single(),
     getAlternativasQuestao(questaoId),
     getSolucaoQuestao(questaoId),
     getRespostaAluno(questaoId),

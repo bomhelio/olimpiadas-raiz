@@ -17,7 +17,8 @@ export async function getTopicosDisponiveis() {
   const { data } = await admin
     .from("questao")
     .select("olimpiada, topico, subtopico")
-    .eq("ativo", true);
+    .eq("ativo", true)
+    .eq("status_cadastro", "publicado");
   const rows: { olimpiada: string | null; topico: string | null; subtopico: string | null }[] =
     data ?? [];
 
@@ -134,6 +135,7 @@ export async function getQuestoesTreino(filtros: {
         "id, olimpiada, nivel, fase, ano, numero, enunciado, enunciado_blocos, imagem_url, assunto, topico, subtopico, tipo, video_url, dificuldade",
       )
       .eq("ativo", true)
+      .eq("status_cadastro", "publicado")
       .in("id", ids);
 
     const pool = data ?? [];
@@ -157,7 +159,8 @@ export async function getQuestoesTreino(filtros: {
     .select(
       "id, olimpiada, nivel, fase, ano, numero, enunciado, enunciado_blocos, imagem_url, assunto, topico, subtopico, tipo, video_url, dificuldade",
     )
-    .eq("ativo", true);
+    .eq("ativo", true)
+    .eq("status_cadastro", "publicado");
 
   if (favoritoIds !== null) query = query.in("id", favoritoIds);
   if (filtros.olimpiada) query = query.eq("olimpiada", filtros.olimpiada);

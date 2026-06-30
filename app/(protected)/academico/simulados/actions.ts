@@ -109,7 +109,7 @@ export async function criarSimulado(
   _prev: SimuladoAdminState,
   formData: FormData,
 ): Promise<SimuladoAdminState> {
-  await requireSession("simulado:create");
+  const session = await requireSession("simulado:create");
 
   const titulo = (formData.get("titulo") as string)?.trim();
   if (!titulo) return { error: "Título é obrigatório" };
@@ -120,7 +120,8 @@ export async function criarSimulado(
   const link = (formData.get("link") as string)?.trim() || null;
   const polos = (formData.get("polos") as string)?.trim() || null;
   const descricao = (formData.get("descricao") as string)?.trim() || null;
-  const publicada = formData.get("publicada") === "true";
+  // Só o raiz pode publicar; gestor cria sempre despublicado (aguardando aprovação)
+  const publicada = session.user.role === "raiz" && formData.get("publicada") === "true";
   const projetoIds = formData.getAll("projeto_ids[]") as string[];
   const seriesElegiveis = formData.getAll("series_elegiveis[]") as string[];
 
@@ -154,7 +155,7 @@ export async function atualizarSimulado(
   _prev: SimuladoAdminState,
   formData: FormData,
 ): Promise<SimuladoAdminState> {
-  await requireSession("simulado:update");
+  const session = await requireSession("simulado:update");
 
   const titulo = (formData.get("titulo") as string)?.trim();
   if (!titulo) return { error: "Título é obrigatório" };
@@ -165,7 +166,8 @@ export async function atualizarSimulado(
   const link = (formData.get("link") as string)?.trim() || null;
   const polos = (formData.get("polos") as string)?.trim() || null;
   const descricao = (formData.get("descricao") as string)?.trim() || null;
-  const publicada = formData.get("publicada") === "true";
+  // Só o raiz controla publicação; edição de gestor mantém/torna despublicado
+  const publicada = session.user.role === "raiz" && formData.get("publicada") === "true";
   const projetoIds = formData.getAll("projeto_ids[]") as string[];
   const seriesElegiveis = formData.getAll("series_elegiveis[]") as string[];
 
@@ -202,7 +204,9 @@ export async function excluirSimulado(id: string): Promise<void> {
 }
 
 export async function publicarSimulado(id: string): Promise<void> {
-  await requireSession("simulado:update");
+  // Publicar é exclusivo do raiz (aprovação de conteúdo da plataforma)
+  const session = await requireSession();
+  if (session.user.role !== "raiz") return;
   const supabase = createAdminClient() as any;
   await supabase.from("preparacao_aula").update({ publicada: true }).eq("id", id);
   revalidatePath(PATH);
@@ -210,7 +214,8 @@ export async function publicarSimulado(id: string): Promise<void> {
 }
 
 export async function despublicarSimulado(id: string): Promise<void> {
-  await requireSession("simulado:update");
+  const session = await requireSession();
+  if (session.user.role !== "raiz") return;
   const supabase = createAdminClient() as any;
   await supabase.from("preparacao_aula").update({ publicada: false }).eq("id", id);
   revalidatePath(PATH);

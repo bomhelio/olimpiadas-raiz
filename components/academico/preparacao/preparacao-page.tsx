@@ -28,6 +28,7 @@ import {
 import { CATALOGO } from "@/lib/olimpiadas/catalogo";
 import { EnunciadoBlocosEditor } from "@/app/(protected)/academico/banco-questoes/enunciado-blocos-editor";
 import { inputClass, selectClass } from "@/components/ui/form-field";
+import { useUser } from "@/lib/auth/context";
 
 // ─── Séries por segmento ──────────────────────────────────────────────────────
 
@@ -880,6 +881,8 @@ function EditarAulaForm({ aula, onClose }: { aula: Aula; onClose: () => void }) 
 // ─── Card de aula ─────────────────────────────────────────────────────────────
 
 function AulaCard({ aula }: { aula: Aula }) {
+  const { user } = useUser();
+  const isRaiz = user.role === "raiz";
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [showQuestaoForm, setShowQuestaoForm] = useState(false);
@@ -947,18 +950,31 @@ function AulaCard({ aula }: { aula: Aula }) {
           </p>
         </div>
 
-        <button
-          onClick={handleTogglePublish}
-          disabled={publishing}
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-50 ${
-            aula.publicada
-              ? "bg-emerald-500/10 text-emerald-400 hover:bg-red-500/10 hover:text-red-400"
-              : "bg-muted text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-400"
-          }`}
-          title={aula.publicada ? "Despublicar aula" : "Publicar aula"}
-        >
-          {aula.publicada ? "Publicada" : "Rascunho"}
-        </button>
+        {isRaiz ? (
+          <button
+            onClick={handleTogglePublish}
+            disabled={publishing}
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-50 ${
+              aula.publicada
+                ? "bg-emerald-500/10 text-emerald-400 hover:bg-red-500/10 hover:text-red-400"
+                : "bg-muted text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-400"
+            }`}
+            title={aula.publicada ? "Despublicar aula" : "Publicar aula"}
+          >
+            {aula.publicada ? "Publicada" : "Rascunho"}
+          </button>
+        ) : (
+          <span
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+              aula.publicada
+                ? "bg-emerald-500/10 text-emerald-400"
+                : "bg-amber-400/10 text-amber-400"
+            }`}
+            title={aula.publicada ? "Publicada" : "Aguardando aprovação"}
+          >
+            {aula.publicada ? "Publicada" : "Aguardando"}
+          </span>
+        )}
 
         <button
           onClick={() => setExpanded((v) => !v)}
@@ -1411,6 +1427,8 @@ function BuscarQuestaoAulaForm({
 // ─── Card de projeto ──────────────────────────────────────────────────────────
 
 function ProjetoCard({ projeto }: { projeto: Projeto }) {
+  const { user } = useUser();
+  const isRaiz = user.role === "raiz";
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [showAulaForm, setShowAulaForm] = useState(false);
@@ -1476,18 +1494,31 @@ function ProjetoCard({ projeto }: { projeto: Projeto }) {
             })()}
           </p>
         </div>
-        <button
-          onClick={handleTogglePublish}
-          disabled={publishing}
-          className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-50 ${
-            projeto.publicado
-              ? "bg-emerald-500/10 text-emerald-400 hover:bg-red-500/10 hover:text-red-400"
-              : "bg-muted text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-400"
-          }`}
-          title={projeto.publicado ? "Despublicar" : "Publicar no portal do aluno"}
-        >
-          {projeto.publicado ? "Publicado" : "Rascunho"}
-        </button>
+        {isRaiz ? (
+          <button
+            onClick={handleTogglePublish}
+            disabled={publishing}
+            className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-50 ${
+              projeto.publicado
+                ? "bg-emerald-500/10 text-emerald-400 hover:bg-red-500/10 hover:text-red-400"
+                : "bg-muted text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-400"
+            }`}
+            title={projeto.publicado ? "Despublicar" : "Publicar no portal do aluno"}
+          >
+            {projeto.publicado ? "Publicado" : "Rascunho"}
+          </button>
+        ) : (
+          <span
+            className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+              projeto.publicado
+                ? "bg-emerald-500/10 text-emerald-400"
+                : "bg-amber-400/10 text-amber-400"
+            }`}
+            title={projeto.publicado ? "Publicado" : "Aguardando aprovação"}
+          >
+            {projeto.publicado ? "Publicado" : "Aguardando"}
+          </span>
+        )}
 
         <button
           onClick={(e) => {

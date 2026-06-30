@@ -359,7 +359,8 @@ export async function getProjetos(): Promise<Projeto[]> {
 
 export async function publicarProjeto(id: string): Promise<void> {
   const session = await getServerSession();
-  if (!session || !can(session.user.role, "projeto:update")) return;
+  // Publicar/despublicar é exclusivo do raiz (controle de conteúdo da plataforma)
+  if (!session || session.user.role !== "raiz") return;
   const supabase = createAdminClient();
   await supabase.from("preparacao_projeto").update({ publicado: true }).eq("id", id);
   revalidatePath(PATH);
@@ -367,7 +368,7 @@ export async function publicarProjeto(id: string): Promise<void> {
 
 export async function despublicarProjeto(id: string): Promise<void> {
   const session = await getServerSession();
-  if (!session || !can(session.user.role, "projeto:update")) return;
+  if (!session || session.user.role !== "raiz") return;
   const supabase = createAdminClient();
   await supabase.from("preparacao_projeto").update({ publicado: false }).eq("id", id);
   revalidatePath(PATH);
@@ -375,7 +376,7 @@ export async function despublicarProjeto(id: string): Promise<void> {
 
 export async function publicarAula(id: string): Promise<void> {
   const session = await getServerSession();
-  if (!session || !can(session.user.role, "projeto:update")) return;
+  if (!session || session.user.role !== "raiz") return;
   const supabase = createAdminClient();
   await supabase.from("preparacao_aula").update({ publicada: true }).eq("id", id);
   revalidatePath(PATH);
@@ -383,7 +384,7 @@ export async function publicarAula(id: string): Promise<void> {
 
 export async function despublicarAula(id: string): Promise<void> {
   const session = await getServerSession();
-  if (!session || !can(session.user.role, "projeto:update")) return;
+  if (!session || session.user.role !== "raiz") return;
   const supabase = createAdminClient();
   await supabase.from("preparacao_aula").update({ publicada: false }).eq("id", id);
   revalidatePath(PATH);
@@ -421,6 +422,9 @@ export async function criarQuestaoParaAula(
 
   const supabase = createAdminClient();
 
+  // Só o raiz publica direto; demais entram na fila de aprovação
+  const status_cadastro = session.user.role === "raiz" ? "publicado" : "aguardando_revisao";
+
   const { data: questao, error: qErr } = await supabase
     .from("questao")
     .insert({
@@ -434,6 +438,7 @@ export async function criarQuestaoParaAula(
       topico,
       subtopico,
       tipo,
+      status_cadastro,
     } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     .select("id")
     .single();
