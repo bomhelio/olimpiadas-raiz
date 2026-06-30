@@ -30,6 +30,8 @@ type SimuladoFormProps = {
   submitLabel?: string;
   cancelHref?: string;
   error?: string | null;
+  /** Só o raiz controla a publicação; gestor cria/edita em rascunho (aguardando aprovação) */
+  isRaiz?: boolean;
 };
 
 export function SimuladoForm({
@@ -39,6 +41,7 @@ export function SimuladoForm({
   submitLabel = "Salvar",
   cancelHref = "/academico/simulados",
   error,
+  isRaiz = false,
 }: SimuladoFormProps) {
   const [modalidade, setModalidade] = useState<"online" | "presencial">(
     (defaults.modalidade as "online" | "presencial") ?? "online",
@@ -97,14 +100,25 @@ export function SimuladoForm({
 
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-foreground">Status</label>
-            <select
-              name="publicada"
-              defaultValue={defaults.publicada ? "true" : "false"}
-              className={selectClass}
-            >
-              <option value="false">Rascunho</option>
-              <option value="true">Publicado</option>
-            </select>
+            {isRaiz ? (
+              <select
+                name="publicada"
+                defaultValue={defaults.publicada ? "true" : "false"}
+                className={selectClass}
+              >
+                <option value="false">Rascunho</option>
+                <option value="true">Publicado</option>
+              </select>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">
+                {defaults.publicada ? (
+                  <span className="text-emerald-400">Publicado</span>
+                ) : (
+                  <span className="text-amber-400">Aguardando aprovação</span>
+                )}
+                <span className="block text-[11px]">A publicação é feita pela administração.</span>
+              </p>
+            )}
           </div>
         </div>
 

@@ -4,10 +4,12 @@ import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { criarSimulado, getProjetos } from "../actions";
 import { SimuladoForm } from "../simulado-form";
+import { useUser } from "@/lib/auth/context";
 
 type Projeto = { id: string; nome: string; olimpiada_sigla: string; ano_letivo: number };
 
 export default function NovoSimuladoPage() {
+  const { user } = useUser();
   const [state, action] = useActionState(criarSimulado, null);
   const [projetos, setProjetos] = useState<Projeto[]>([]);
 
@@ -34,6 +36,7 @@ export default function NovoSimuladoPage() {
         projetos={projetos}
         submitLabel="Criar simulado"
         error={error}
+        isRaiz={user.role === "raiz"}
       />
     </div>
   );

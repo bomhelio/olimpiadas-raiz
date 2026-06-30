@@ -18,6 +18,7 @@ import {
 } from "../actions";
 import { SimuladoForm } from "../simulado-form";
 import { inputClass } from "@/components/ui/form-field";
+import { useUser } from "@/lib/auth/context";
 
 type Simulado = Awaited<ReturnType<typeof getSimuladoDetalhe>>;
 type Projeto = { id: string; nome: string; olimpiada_sigla: string; ano_letivo: number };
@@ -43,6 +44,8 @@ function fmtSegundos(s: number | null) {
 }
 
 export default function EditarSimuladoPage({ params }: { params: Promise<{ id: string }> }) {
+  const { user } = useUser();
+  const isRaiz = user.role === "raiz";
   const [id, setId] = useState<string | null>(null);
   const [simulado, setSimulado] = useState<Simulado | null>(null);
   const [projetos, setProjetos] = useState<Projeto[]>([]);
@@ -107,33 +110,45 @@ export default function EditarSimuladoPage({ params }: { params: Promise<{ id: s
           <span>/</span>
           <span className="text-foreground">{simulado.titulo}</span>
         </div>
-        <div className="flex gap-2">
-          {simulado.publicada ? (
-            <button
-              type="button"
-              onClick={() =>
-                startPublish(async () => {
-                  await despublicarSimulado(id);
-                  setSimulado({ ...simulado, publicada: false });
-                })
-              }
-              className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Despublicar
-            </button>
+        <div className="flex gap-2 items-center">
+          {isRaiz ? (
+            simulado.publicada ? (
+              <button
+                type="button"
+                onClick={() =>
+                  startPublish(async () => {
+                    await despublicarSimulado(id);
+                    setSimulado({ ...simulado, publicada: false });
+                  })
+                }
+                className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Despublicar
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  startPublish(async () => {
+                    await publicarSimulado(id);
+                    setSimulado({ ...simulado, publicada: true });
+                  })
+                }
+                className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+              >
+                Publicar
+              </button>
+            )
           ) : (
-            <button
-              type="button"
-              onClick={() =>
-                startPublish(async () => {
-                  await publicarSimulado(id);
-                  setSimulado({ ...simulado, publicada: true });
-                })
-              }
-              className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+            <span
+              className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                simulado.publicada
+                  ? "bg-emerald-400/10 text-emerald-400"
+                  : "bg-amber-400/10 text-amber-400"
+              }`}
             >
-              Publicar
-            </button>
+              {simulado.publicada ? "Publicado" : "Aguardando aprovação"}
+            </span>
           )}
           <button
             type="button"
@@ -175,6 +190,7 @@ export default function EditarSimuladoPage({ params }: { params: Promise<{ id: s
         submitLabel="Salvar alterações"
         cancelHref="/academico/simulados"
         error={error}
+        isRaiz={isRaiz}
       />
 
       {/* Questões */}
