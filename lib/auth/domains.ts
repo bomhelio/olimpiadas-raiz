@@ -13,6 +13,7 @@ export type AllowedDomain = (typeof ALLOWED_DOMAINS)[number];
 // Únicos emails com role raiz (admin total) — todos os demais recebem professor por padrão
 export const ADMIN_EMAILS = new Set([
   "helio.barbosa@matrizeducacao.com.br",
+  "helio.barbosa@raizeducacao.com.br",
   "hugo.carvalho@raizeducacao.com.br",
 ]);
 
