@@ -163,7 +163,8 @@ export async function criarQuestao(_prev: QuestaoState, formData: FormData): Pro
         .join("\n\n") || null
     : null;
 
-  const status_cadastro = "publicado";
+  // Só o raiz publica direto; demais (gestor de conteúdo) entram na fila de aprovação
+  const status_cadastro = session.user.role === "raiz" ? "publicado" : "aguardando_revisao";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createAdminClient() as any;
@@ -232,6 +233,11 @@ export async function atualizarQuestao(
 
   const enunciado_blocos = parseBlocos((formData.get("enunciado_blocos") as string) ?? "");
 
+  // Edição por não-raiz devolve a questão para a fila de aprovação (revisão obrigatória).
+  // Raiz mantém o status atual (não rebaixa conteúdo já publicado ao editar).
+  const statusUpdate =
+    session.user.role === "raiz" ? {} : { status_cadastro: "aguardando_revisao" };
+
   const { error } = await supabase
     .from("questao")
     .update({
@@ -250,6 +256,7 @@ export async function atualizarQuestao(
       publico_alvo: (formData.get("publico_alvo") as string) || null,
       tem_resolucao_video: (formData.get("tem_resolucao_video") as string) || "nao",
       tem_resolucao_texto: (formData.get("tem_resolucao_texto") as string) || "nao",
+      ...statusUpdate,
     })
     .eq("id", id);
 
